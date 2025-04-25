@@ -53,6 +53,12 @@ func (s *Server) RegisterTools() {
 		CreateOrder(s.log, s.client),
 		FetchOrder(s.log, s.client),
 	)
+
+	// payment links tools
+	s.server.AddTools(
+		CreatePaymentLink(s.log, s.client),
+		FetchPaymentLink(s.log, s.client),
+	)
 }
 
 // GetMCPServer returns the underlying MCP server instance

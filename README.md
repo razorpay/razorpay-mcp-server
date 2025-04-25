@@ -120,9 +120,11 @@ Learn more about MCP servers in VS Code's [agent mode documentation](https://cod
 
 Currently, the Razorpay MCP Server provides the following tools:
 
-| Tool                 | Description                                |
-| -------------------- | ------------------------------------------ |
-| `fetch_payment`      | Fetch details of a payment by ID           |
+| Tool                  | Description                           |
+|-----------------------|---------------------------------------|
+| `fetch_payment`       | Fetch details of a payment by ID      |
+| `payment_link.create` | Create a new payment link             |
+| `payment_link.fetch`  | Fetch details of a payment link by ID |
 
 ## Configuration
 
@@ -143,6 +145,37 @@ You can use the standard Go debugging tools to troubleshoot issues with the serv
 ```json
 {
   "payment_id": "pay_1234567890abcdef"
+}
+```
+
+### Creating a payment link
+
+```json
+{
+  "amount": 10000,
+  "currency": "INR",
+  "description": "Payment for Product XYZ",
+  "customer": {
+    "name": "Customer Name",
+    "email": "customer@example.com",
+    "contact": "+919999999999"
+  },
+  "notify": {
+    "sms": true,
+    "email": true
+  },
+  "reminder_enable": true,
+  "notes": {
+    "order_id": "ORD12345"
+  }
+}
+```
+
+### Fetching a payment link
+
+```json
+{
+  "payment_link_id": "plink_1234567890abcdef"
 }
 ```
 
