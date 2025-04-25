@@ -120,13 +120,14 @@ Learn more about MCP servers in VS Code's [agent mode documentation](https://cod
 
 Currently, the Razorpay MCP Server provides the following tools:
 
-| Tool                  | Description                           |
-|-----------------------|---------------------------------------|
-| `payment.fetch`       | Fetch payment details                 |
-| `payment_link.create` | Creates a new payment link            |
-| `payment_link.fetch`  | Fetch details of a payment link       |
-| `order.create`        | Creates an order                      |
-| `order.fetch`         | Fetch order details                   |
+| Tool                      | Description                         |
+|---------------------------|-------------------------------------|
+| `payment.fetch`           | Fetch payment details               |
+| `payment_link.create`     | Creates a new standard payment link |
+| `payment_link_upi.create` | Creates a new UPI payment link      |
+| `payment_link.fetch`      | Fetch details of a payment link     |
+| `order.create`            | Creates an order                    |
+| `order.fetch`             | Fetch order details                 |
 
 ## Configuration
 
