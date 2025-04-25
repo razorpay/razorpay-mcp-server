@@ -38,12 +38,13 @@ func CreatePaymentLink(
 	) (*mcpgo.ToolResult, error) {
 		// validate required parameters
 		amount, err := RequiredInt(r, "amount")
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
+
 		currency, err := RequiredParam[string](r, "currency")
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
 
 		// Create request payload
@@ -102,8 +103,8 @@ func CreateUpiPaymentLink(
 	) (*mcpgo.ToolResult, error) {
 		// validate required parameters
 		amount, err := RequiredInt(r, "amount")
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
 
 		currency := "INR"
@@ -162,8 +163,8 @@ func FetchPaymentLink(
 	) (*mcpgo.ToolResult, error) {
 		// Use the helper function to get the required parameter
 		id, err := RequiredParam[string](r, "payment_link_id")
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
 
 		paymentLink, err := client.PaymentLink.Fetch(id, nil, nil)
