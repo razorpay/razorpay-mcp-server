@@ -24,6 +24,7 @@ linters:
     - gocritic
     - bodyclose
     - makezero
+    - lll
 
 linters-settings:
   gocyclo:
@@ -45,6 +46,9 @@ linters-settings:
     rules:
       - name: blank-imports
         disabled: true
+  lll:
+    line-length: 80
+    tab-width: 1
 
 output:
   formats: colored-line-number

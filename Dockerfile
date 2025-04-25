@@ -1,4 +1,3 @@
-// nosemgrep: razorpay.custom-docker-base-image-check
 FROM golang:1.24.2-alpine AS builder
 
 WORKDIR /app
@@ -11,7 +10,6 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o razorpay-mcp-server ./cmd/razorpay-mcp-server
 
-// nosemgrep: razorpay.custom-docker-base-image-check
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
