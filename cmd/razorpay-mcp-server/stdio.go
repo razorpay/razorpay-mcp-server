@@ -21,24 +21,28 @@ import (
 )
 
 // stdioCmd starts the mcp server in stdio transport mode
-//
-// TODO: implement the stdio server
 var stdioCmd = &cobra.Command{
 	Use:   "stdio",
 	Short: "start the stdio server",
 	Run: func(cmd *cobra.Command, args []string) {
-		logPath := viper.GetString("razorpay_log_file")
+		logPath := viper.GetString("log_file")
 		log, close, err := log.New(logPath)
 		if err != nil {
 			stdlog.Fatalf("create logger: %v", err)
 		}
 		defer close()
 
-		key := viper.GetString("razorpay_key_id")
-		secret := viper.GetString("razorpay_key_secret")
+		key := viper.GetString("key")
+		secret := viper.GetString("secret")
 		client := rzpsdk.NewClient(key, secret)
 
-		err = runStdioServer(log, client)
+		// Get toolsets to enable from config
+		enabledToolsets := viper.GetStringSlice("toolsets")
+
+		// Get read-only mode from config
+		readOnly := viper.GetBool("read_only")
+
+		err = runStdioServer(log, client, enabledToolsets, readOnly)
 		if err != nil {
 			log.Error("error running stdio server", "error", err)
 			stdlog.Fatalf("failed to run stdio server: %v", err)
@@ -46,7 +50,12 @@ var stdioCmd = &cobra.Command{
 	},
 }
 
-func runStdioServer(log *slog.Logger, client *rzpsdk.Client) error {
+func runStdioServer(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+	enabledToolsets []string,
+	readOnly bool,
+) error {
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -54,7 +63,16 @@ func runStdioServer(log *slog.Logger, client *rzpsdk.Client) error {
 	)
 	defer stop()
 
-	srv := razorpay.NewServer(log, client, version)
+	srv, err := razorpay.NewServer(
+		log,
+		client,
+		version,
+		enabledToolsets,
+		readOnly,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create server: %w", err)
+	}
 	srv.RegisterTools()
 
 	stdioSrv, err := mcpgo.NewStdioServer(srv.GetMCPServer())

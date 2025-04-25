@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
-
 	rzpsdk "github.com/razorpay/razorpay-go"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
 
 // Server extends mcpgo.Server
 type Server struct {
-	log    *slog.Logger
-	client *rzpsdk.Client
-	server mcpgo.Server
+	log      *slog.Logger
+	client   *rzpsdk.Client
+	server   mcpgo.Server
+	toolsets *toolsets.ToolsetGroup
 }
 
 // NewServer creates a new Server
@@ -21,7 +23,9 @@ func NewServer(
 	log *slog.Logger,
 	client *rzpsdk.Client,
 	version string,
-) *Server {
+	enabledToolsets []string,
+	readOnly bool,
+) (*Server, error) {
 	// Create default options
 	opts := []mcpgo.ServerOption{
 		mcpgo.WithLogging(),
@@ -36,29 +40,29 @@ func NewServer(
 		opts...,
 	)
 
-	return &Server{
-		log:    log,
-		client: client,
-		server: server,
+	// Initialize toolsets
+	toolsets, err := NewToolSets(log, client, enabledToolsets, readOnly)
+	if err != nil {
+		return nil, err
 	}
+
+	// Create the server instance
+	srv := &Server{
+		log:      log,
+		client:   client,
+		server:   server,
+		toolsets: toolsets,
+	}
+
+	// Register all tools
+	srv.RegisterTools()
+
+	return srv, nil
 }
 
 // RegisterTools adds all available tools to the server
 func (s *Server) RegisterTools() {
-	// payments tools
-	s.server.AddTools(FetchPayment(s.log, s.client))
-
-	// orders tools
-	s.server.AddTools(
-		CreateOrder(s.log, s.client),
-		FetchOrder(s.log, s.client),
-	)
-
-	// payment links tools
-	s.server.AddTools(
-		CreatePaymentLink(s.log, s.client),
-		FetchPaymentLink(s.log, s.client),
-	)
+	s.toolsets.RegisterTools(s.server)
 }
 
 // GetMCPServer returns the underlying MCP server instance

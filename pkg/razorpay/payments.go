@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
-
 	rzpsdk "github.com/razorpay/razorpay-go"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
 
 // FetchPayment returns a tool that fetches payment details using payment_id
@@ -43,8 +43,8 @@ func FetchPayment(
 	}
 
 	return mcpgo.NewTool(
-		"fetch_payment",
-		"fetch payment details using payment id.",
+		"payment.fetch",
+		"Use this tool to retrieve the details of a specific payment using its id. Amount returned is in paisa", //nolint:lll
 		parameters,
 		handler,
 	)

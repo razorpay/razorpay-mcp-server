@@ -1,3 +1,4 @@
+//nolint:lll
 package main
 
 import (
@@ -34,14 +35,25 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// flags will be available for all subcommands
-	rootCmd.PersistentFlags().StringP("key", "k", "", "your razorpay api key")       //nolint:lll
-	rootCmd.PersistentFlags().StringP("secret", "s", "", "your razorpay api secret") //nolint:lll
-	rootCmd.PersistentFlags().StringP("log-file", "l", "", "path to the log file")   //nolint:lll
+	rootCmd.PersistentFlags().StringP("key", "k", "", "your razorpay api key")
+	rootCmd.PersistentFlags().StringP("secret", "s", "", "your razorpay api secret")
+	rootCmd.PersistentFlags().StringP("log-file", "l", "", "path to the log file")
+	rootCmd.PersistentFlags().StringSliceP("toolsets", "t", []string{}, "comma-separated list of toolsets to enable")
+	rootCmd.PersistentFlags().Bool("read-only", false, "run server in read-only mode")
 
-	// bind flags to viper env vars
-	_ = viper.BindPFlag("razorpay_key_id", rootCmd.PersistentFlags().Lookup("key"))
-	_ = viper.BindPFlag("razorpay_key_secret", rootCmd.PersistentFlags().Lookup("secret")) //nolint:lll
-	_ = viper.BindPFlag("razorpay_log_file", rootCmd.PersistentFlags().Lookup("log-file")) //nolint:lll
+	// bind flags to viper
+	_ = viper.BindPFlag("key", rootCmd.PersistentFlags().Lookup("key"))
+	_ = viper.BindPFlag("secret", rootCmd.PersistentFlags().Lookup("secret"))
+	_ = viper.BindPFlag("log_file", rootCmd.PersistentFlags().Lookup("log-file"))
+	_ = viper.BindPFlag("toolsets", rootCmd.PersistentFlags().Lookup("toolsets"))
+	_ = viper.BindPFlag("read_only", rootCmd.PersistentFlags().Lookup("read-only"))
+
+	// Set environment variable mappings
+	_ = viper.BindEnv("key", "RAZORPAY_KEY_ID")        // Maps RAZORPAY_KEY_ID to key
+	_ = viper.BindEnv("secret", "RAZORPAY_KEY_SECRET") // Maps RAZORPAY_KEY_SECRET to secret
+
+	// Enable environment variable reading
+	viper.AutomaticEnv()
 
 	// subcommands
 	rootCmd.AddCommand(stdioCmd)

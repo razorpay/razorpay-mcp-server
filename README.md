@@ -122,9 +122,11 @@ Currently, the Razorpay MCP Server provides the following tools:
 
 | Tool                  | Description                           |
 |-----------------------|---------------------------------------|
-| `fetch_payment`       | Fetch details of a payment by ID      |
-| `payment_link.create` | Create a new payment link             |
-| `payment_link.fetch`  | Fetch details of a payment link by ID |
+| `payment.fetch`       | Fetch payment details                 |
+| `payment_link.create` | Creates a new payment link            |
+| `payment_link.fetch`  | Fetch details of a payment link       |
+| `order.create`        | Creates an order                      |
+| `order.fetch`         | Fetch order details                   |
 
 ## Configuration
 
@@ -132,52 +134,23 @@ The server requires the following configuration:
 
 - `RAZORPAY_KEY_ID`: Your Razorpay API key ID
 - `RAZORPAY_KEY_SECRET`: Your Razorpay API key secret
-- `RAZORPAY_LOG_FILE` (optional): Path to log file for server logs
+- `LOG_FILE` (optional): Path to log file for server logs
+- `TOOLSETS` (optional): Comma-separated list of toolsets to enable (default: "all")
+- `READ_ONLY` (optional): Run server in read-only mode (default: false)
+
+### Command Line Flags
+
+The server supports the following command line flags:
+
+- `--key` or `-k`: Your Razorpay API key ID
+- `--secret` or `-s`: Your Razorpay API key secret
+- `--log-file` or `-l`: Path to log file
+- `--toolsets` or `-t`: Comma-separated list of toolsets to enable
+- `--read-only`: Run server in read-only mode
 
 ## Debugging the Server
 
-You can use the standard Go debugging tools to troubleshoot issues with the server. Log files can be specified using the `--log-file` flag or `RAZORPAY_LOG_FILE` environment variable.
-
-## Tool Example
-
-### Fetching a payment
-
-```json
-{
-  "payment_id": "pay_1234567890abcdef"
-}
-```
-
-### Creating a payment link
-
-```json
-{
-  "amount": 10000,
-  "currency": "INR",
-  "description": "Payment for Product XYZ",
-  "customer": {
-    "name": "Customer Name",
-    "email": "customer@example.com",
-    "contact": "+919999999999"
-  },
-  "notify": {
-    "sms": true,
-    "email": true
-  },
-  "reminder_enable": true,
-  "notes": {
-    "order_id": "ORD12345"
-  }
-}
-```
-
-### Fetching a payment link
-
-```json
-{
-  "payment_link_id": "plink_1234567890abcdef"
-}
-```
+You can use the standard Go debugging tools to troubleshoot issues with the server. Log files can be specified using the `--log-file` flag (defaults to ./logs)
 
 ## License
 
