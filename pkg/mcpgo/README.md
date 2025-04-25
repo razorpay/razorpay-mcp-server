@@ -59,8 +59,8 @@ tool := mcpgo.NewTool(
     []mcpgo.ToolParameter{
         mcpgo.WithString(
             "param1",
-            "Description of param1",
-            true,
+            mcpgo.Description("Description of param1"),
+            mcpgo.Required(),
         ),
     },
     func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
@@ -102,8 +102,8 @@ func FetchPayment(
     parameters := []mcpgo.ToolParameter{
         mcpgo.WithString(
             "payment_id",
-            "payment_id is unique identifier of the payment to be retrieved.",
-            true,
+            mcpgo.Description("payment_id is unique identifier of the payment to be retrieved."),
+            mcpgo.Required(),
         ),
     }
 

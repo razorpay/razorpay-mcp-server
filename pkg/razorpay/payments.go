@@ -18,8 +18,9 @@ func FetchPayment(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"payment_id",
-			"payment_id is unique identifier of the payment to be retrieved.",
-			true,
+			mcpgo.Description("payment_id is unique identifier "+
+				"of the payment to be retrieved."),
+			mcpgo.Required(),
 		),
 	}
 
@@ -27,18 +28,12 @@ func FetchPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		arg, ok := r.Arguments["payment_id"]
-		if !ok {
-			return mcpgo.NewToolResultError(
-				"payment id is a required field"), nil
-		}
-		id, ok := arg.(string)
-		if !ok {
-			return mcpgo.NewToolResultError(
-				"payment id is expected to be a string"), nil
+		paymentID, err := RequiredParam[string](r, "payment_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
 
-		payment, err := client.Payment.Fetch(id, nil, nil)
+		payment, err := client.Payment.Fetch(paymentID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment failed: %s", err.Error())), nil
