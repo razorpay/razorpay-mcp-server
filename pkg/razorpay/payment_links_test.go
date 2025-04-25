@@ -199,3 +199,79 @@ func Test_FetchPaymentLink(t *testing.T) {
 		})
 	}
 }
+
+func Test_CreateUpiPaymentLink(t *testing.T) {
+	createPaymentLinkPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.PaymentLink_URL,
+	)
+
+	successfulUpiPaymentLinkResp := map[string]interface{}{
+		"id":          "plink_UpiExjpAUN3gVHrPJ",
+		"amount":      float64(50000),
+		"currency":    "INR",
+		"description": "Test UPI payment",
+		"status":      "created",
+		"short_url":   "https://rzp.io/i/upiLink123",
+		"upi_link":    true,
+	}
+
+	errorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "API error: Something went wrong",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful UPI payment link creation",
+			Request: map[string]interface{}{
+				"amount":      float64(50000),
+				"description": "Test UPI payment",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentLinkPath,
+						Method:   "POST",
+						Response: successfulUpiPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulUpiPaymentLinkResp,
+		},
+		{
+			Name:           "missing amount parameter",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: amount",
+		},
+		{
+			Name: "UPI payment link creation fails",
+			Request: map[string]interface{}{
+				"amount": float64(50000),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentLinkPath,
+						Method:   "POST",
+						Response: errorResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "upi pl create failed: API error: Something went wrong",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, CreateUpiPaymentLink, "UPI Payment Link")
+		})
+	}
+}
