@@ -1,0 +1,5 @@
+/dist
+/bin
+/.go
+/logs
+/vendor

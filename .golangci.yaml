@@ -1,0 +1,56 @@
+run:
+  timeout: 5m
+  tests: true
+  concurrency: 4
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gocyclo
+    - gosec
+    - misspell
+    - gofmt
+    - goimports
+    - revive
+    - interfacebloat
+    - iface
+    - gocritic
+    - bodyclose
+    - makezero
+    - lll
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  goimports:
+    local-prefixes: github.com/razorpay/razorpay-mcp-server
+  interfacebloat:
+    max: 5
+  iface:
+    enable:
+      - opaque
+      - identical
+  revive:
+    rules:
+      - name: blank-imports
+        disabled: true
+  lll:
+    line-length: 80
+    tab-width: 1
+
+output:
+  formats: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true

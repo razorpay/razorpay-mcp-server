@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions, Help, or General Advice
+    url: https://github.com/razorpay/razorpay-mcp-server/discussions
+    about: For any questions, help, or general advice, please use GitHub Discussions instead of opening an issue
+  - name: Documentation
+    url: https://github.com/razorpay/razorpay-mcp-server#readme
+    about: Check the documentation before reporting issues
+  - name: Report Security Vulnerabilities
+    url: https://razorpay.com/security/
+    about: Please report security vulnerabilities according to our security policy 
