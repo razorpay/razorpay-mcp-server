@@ -1,4 +1,4 @@
-# Razorpay MCP Server
+# Razorpay MCP Server (Official)
 
 The Razorpay MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that provides seamless integration with Razorpay APIs, enabling advanced payment processing capabilities for developers and AI tools.
 
