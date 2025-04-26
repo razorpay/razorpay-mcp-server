@@ -2,25 +2,44 @@
 
 The Razorpay MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that provides seamless integration with Razorpay APIs, enabling advanced payment processing capabilities for developers and AI tools.
 
-## Use Cases 
-Bring Razorpay to your agentic applications using Razorpay MCP Server.
+## Available Tools
 
+Currently, the Razorpay MCP Server provides the following tools:
+
+| Tool                  | Description                           |
+|-----------------------|---------------------------------------|
+| `payment.fetch`       | Fetch payment details                 |
+| `payment_link.create` | Creates a new payment link            |
+| `payment_link.fetch`  | Fetch details of a payment link       |
+| `order.create`        | Creates an order                      |
+| `order.fetch`         | Fetch order details                   |
+
+
+## Use Cases 
+- Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
 - Agentic Applications: Building AI powered tools that interact with Razorpay's payment ecosystem using this Razorpay MCP server.
-- Analytics Usecases: Fetching payment data from Razorpay for analysis or customer support.
-- Customer and Operational Usecases: You can bring Razorpay integration into your agentic customer and operational dashboards using Razorpay MCP server.
 
 ## Setup
+
+### Prerequisites
+- Docker
+- Golang (Go)
+- Git
 
 To run the Razorpay MCP server, use one of the following methods:
 
 ### Using Docker (Recommended)
 
+You need to clone the Github repo and build the image for Razorpay MCP Server using `docker`. Do make sure `docker` is installed and running in your system. 
+
 ```bash
 # Run the server
+git clone https://github.com/razorpay/razorpay-mcp-server.git
+cd razorpay-mcp-server
 docker build -t razorpay-mcp-server:latest .
 ```
 
-Replace `your_key_id` and `your_key_secret` with your actual Razorpay API credentials.
+Post this razorpay-mcp-server:latest docker image would be ready in your system.
 
 ### Build from source
 
@@ -31,13 +50,9 @@ cd razorpay-mcp-server
 
 # Build the binary
 go build -o razorpay-mcp-server ./cmd/razorpay-mcp-server
-
-# Run the server
-RAZORPAY_KEY_ID=your_key_id RAZORPAY_KEY_SECRET=your_key_secret ./razorpay-mcp-server stdio
 ```
 
-## Usage with Razorpay Checkout
-Coming soon.
+Binary `razorpay-mcp-server` would be present in your system post this.
 
 ## Usage with Claude Desktop
 
@@ -66,10 +81,10 @@ Add the following to your `claude_desktop_config.json`:
     }
 }
 ```
-
 Please replace the `your_razorpay_key_id` and `your_razorpay_key_secret` with your keys.
 
-Learn about how to configure MCP servers in Claude desktop: [Link](https://modelcontextprotocol.io/quickstart/user)
+- Learn about how to configure MCP servers in Claude desktop: [Link](https://modelcontextprotocol.io/quickstart/user)
+- How to install Claude Desktop: [Link](https://claude.ai/download)
 
 ## Usage with VS Code
 
@@ -116,18 +131,6 @@ Add the following to your VS Code settings (JSON):
 ```
 
 Learn more about MCP servers in VS Code's [agent mode documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
-
-## Available Tools
-
-Currently, the Razorpay MCP Server provides the following tools:
-
-| Tool                  | Description                           |
-|-----------------------|---------------------------------------|
-| `payment.fetch`       | Fetch payment details                 |
-| `payment_link.create` | Creates a new payment link            |
-| `payment_link.fetch`  | Fetch details of a payment link       |
-| `order.create`        | Creates an order                      |
-| `order.fetch`         | Fetch order details                   |
 
 ## Configuration
 
