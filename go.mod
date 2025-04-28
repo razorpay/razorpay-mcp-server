@@ -3,6 +3,7 @@ module github.com/razorpay/razorpay-mcp-server
 go 1.24.2
 
 require (
+	github.com/go-test/deep v1.1.1
 	github.com/gorilla/mux v1.8.1
 	github.com/mark3labs/mcp-go v0.23.1
 	github.com/razorpay/razorpay-go v1.3.2

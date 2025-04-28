@@ -90,13 +90,13 @@ func Test_FetchPayment(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			mockRzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
 			if mockServer != nil {
 				defer mockServer.Close()
 			}
 
 			log := CreateTestLogger()
-			tool := FetchPayment(log, mockrzpClient)
+			tool := FetchPayment(log, mockRzpClient)
 
 			request := createMCPRequest(tc.requestArgs)
 

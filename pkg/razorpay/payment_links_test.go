@@ -140,13 +140,13 @@ func Test_CreatePaymentLink(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			mockRzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
 			if mockServer != nil {
 				defer mockServer.Close()
 			}
 
 			log := CreateTestLogger()
-			tool := CreatePaymentLink(log, mockrzpClient)
+			tool := CreatePaymentLink(log, mockRzpClient)
 
 			request := createMCPRequest(tc.requestArgs)
 
@@ -251,13 +251,13 @@ func Test_FetchPaymentLink(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			mockRzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
 			if mockServer != nil {
 				defer mockServer.Close()
 			}
 
 			log := CreateTestLogger()
-			tool := FetchPaymentLink(log, mockrzpClient)
+			tool := FetchPaymentLink(log, mockRzpClient)
 
 			request := createMCPRequest(tc.requestArgs)
 

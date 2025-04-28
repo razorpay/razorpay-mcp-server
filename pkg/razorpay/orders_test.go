@@ -285,13 +285,13 @@ func Test_FetchOrder(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			mockRzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
 			if mockServer != nil {
 				defer mockServer.Close()
 			}
 
 			log := CreateTestLogger()
-			tool := FetchOrder(log, mockrzpClient)
+			tool := FetchOrder(log, mockRzpClient)
 
 			request := createMCPRequest(tc.requestArgs)
 
