@@ -77,7 +77,8 @@ func TestNewServer(t *testing.T) {
 			requestPath:    "/error",
 			requestMethod:  "GET",
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":{"code":"BAD_REQUEST","description":"Test error"}}`,
+			expectedBody: `{"error":{"code":"BAD_REQUEST",` +
+				`"description":"Test error"}}`,
 		},
 		{
 			name: "string response",
