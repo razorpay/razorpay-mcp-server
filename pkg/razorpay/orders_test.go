@@ -24,6 +24,35 @@ func Test_CreateOrder(t *testing.T) {
 		constants.ORDER_URL,
 	)
 
+	// Define common response maps to be reused
+	orderWithAllParamsResp := map[string]interface{}{
+		"id":                       "order_EKwxwAgItmmXdp",
+		"amount":                   float64(10000),
+		"currency":                 "INR",
+		"receipt":                  "receipt-123",
+		"partial_payment":          true,
+		"first_payment_min_amount": float64(5000),
+		"notes": map[string]interface{}{
+			"customer_name": "test-customer",
+			"product_name":  "test-product",
+		},
+		"status": "created",
+	}
+
+	orderWithRequiredParamsResp := map[string]interface{}{
+		"id":       "order_EKwxwAgItmmXdp",
+		"amount":   float64(10000),
+		"currency": "INR",
+		"status":   "created",
+	}
+
+	errorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Razorpay API error: Bad request",
+		},
+	}
+
 	tests := []struct {
 		name           string
 		requestArgs    map[string]interface{}
@@ -33,41 +62,13 @@ func Test_CreateOrder(t *testing.T) {
 		expectedErrMsg string
 	}{
 		{
-			name: "successful order creation",
+			name: "successful order creation with all parameters",
 			requestArgs: map[string]interface{}{
-				"amount":   float64(10000),
-				"currency": "INR",
-				"receipt":  "receipt-123",
-			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:   createOrderPath,
-						Method: "POST",
-						Response: map[string]interface{}{
-							"id":       "order_EKwxwAgItmmXdp",
-							"amount":   float64(10000),
-							"currency": "INR",
-							"receipt":  "receipt-123",
-							"status":   "created",
-						},
-					},
-				)
-			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":       "order_EKwxwAgItmmXdp",
-				"amount":   float64(10000),
-				"currency": "INR",
-				"receipt":  "receipt-123",
-				"status":   "created",
-			},
-		},
-		{
-			name: "order with notes",
-			requestArgs: map[string]interface{}{
-				"amount":   float64(10000),
-				"currency": "INR",
+				"amount":                   float64(10000),
+				"currency":                 "INR",
+				"receipt":                  "receipt-123",
+				"partial_payment":          true,
+				"first_payment_min_amount": float64(5000),
 				"notes": map[string]interface{}{
 					"customer_name": "test-customer",
 					"product_name":  "test-product",
@@ -76,68 +77,32 @@ func Test_CreateOrder(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:   createOrderPath,
-						Method: "POST",
-						Response: map[string]interface{}{
-							"id":       "order_EKwxwAgItmmXdp",
-							"amount":   float64(10000),
-							"currency": "INR",
-							"receipt":  "receipt-123",
-							"notes": map[string]interface{}{
-								"customer_name": "test-customer",
-								"product_name":  "test-product",
-							},
-							"status": "created",
-						},
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: orderWithAllParamsResp,
 					},
 				)
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":       "order_EKwxwAgItmmXdp",
-				"amount":   float64(10000),
-				"currency": "INR",
-				"receipt":  "receipt-123",
-				"notes": map[string]interface{}{
-					"customer_name": "test-customer",
-					"product_name":  "test-product",
-				},
-				"status": "created",
-			},
+			expectError:    false,
+			expectedResult: orderWithAllParamsResp,
 		},
 		{
-			name: "order with partial payment",
+			name: "successful order creation with required params only",
 			requestArgs: map[string]interface{}{
-				"amount":                   float64(10000),
-				"currency":                 "INR",
-				"partial_payment":          true,
-				"first_payment_min_amount": float64(5000),
+				"amount":   float64(10000),
+				"currency": "INR",
 			},
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:   createOrderPath,
-						Method: "POST",
-						Response: map[string]interface{}{
-							"id":                       "order_EKwxwAgItmmXdp",
-							"amount":                   float64(10000),
-							"currency":                 "INR",
-							"partial_payment":          true,
-							"first_payment_min_amount": float64(5000),
-							"status":                   "created",
-						},
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: orderWithRequiredParamsResp,
 					},
 				)
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":                       "order_EKwxwAgItmmXdp",
-				"amount":                   float64(10000),
-				"currency":                 "INR",
-				"partial_payment":          true,
-				"first_payment_min_amount": float64(5000),
-				"status":                   "created",
-			},
+			expectError:    false,
+			expectedResult: orderWithRequiredParamsResp,
 		},
 		{
 			name: "missing required parameters",
@@ -158,14 +123,9 @@ func Test_CreateOrder(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:   createOrderPath,
-						Method: "POST",
-						Response: map[string]interface{}{
-							"error": map[string]interface{}{
-								"code":        "BAD_REQUEST_ERROR",
-								"description": "Razorpay API error: Bad request",
-							},
-						},
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: errorResp,
 					},
 				)
 			},
@@ -176,7 +136,7 @@ func Test_CreateOrder(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			mockrzpClient, mockServer := newMockRzpClient(tc.mockHttpClient)
 			if mockServer != nil {
 				defer mockServer.Close()
 			}
@@ -215,6 +175,21 @@ func Test_FetchOrder(t *testing.T) {
 		constants.ORDER_URL,
 	)
 
+	orderResp := map[string]interface{}{
+		"id":       "order_EKwxwAgItmmXdp",
+		"amount":   float64(10000),
+		"currency": "INR",
+		"receipt":  "receipt-123",
+		"status":   "created",
+	}
+
+	orderNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "order not found",
+		},
+	}
+
 	tests := []struct {
 		name           string
 		requestArgs    map[string]interface{}
@@ -231,26 +206,14 @@ func Test_FetchOrder(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:   fmt.Sprintf(fetchOrderPathFmt, "order_EKwxwAgItmmXdp"),
-						Method: "GET",
-						Response: map[string]interface{}{
-							"id":       "order_EKwxwAgItmmXdp",
-							"amount":   float64(10000),
-							"currency": "INR",
-							"receipt":  "receipt-123",
-							"status":   "created",
-						},
+						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_EKwxwAgItmmXdp"),
+						Method:   "GET",
+						Response: orderResp,
 					},
 				)
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":       "order_EKwxwAgItmmXdp",
-				"amount":   float64(10000),
-				"currency": "INR",
-				"receipt":  "receipt-123",
-				"status":   "created",
-			},
+			expectError:    false,
+			expectedResult: orderResp,
 		},
 		{
 			name: "order not found",
@@ -260,14 +223,9 @@ func Test_FetchOrder(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:   fmt.Sprintf(fetchOrderPathFmt, "order_invalid"),
-						Method: "GET",
-						Response: map[string]interface{}{
-							"error": map[string]interface{}{
-								"code":        "BAD_REQUEST_ERROR",
-								"description": "order not found",
-							},
-						},
+						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_invalid"),
+						Method:   "GET",
+						Response: orderNotFoundResp,
 					},
 				)
 			},
@@ -285,7 +243,7 @@ func Test_FetchOrder(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockRzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			mockRzpClient, mockServer := newMockRzpClient(tc.mockHttpClient)
 			if mockServer != nil {
 				defer mockServer.Close()
 			}

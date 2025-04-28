@@ -24,6 +24,19 @@ func Test_FetchPayment(t *testing.T) {
 		constants.PAYMENT_URL,
 	)
 
+	paymentResp := map[string]interface{}{
+		"id":     "pay_MT48CvBhIC98MQ",
+		"amount": float64(1000),
+		"status": "captured",
+	}
+
+	paymentNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "payment not found",
+		},
+	}
+
 	tests := []struct {
 		name           string
 		requestArgs    map[string]interface{}
@@ -40,22 +53,14 @@ func Test_FetchPayment(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:   fmt.Sprintf(fetchPaymentPathFmt, "pay_MT48CvBhIC98MQ"),
-						Method: "GET",
-						Response: map[string]interface{}{
-							"id":     "pay_MT48CvBhIC98MQ",
-							"amount": float64(1000),
-							"status": "captured",
-						},
+						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_MT48CvBhIC98MQ"),
+						Method:   "GET",
+						Response: paymentResp,
 					},
 				)
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":     "pay_MT48CvBhIC98MQ",
-				"amount": float64(1000),
-				"status": "captured",
-			},
+			expectError:    false,
+			expectedResult: paymentResp,
 		},
 		{
 			name: "payment not found",
@@ -65,14 +70,9 @@ func Test_FetchPayment(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:   fmt.Sprintf(fetchPaymentPathFmt, "pay_invalid"),
-						Method: "GET",
-						Response: map[string]interface{}{
-							"error": map[string]interface{}{
-								"code":        "BAD_REQUEST_ERROR",
-								"description": "payment not found",
-							},
-						},
+						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_invalid"),
+						Method:   "GET",
+						Response: paymentNotFoundResp,
 					},
 				)
 			},
@@ -90,7 +90,7 @@ func Test_FetchPayment(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockRzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			mockRzpClient, mockServer := newMockRzpClient(tc.mockHttpClient)
 			if mockServer != nil {
 				defer mockServer.Close()
 			}
