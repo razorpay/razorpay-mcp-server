@@ -25,5 +25,8 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Run unit tests
+        run: go test -race ./...
+
       - name: Build
         run: go build -v ./cmd/razorpay-mcp-server

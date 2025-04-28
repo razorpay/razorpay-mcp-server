@@ -6,14 +6,27 @@ import (
 	"log/slog"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
-
-	rzpsdk "github.com/razorpay/razorpay-go"
 )
+
+// PaymentLinkClient defines the interface for payment link operations
+//
+//nolint:iface
+type PaymentLinkClient interface {
+	Create(
+		data map[string]interface{},
+		options map[string]string,
+	) (map[string]interface{}, error)
+	Fetch(
+		id string,
+		data map[string]interface{},
+		options map[string]string,
+	) (map[string]interface{}, error)
+}
 
 // CreatePaymentLink returns a tool that creates payment links in Razorpay
 func CreatePaymentLink(
 	log *slog.Logger,
-	client *rzpsdk.Client,
+	paymentLinkClient PaymentLinkClient,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
@@ -38,12 +51,12 @@ func CreatePaymentLink(
 	) (*mcpgo.ToolResult, error) {
 		// validate required parameters
 		amount, err := RequiredInt(r, "amount")
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
 		currency, err := RequiredParam[string](r, "currency")
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
 
 		// Create request payload
@@ -62,10 +75,10 @@ func CreatePaymentLink(
 			paymentLinkData["description"] = desc
 		}
 
-		paymentLink, err := client.PaymentLink.Create(paymentLinkData, nil)
+		paymentLink, err := paymentLinkClient.Create(paymentLinkData, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("pl create failed: %s", err.Error())), nil
+				fmt.Sprintf("creating payment link failed: %s", err.Error())), nil
 		}
 
 		return mcpgo.NewToolResultJSON(paymentLink)
@@ -83,7 +96,7 @@ func CreatePaymentLink(
 // returns a tool that fetches payment link details using payment_link_id
 func FetchPaymentLink(
 	log *slog.Logger,
-	client *rzpsdk.Client,
+	paymentLinkClient PaymentLinkClient,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
@@ -99,11 +112,11 @@ func FetchPaymentLink(
 	) (*mcpgo.ToolResult, error) {
 		// Use the helper function to get the required parameter
 		id, err := RequiredParam[string](r, "payment_link_id")
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
 
-		paymentLink, err := client.PaymentLink.Fetch(id, nil, nil)
+		paymentLink, err := paymentLinkClient.Fetch(id, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment link failed: %s", err.Error())), nil

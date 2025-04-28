@@ -30,6 +30,9 @@ type ToolResult struct {
 type Tool interface {
 	// internal method to convert to mcp's ServerTool
 	toMCPServerTool() server.ServerTool
+
+	// GetHandler internal method for fetching the underlying handler
+	GetHandler() ToolHandler
 }
 
 // PropertyOption represents a customization option for
@@ -379,6 +382,11 @@ func convertSchemaToPropertyOptions(
 	}
 
 	return propOpts
+}
+
+// GetHandler returns the handler for the tool
+func (t *mark3labsToolImpl) GetHandler() ToolHandler {
+	return t.handler
 }
 
 // toMCPServerTool converts our Tool to mcp's ServerTool
