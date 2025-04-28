@@ -16,7 +16,7 @@ This guide explains how to add new Razorpay API tools to the MCP server.
 
 ### Tool Structure
 
-Each tool follows this pattern:
+Add the tool definition inside pkg/razorpay's resource file. You can define a new tool using this following template:
 
 ```go
 // ToolName returns a tool that [description of what it does]
@@ -39,7 +39,7 @@ func ToolName(
     }
 
     return mcpgo.NewTool(
-        "tool_id",
+        "tool_name",
         "A description of the tool. NOTE: Add any exceptions/rules if relevant for the LLMs.",
         parameters,
         handler,
@@ -47,9 +47,14 @@ func ToolName(
 }
 ```
 
+Tool Naming Conventions:
+   - Fetch methods: `fetch_resource`
+   - Create methods: `create_resource`
+   - FetchAll methods: `fetch_all_resources`
+
 ### Parameter Definition
 
-Define parameters using the mcpgo helpers:
+Define parameters using the mcpgo helpers. This would include the type, name, description of the parameter and also specifying if the parameter required or not.
 
 ```go
 // Required parameters
@@ -74,7 +79,7 @@ Available parameter types:
 
 ### Parameter Validation
 
-Use the helper functions for parameter validation:
+Inside the handler function, use the helper functions for fetching the parameters and also enforcing the mandatory parameters:
 
 ```go
 // Required parameters
@@ -222,34 +227,73 @@ func CreateResource(
 
 ### Registering Tools
 
-Add your tool to the appropriate section in `server.go`:
+Add your tool to the appropriate toolset in the `NewToolSets` function in [`pkg/razorpay/tools.go`](tools.go):
 
 ```go
-// RegisterTools adds all available tools to the server
-func (s *Server) RegisterTools() {
-    // payments tools
-    s.server.AddTools(
-        FetchPayment(s.log, s.client),
-        // Add your payment tool here
-    )
-    
-    // orders tools
-    s.server.AddTools(
-        CreateOrder(s.log, s.client),
-        FetchOrder(s.log, s.client),
-        // Add your order tool here
-    )
-    
-    // payment links tools
-    s.server.AddTools(
-        CreatePaymentLink(s.log, s.client),
-        FetchPaymentLink(s.log, s.client),
-        // Add your payment link tool here
-    )
-    
-    // Add a new section for your resource if needed
+// NewToolSets creates and configures all available toolsets
+func NewToolSets(
+    log *slog.Logger,
+    client *rzpsdk.Client,
+    enabledToolsets []string,
+    readOnly bool,
+) (*toolsets.ToolsetGroup, error) {
+    // Create a new toolset group
+    toolsetGroup := toolsets.NewToolsetGroup(readOnly)
+
+    // Create toolsets
+    payments := toolsets.NewToolset("payments", "Razorpay Payments related tools").
+        AddReadTools(
+            FetchPayment(log, client),
+            // Add your read-only payment tool here
+        ).
+        AddWriteTools(
+            // Add your write payment tool here
+        )
+
+    paymentLinks := toolsets.NewToolset(
+        "payment_links",
+        "Razorpay Payment Links related tools").
+        AddReadTools(
+            FetchPaymentLink(log, client),
+            // Add your read-only payment link tool here
+        ).
+        AddWriteTools(
+            CreatePaymentLink(log, client),
+            // Add your write payment link tool here
+        )
+
+    orders := toolsets.NewToolset("orders", "Razorpay Orders related tools").
+        AddReadTools(
+            FetchOrder(log, client),
+            // Add your read-only order tool here
+        ).
+        AddWriteTools(
+            CreateOrder(log, client),
+            // Add your write order tool here
+        )
+
+    // If adding a new resource type, create a new toolset:
+    /*
+    newResource := toolsets.NewToolset("new_resource", "Razorpay New Resource related tools").
+        AddReadTools(
+            FetchNewResource(log, client),
+        ).
+        AddWriteTools(
+            CreateNewResource(log, client),
+        )
+    toolsetGroup.AddToolset(newResource)
+    */
+
+    // Add toolsets to the group
+    toolsetGroup.AddToolset(payments)
+    toolsetGroup.AddToolset(paymentLinks)
+    toolsetGroup.AddToolset(orders)
+
+    return toolsetGroup, nil
 }
 ```
+
+Tools are organized into toolsets by resource type, and each toolset has separate collections for read-only tools (`AddReadTools`) and write tools (`AddWriteTools`). This allows the server to enable/disable write operations when in read-only mode.
 
 ### Updating Documentation
 
