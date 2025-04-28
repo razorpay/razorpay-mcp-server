@@ -118,8 +118,8 @@ func Test_CreatePaymentLink(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     createPaymentLinkPath,
-						Method:   "POST",
+						Path:   createPaymentLinkPath,
+						Method: "POST",
 						Response: map[string]interface{}{
 							"error": map[string]interface{}{
 								"code":        "BAD_REQUEST_ERROR",
@@ -236,8 +236,8 @@ func Test_FetchPaymentLink(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     fmt.Sprintf(fetchPaymentLinkPathFmt, "plink_invalid"),
-						Method:   "GET",
+						Path:   fmt.Sprintf(fetchPaymentLinkPathFmt, "plink_invalid"),
+						Method: "GET",
 						Response: map[string]interface{}{
 							"error": map[string]interface{}{
 								"code":        "BAD_REQUEST_ERROR",

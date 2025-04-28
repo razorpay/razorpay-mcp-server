@@ -154,8 +154,8 @@ func Test_CreateOrder(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     createOrderPath,
-						Method:   "POST",
+						Path:   createOrderPath,
+						Method: "POST",
 						Response: map[string]interface{}{
 							"error": map[string]interface{}{
 								"code":        "BAD_REQUEST_ERROR",
@@ -308,8 +308,8 @@ func Test_FetchOrder(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_invalid"),
-						Method:   "GET",
+						Path:   fmt.Sprintf(fetchOrderPathFmt, "order_invalid"),
+						Method: "GET",
 						Response: map[string]interface{}{
 							"error": map[string]interface{}{
 								"code":        "BAD_REQUEST_ERROR",

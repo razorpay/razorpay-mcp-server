@@ -62,8 +62,8 @@ func Test_FetchPayment(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_invalid"),
-						Method:   "GET",
+						Path:   fmt.Sprintf(fetchPaymentPathFmt, "pay_invalid"),
+						Method: "GET",
 						Response: map[string]interface{}{
 							"error": map[string]interface{}{
 								"code":        "BAD_REQUEST_ERROR",

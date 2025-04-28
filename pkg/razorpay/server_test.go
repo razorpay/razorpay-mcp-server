@@ -8,9 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// We use mcpgo.CallToolRequest through the createMCPRequest function
-// defined in test_helpers.go
-
 func Test_RequiredParam(t *testing.T) {
 	tests := []struct {
 		name        string
