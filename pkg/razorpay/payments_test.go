@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
 )
@@ -89,16 +88,9 @@ func Test_FetchPayment(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient := razorpay.NewClient("sample_key", "sample_secret")
-
-			var mockServer *httptest.Server
-			if tc.mockHttpClient != nil {
-				var client *http.Client
-				client, mockServer = tc.mockHttpClient()
+			mockrzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			if mockServer != nil {
 				defer mockServer.Close()
-
-				mockrzpClient.Payment.Request.BaseURL = mockServer.URL
-				mockrzpClient.Payment.Request.HTTPClient = client
 			}
 
 			log := CreateTestLogger()

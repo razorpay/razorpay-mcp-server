@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
 )
@@ -175,16 +174,9 @@ func Test_CreateOrder(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient := razorpay.NewClient("sample_key", "sample_secret")
-
-			var mockServer *httptest.Server
-			if tc.mockHttpClient != nil {
-				var client *http.Client
-				client, mockServer = tc.mockHttpClient()
+			mockrzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			if mockServer != nil {
 				defer mockServer.Close()
-
-				mockrzpClient.Order.Request.BaseURL = mockServer.URL
-				mockrzpClient.Order.Request.HTTPClient = client
 			}
 
 			log := CreateTestLogger()
@@ -284,7 +276,7 @@ func Test_FetchOrder(t *testing.T) {
 						Path:   fmt.Sprintf(fetchOrderPathFmt, "order_EKwxwAgItmmXdp"),
 						Method: "GET",
 						Response: map[string]interface{}{
-							"id":       "order_123456789",
+							"id":       "order_EKwxwAgItmmXdp",
 							"amount":   float64(10000),
 							"currency": "INR",
 							"receipt":  "receipt-123",
@@ -335,16 +327,9 @@ func Test_FetchOrder(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient := razorpay.NewClient("sample_key", "sample_secret")
-
-			var mockServer *httptest.Server
-			if tc.mockHttpClient != nil {
-				var client *http.Client
-				client, mockServer = tc.mockHttpClient()
+			mockrzpClient, mockServer := newRzpMockClient(tc.mockHttpClient)
+			if mockServer != nil {
 				defer mockServer.Close()
-
-				mockrzpClient.Order.Request.BaseURL = mockServer.URL
-				mockrzpClient.Order.Request.HTTPClient = client
 			}
 
 			log := CreateTestLogger()
