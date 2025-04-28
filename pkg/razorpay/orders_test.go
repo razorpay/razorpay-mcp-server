@@ -24,42 +24,6 @@ func Test_CreateOrder(t *testing.T) {
 		constants.ORDER_URL,
 	)
 
-	sampleOrder := map[string]interface{}{
-		"id":       "order_123456789",
-		"amount":   float64(10000),
-		"currency": "INR",
-		"receipt":  "receipt-123",
-		"status":   "created",
-	}
-
-	orderWithNotes := map[string]interface{}{
-		"id":       "order_123456789",
-		"amount":   float64(10000),
-		"currency": "INR",
-		"receipt":  "receipt-123",
-		"notes": map[string]interface{}{
-			"customer_name": "test-customer",
-			"product_name":  "test-product",
-		},
-		"status": "created",
-	}
-
-	partialPaymentOrder := map[string]interface{}{
-		"id":                       "order_123456789",
-		"amount":                   float64(10000),
-		"currency":                 "INR",
-		"partial_payment":          true,
-		"first_payment_min_amount": float64(5000),
-		"status":                   "created",
-	}
-
-	errorResponse := map[string]interface{}{
-		"error": map[string]interface{}{
-			"code":        "BAD_REQUEST_ERROR",
-			"description": "Razorpay API error: Bad request",
-		},
-	}
-
 	tests := []struct {
 		name           string
 		mockHttpClient func() (*http.Client, *httptest.Server)
@@ -73,9 +37,15 @@ func Test_CreateOrder(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     createOrderPath,
-						Method:   "POST",
-						Response: sampleOrder,
+						Path:   createOrderPath,
+						Method: "POST",
+						Response: map[string]interface{}{
+							"id":       "order_123456789",
+							"amount":   float64(10000),
+							"currency": "INR",
+							"receipt":  "receipt-123",
+							"status":   "created",
+						},
 					},
 				)
 			},
@@ -84,17 +54,33 @@ func Test_CreateOrder(t *testing.T) {
 				"currency": "INR",
 				"receipt":  "receipt-123",
 			},
-			expectError:    false,
-			expectedResult: sampleOrder,
+			expectError: false,
+			expectedResult: map[string]interface{}{
+				"id":       "order_123456789",
+				"amount":   float64(10000),
+				"currency": "INR",
+				"receipt":  "receipt-123",
+				"status":   "created",
+			},
 		},
 		{
 			name: "order with notes",
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     createOrderPath,
-						Method:   "POST",
-						Response: orderWithNotes,
+						Path:   createOrderPath,
+						Method: "POST",
+						Response: map[string]interface{}{
+							"id":       "order_123456789",
+							"amount":   float64(10000),
+							"currency": "INR",
+							"receipt":  "receipt-123",
+							"notes": map[string]interface{}{
+								"customer_name": "test-customer",
+								"product_name":  "test-product",
+							},
+							"status": "created",
+						},
 					},
 				)
 			},
@@ -106,17 +92,34 @@ func Test_CreateOrder(t *testing.T) {
 					"product_name":  "test-product",
 				},
 			},
-			expectError:    false,
-			expectedResult: orderWithNotes,
+			expectError: false,
+			expectedResult: map[string]interface{}{
+				"id":       "order_123456789",
+				"amount":   float64(10000),
+				"currency": "INR",
+				"receipt":  "receipt-123",
+				"notes": map[string]interface{}{
+					"customer_name": "test-customer",
+					"product_name":  "test-product",
+				},
+				"status": "created",
+			},
 		},
 		{
 			name: "order with partial payment",
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     createOrderPath,
-						Method:   "POST",
-						Response: partialPaymentOrder,
+						Path:   createOrderPath,
+						Method: "POST",
+						Response: map[string]interface{}{
+							"id":                       "order_123456789",
+							"amount":                   float64(10000),
+							"currency":                 "INR",
+							"partial_payment":          true,
+							"first_payment_min_amount": float64(5000),
+							"status":                   "created",
+						},
 					},
 				)
 			},
@@ -126,8 +129,15 @@ func Test_CreateOrder(t *testing.T) {
 				"partial_payment":          true,
 				"first_payment_min_amount": float64(5000),
 			},
-			expectError:    false,
-			expectedResult: partialPaymentOrder,
+			expectError: false,
+			expectedResult: map[string]interface{}{
+				"id":                       "order_123456789",
+				"amount":                   float64(10000),
+				"currency":                 "INR",
+				"partial_payment":          true,
+				"first_payment_min_amount": float64(5000),
+				"status":                   "created",
+			},
 		},
 		{
 			name:           "missing required parameters",
@@ -146,7 +156,12 @@ func Test_CreateOrder(t *testing.T) {
 					mocks.MockEndpoint{
 						Path:     createOrderPath,
 						Method:   "POST",
-						Response: errorResponse,
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "Razorpay API error: Bad request",
+							},
+						},
 					},
 				)
 			},
@@ -251,21 +266,6 @@ func Test_FetchOrder(t *testing.T) {
 		constants.ORDER_URL,
 	)
 
-	sampleOrder := map[string]interface{}{
-		"id":       "order_123456789",
-		"amount":   float64(10000),
-		"currency": "INR",
-		"receipt":  "receipt-123",
-		"status":   "created",
-	}
-
-	orderNotFoundError := map[string]interface{}{
-		"error": map[string]interface{}{
-			"code":        "BAD_REQUEST_ERROR",
-			"description": "order not found",
-		},
-	}
-
 	tests := []struct {
 		name           string
 		mockHttpClient func() (*http.Client, *httptest.Server)
@@ -279,17 +279,29 @@ func Test_FetchOrder(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_123456789"),
-						Method:   "GET",
-						Response: sampleOrder,
+						Path:   fmt.Sprintf(fetchOrderPathFmt, "order_123456789"),
+						Method: "GET",
+						Response: map[string]interface{}{
+							"id":       "order_123456789",
+							"amount":   float64(10000),
+							"currency": "INR",
+							"receipt":  "receipt-123",
+							"status":   "created",
+						},
 					},
 				)
 			},
 			requestArgs: map[string]interface{}{
 				"order_id": "order_123456789",
 			},
-			expectError:    false,
-			expectedResult: sampleOrder,
+			expectError: false,
+			expectedResult: map[string]interface{}{
+				"id":       "order_123456789",
+				"amount":   float64(10000),
+				"currency": "INR",
+				"receipt":  "receipt-123",
+				"status":   "created",
+			},
 		},
 		{
 			name: "order not found",
@@ -298,7 +310,12 @@ func Test_FetchOrder(t *testing.T) {
 					mocks.MockEndpoint{
 						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_invalid"),
 						Method:   "GET",
-						Response: orderNotFoundError,
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "order not found",
+							},
+						},
 					},
 				)
 			},

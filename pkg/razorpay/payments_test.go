@@ -24,19 +24,6 @@ func Test_FetchPayment(t *testing.T) {
 		constants.PAYMENT_URL,
 	)
 
-	samplePayment := map[string]interface{}{
-		"id":     "pay_123456789",
-		"amount": float64(1000),
-		"status": "captured",
-	}
-
-	paymentNotFoundError := map[string]interface{}{
-		"error": map[string]interface{}{
-			"code":        "BAD_REQUEST_ERROR",
-			"description": "payment not found",
-		},
-	}
-
 	tests := []struct {
 		name           string
 		mockHttpClient func() (*http.Client, *httptest.Server)
@@ -50,17 +37,25 @@ func Test_FetchPayment(t *testing.T) {
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mocks.NewMockedHTTPClient(
 					mocks.MockEndpoint{
-						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_123456789"),
-						Method:   "GET",
-						Response: samplePayment,
+						Path:   fmt.Sprintf(fetchPaymentPathFmt, "pay_123456789"),
+						Method: "GET",
+						Response: map[string]interface{}{
+							"id":     "pay_123456789",
+							"amount": float64(1000),
+							"status": "captured",
+						},
 					},
 				)
 			},
 			requestArgs: map[string]interface{}{
 				"payment_id": "pay_123456789",
 			},
-			expectError:    false,
-			expectedResult: samplePayment,
+			expectError: false,
+			expectedResult: map[string]interface{}{
+				"id":     "pay_123456789",
+				"amount": float64(1000),
+				"status": "captured",
+			},
 		},
 		{
 			name: "payment not found",
@@ -69,7 +64,12 @@ func Test_FetchPayment(t *testing.T) {
 					mocks.MockEndpoint{
 						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_invalid"),
 						Method:   "GET",
-						Response: paymentNotFoundError,
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "payment not found",
+							},
+						},
 					},
 				)
 			},
