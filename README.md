@@ -8,11 +8,11 @@ Currently, the Razorpay MCP Server provides the following tools:
 
 | Tool                  | Description                           |
 |-----------------------|---------------------------------------|
-| `payment.fetch`       | Fetch payment details                 |
-| `payment_link.create` | Creates a new payment link            |
-| `payment_link.fetch`  | Fetch details of a payment link       |
-| `order.create`        | Creates an order                      |
-| `order.fetch`         | Fetch order details                   |
+| `fetch_payment`       | Fetch payment details                 |
+| `create_payment_link` | Creates a new payment link            |
+| `fetch_payment_link`  | Fetch details of a payment link       |
+| `create_order`        | Creates an order                      |
+| `fetch_order`         | Fetch order details                   |
 
 
 ## Use Cases 

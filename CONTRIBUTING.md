@@ -148,11 +148,18 @@ When adding new features or modifying existing ones, please update the documenta
 
 When adding a new tool to the Razorpay MCP Server:
 
-1. Create a new file in the appropriate package under `pkg/razorpay`.
-2. Implement the tool functionality.
-3. Register the tool in the server.
-4. Add appropriate tests.
-5. Update documentation to include the new tool.
+1. Review the detailed developer guide at [pkg/razorpay/README.md](pkg/razorpay/README.md) for complete instructions and examples.
+2. Create a new function in the appropriate resource file under `pkg/razorpay` (or create a new file if needed).
+3. Implement the tool following the patterns in the developer guide.
+4. Register the tool in `server.go`.
+5. Add appropriate tests.
+6. Update the main README.md to document the new tool.
+
+The developer guide for tools includes:
+- Tool structure and patterns
+- Parameter definition and validation
+- Examples for both GET and POST endpoints
+- Best practices for naming and organization
 
 ## Releasing
 
