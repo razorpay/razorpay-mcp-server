@@ -1,16 +1,10 @@
 package razorpay
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/go-test/deep"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/razorpay/razorpay-go/constants"
 
@@ -53,17 +47,10 @@ func Test_CreateOrder(t *testing.T) {
 		},
 	}
 
-	tests := []struct {
-		name           string
-		requestArgs    map[string]interface{}
-		mockHttpClient func() (*http.Client, *httptest.Server)
-		expectError    bool
-		expectedResult map[string]interface{}
-		expectedErrMsg string
-	}{
+	tests := []RazorpayToolTestCase{
 		{
-			name: "successful order creation with all parameters",
-			requestArgs: map[string]interface{}{
+			Name: "successful order creation with all parameters",
+			RequestArgs: map[string]interface{}{
 				"amount":                   float64(10000),
 				"currency":                 "INR",
 				"receipt":                  "receipt-123",
@@ -74,7 +61,7 @@ func Test_CreateOrder(t *testing.T) {
 					"product_name":  "test-product",
 				},
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     createOrderPath,
@@ -83,16 +70,16 @@ func Test_CreateOrder(t *testing.T) {
 					},
 				)
 			},
-			expectError:    false,
-			expectedResult: orderWithAllParamsResp,
+			ExpectError:    false,
+			ExpectedResult: orderWithAllParamsResp,
 		},
 		{
-			name: "successful order creation with required params only",
-			requestArgs: map[string]interface{}{
+			Name: "successful order creation with required params only",
+			RequestArgs: map[string]interface{}{
 				"amount":   float64(10000),
 				"currency": "INR",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     createOrderPath,
@@ -101,26 +88,26 @@ func Test_CreateOrder(t *testing.T) {
 					},
 				)
 			},
-			expectError:    false,
-			expectedResult: orderWithRequiredParamsResp,
+			ExpectError:    false,
+			ExpectedResult: orderWithRequiredParamsResp,
 		},
 		{
-			name: "missing required parameters",
-			requestArgs: map[string]interface{}{
+			Name: "missing required parameters",
+			RequestArgs: map[string]interface{}{
 				"amount": float64(10000),
 				// Missing currency
 			},
-			mockHttpClient: nil, // No HTTP client needed for validation error
-			expectError:    true,
-			expectedErrMsg: "missing required parameter: currency",
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: currency",
 		},
 		{
-			name: "order creation fails",
-			requestArgs: map[string]interface{}{
+			Name: "order creation fails",
+			RequestArgs: map[string]interface{}{
 				"amount":   float64(10000),
 				"currency": "INR",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     createOrderPath,
@@ -129,41 +116,14 @@ func Test_CreateOrder(t *testing.T) {
 					},
 				)
 			},
-			expectError:    true,
-			expectedErrMsg: "creating order failed: Razorpay API error: Bad request",
+			ExpectError:    true,
+			ExpectedErrMsg: "creating order failed: Razorpay API error: Bad request",
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockrzpClient, mockServer := newMockRzpClient(tc.mockHttpClient)
-			if mockServer != nil {
-				defer mockServer.Close()
-			}
-
-			log := CreateTestLogger()
-			tool := CreateOrder(log, mockrzpClient)
-
-			request := createMCPRequest(tc.requestArgs)
-
-			result, err := tool.GetHandler()(context.Background(), request)
-
-			if tc.expectError {
-				require.NotNil(t, result)
-				assert.Contains(t, result.Text, tc.expectedErrMsg)
-				return
-			}
-
-			require.NoError(t, err)
-			require.NotNil(t, result)
-
-			var returnedOrder map[string]interface{}
-			err = json.Unmarshal([]byte(result.Text), &returnedOrder)
-			require.NoError(t, err)
-
-			if diff := deep.Equal(tc.expectedResult, returnedOrder); diff != nil {
-				t.Errorf("Order mismatch: %s", diff)
-			}
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, CreateOrder, "Order")
 		})
 	}
 }
@@ -190,20 +150,13 @@ func Test_FetchOrder(t *testing.T) {
 		},
 	}
 
-	tests := []struct {
-		name           string
-		requestArgs    map[string]interface{}
-		mockHttpClient func() (*http.Client, *httptest.Server)
-		expectError    bool
-		expectedResult map[string]interface{}
-		expectedErrMsg string
-	}{
+	tests := []RazorpayToolTestCase{
 		{
-			name: "successful order fetch",
-			requestArgs: map[string]interface{}{
+			Name: "successful order fetch",
+			RequestArgs: map[string]interface{}{
 				"order_id": "order_EKwxwAgItmmXdp",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_EKwxwAgItmmXdp"),
@@ -212,15 +165,15 @@ func Test_FetchOrder(t *testing.T) {
 					},
 				)
 			},
-			expectError:    false,
-			expectedResult: orderResp,
+			ExpectError:    false,
+			ExpectedResult: orderResp,
 		},
 		{
-			name: "order not found",
-			requestArgs: map[string]interface{}{
+			Name: "order not found",
+			RequestArgs: map[string]interface{}{
 				"order_id": "order_invalid",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_invalid"),
@@ -229,48 +182,21 @@ func Test_FetchOrder(t *testing.T) {
 					},
 				)
 			},
-			expectError:    true,
-			expectedErrMsg: "fetching order failed: order not found",
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching order failed: order not found",
 		},
 		{
-			name:           "missing order_id parameter",
-			requestArgs:    map[string]interface{}{},
-			mockHttpClient: nil, // No HTTP client needed for validation error
-			expectError:    true,
-			expectedErrMsg: "missing required parameter: order_id",
+			Name:           "missing order_id parameter",
+			RequestArgs:    map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: order_id",
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRzpClient, mockServer := newMockRzpClient(tc.mockHttpClient)
-			if mockServer != nil {
-				defer mockServer.Close()
-			}
-
-			log := CreateTestLogger()
-			tool := FetchOrder(log, mockRzpClient)
-
-			request := createMCPRequest(tc.requestArgs)
-
-			result, err := tool.GetHandler()(context.Background(), request)
-
-			if tc.expectError {
-				require.NotNil(t, result)
-				assert.Contains(t, result.Text, tc.expectedErrMsg)
-				return
-			}
-
-			require.NoError(t, err)
-			require.NotNil(t, result)
-
-			var returnedOrder map[string]interface{}
-			err = json.Unmarshal([]byte(result.Text), &returnedOrder)
-			require.NoError(t, err)
-
-			if diff := deep.Equal(tc.expectedResult, returnedOrder); diff != nil {
-				t.Errorf("Order mismatch: %s", diff)
-			}
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchOrder, "Order")
 		})
 	}
 }

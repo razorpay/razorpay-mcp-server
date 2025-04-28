@@ -1,16 +1,10 @@
 package razorpay
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/go-test/deep"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/razorpay/razorpay-go/constants"
 
@@ -48,22 +42,15 @@ func Test_CreatePaymentLink(t *testing.T) {
 		},
 	}
 
-	tests := []struct {
-		name           string
-		requestArgs    map[string]interface{}
-		mockHttpClient func() (*http.Client, *httptest.Server)
-		expectError    bool
-		expectedResult map[string]interface{}
-		expectedErrMsg string
-	}{
+	tests := []RazorpayToolTestCase{
 		{
-			name: "successful payment link creation",
-			requestArgs: map[string]interface{}{
+			Name: "successful payment link creation",
+			RequestArgs: map[string]interface{}{
 				"amount":      float64(50000),
 				"currency":    "INR",
 				"description": "Test payment",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     createPaymentLinkPath,
@@ -72,16 +59,16 @@ func Test_CreatePaymentLink(t *testing.T) {
 					},
 				)
 			},
-			expectError:    false,
-			expectedResult: successfulPaymentLinkResp,
+			ExpectError:    false,
+			ExpectedResult: successfulPaymentLinkResp,
 		},
 		{
-			name: "payment link without description",
-			requestArgs: map[string]interface{}{
+			Name: "payment link without description",
+			RequestArgs: map[string]interface{}{
 				"amount":   float64(50000),
 				"currency": "INR",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     createPaymentLinkPath,
@@ -90,34 +77,34 @@ func Test_CreatePaymentLink(t *testing.T) {
 					},
 				)
 			},
-			expectError:    false,
-			expectedResult: paymentLinkWithoutDescResp,
+			ExpectError:    false,
+			ExpectedResult: paymentLinkWithoutDescResp,
 		},
 		{
-			name: "missing amount parameter",
-			requestArgs: map[string]interface{}{
+			Name: "missing amount parameter",
+			RequestArgs: map[string]interface{}{
 				"currency": "INR",
 			},
-			mockHttpClient: nil, // No HTTP client needed for validation error
-			expectError:    true,
-			expectedErrMsg: "missing required parameter: amount",
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: amount",
 		},
 		{
-			name: "missing currency parameter",
-			requestArgs: map[string]interface{}{
+			Name: "missing currency parameter",
+			RequestArgs: map[string]interface{}{
 				"amount": float64(50000),
 			},
-			mockHttpClient: nil, // No HTTP client needed for validation error
-			expectError:    true,
-			expectedErrMsg: "missing required parameter: currency",
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: currency",
 		},
 		{
-			name: "payment link creation fails",
-			requestArgs: map[string]interface{}{
+			Name: "payment link creation fails",
+			RequestArgs: map[string]interface{}{
 				"amount":   float64(50000),
 				"currency": "XYZ", // Invalid currency
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     createPaymentLinkPath,
@@ -126,41 +113,14 @@ func Test_CreatePaymentLink(t *testing.T) {
 					},
 				)
 			},
-			expectError:    true,
-			expectedErrMsg: "creating payment link failed: API error: Invalid currency",
+			ExpectError:    true,
+			ExpectedErrMsg: "creating payment link failed: API error: Invalid currency",
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRzpClient, mockServer := newMockRzpClient(tc.mockHttpClient)
-			if mockServer != nil {
-				defer mockServer.Close()
-			}
-
-			log := CreateTestLogger()
-			tool := CreatePaymentLink(log, mockRzpClient)
-
-			request := createMCPRequest(tc.requestArgs)
-
-			result, err := tool.GetHandler()(context.Background(), request)
-
-			if tc.expectError {
-				require.NotNil(t, result)
-				assert.Contains(t, result.Text, tc.expectedErrMsg)
-				return
-			}
-
-			require.NoError(t, err)
-			require.NotNil(t, result)
-
-			var returnedPaymentLink map[string]interface{}
-			err = json.Unmarshal([]byte(result.Text), &returnedPaymentLink)
-			require.NoError(t, err)
-
-			if diff := deep.Equal(tc.expectedResult, returnedPaymentLink); diff != nil {
-				t.Errorf("Payment link mismatch: %s", diff)
-			}
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, CreatePaymentLink, "Payment Link")
 		})
 	}
 }
@@ -189,20 +149,13 @@ func Test_FetchPaymentLink(t *testing.T) {
 		},
 	}
 
-	tests := []struct {
-		name           string
-		requestArgs    map[string]interface{}
-		mockHttpClient func() (*http.Client, *httptest.Server)
-		expectError    bool
-		expectedResult map[string]interface{}
-		expectedErrMsg string
-	}{
+	tests := []RazorpayToolTestCase{
 		{
-			name: "successful payment link fetch",
-			requestArgs: map[string]interface{}{
+			Name: "successful payment link fetch",
+			RequestArgs: map[string]interface{}{
 				"payment_link_id": "plink_ExjpAUN3gVHrPJ",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     fmt.Sprintf(fetchPaymentLinkPathFmt, "plink_ExjpAUN3gVHrPJ"),
@@ -211,15 +164,15 @@ func Test_FetchPaymentLink(t *testing.T) {
 					},
 				)
 			},
-			expectError:    false,
-			expectedResult: paymentLinkResp,
+			ExpectError:    false,
+			ExpectedResult: paymentLinkResp,
 		},
 		{
-			name: "payment link not found",
-			requestArgs: map[string]interface{}{
+			Name: "payment link not found",
+			RequestArgs: map[string]interface{}{
 				"payment_link_id": "plink_invalid",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     fmt.Sprintf(fetchPaymentLinkPathFmt, "plink_invalid"),
@@ -228,48 +181,21 @@ func Test_FetchPaymentLink(t *testing.T) {
 					},
 				)
 			},
-			expectError:    true,
-			expectedErrMsg: "fetching payment link failed: payment link not found",
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching payment link failed: payment link not found",
 		},
 		{
-			name:           "missing payment_link_id parameter",
-			requestArgs:    map[string]interface{}{},
-			mockHttpClient: nil, // No HTTP client needed for validation error
-			expectError:    true,
-			expectedErrMsg: "missing required parameter: payment_link_id",
+			Name:           "missing payment_link_id parameter",
+			RequestArgs:    map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_link_id",
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRzpClient, mockServer := newMockRzpClient(tc.mockHttpClient)
-			if mockServer != nil {
-				defer mockServer.Close()
-			}
-
-			log := CreateTestLogger()
-			tool := FetchPaymentLink(log, mockRzpClient)
-
-			request := createMCPRequest(tc.requestArgs)
-
-			result, err := tool.GetHandler()(context.Background(), request)
-
-			if tc.expectError {
-				require.NotNil(t, result)
-				assert.Contains(t, result.Text, tc.expectedErrMsg)
-				return
-			}
-
-			require.NoError(t, err)
-			require.NotNil(t, result)
-
-			var returnedPaymentLink map[string]interface{}
-			err = json.Unmarshal([]byte(result.Text), &returnedPaymentLink)
-			require.NoError(t, err)
-
-			if diff := deep.Equal(tc.expectedResult, returnedPaymentLink); diff != nil {
-				t.Errorf("Payment link mismatch: %s", diff)
-			}
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchPaymentLink, "Payment Link")
 		})
 	}
 }

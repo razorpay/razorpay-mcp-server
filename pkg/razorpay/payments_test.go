@@ -1,16 +1,10 @@
 package razorpay
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/go-test/deep"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/razorpay/razorpay-go/constants"
 
@@ -37,20 +31,13 @@ func Test_FetchPayment(t *testing.T) {
 		},
 	}
 
-	tests := []struct {
-		name           string
-		requestArgs    map[string]interface{}
-		mockHttpClient func() (*http.Client, *httptest.Server)
-		expectError    bool
-		expectedResult map[string]interface{}
-		expectedErrMsg string
-	}{
+	tests := []RazorpayToolTestCase{
 		{
-			name: "successful payment fetch",
-			requestArgs: map[string]interface{}{
+			Name: "successful payment fetch",
+			RequestArgs: map[string]interface{}{
 				"payment_id": "pay_MT48CvBhIC98MQ",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_MT48CvBhIC98MQ"),
@@ -59,15 +46,15 @@ func Test_FetchPayment(t *testing.T) {
 					},
 				)
 			},
-			expectError:    false,
-			expectedResult: paymentResp,
+			ExpectError:    false,
+			ExpectedResult: paymentResp,
 		},
 		{
-			name: "payment not found",
-			requestArgs: map[string]interface{}{
+			Name: "payment not found",
+			RequestArgs: map[string]interface{}{
 				"payment_id": "pay_invalid",
 			},
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_invalid"),
@@ -76,48 +63,21 @@ func Test_FetchPayment(t *testing.T) {
 					},
 				)
 			},
-			expectError:    true,
-			expectedErrMsg: "fetching payment failed: payment not found",
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching payment failed: payment not found",
 		},
 		{
-			name:           "missing payment_id parameter",
-			requestArgs:    map[string]interface{}{},
-			mockHttpClient: nil, // No HTTP client needed for validation error
-			expectError:    true,
-			expectedErrMsg: "missing required parameter: payment_id",
+			Name:           "missing payment_id parameter",
+			RequestArgs:    map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRzpClient, mockServer := newMockRzpClient(tc.mockHttpClient)
-			if mockServer != nil {
-				defer mockServer.Close()
-			}
-
-			log := CreateTestLogger()
-			tool := FetchPayment(log, mockRzpClient)
-
-			request := createMCPRequest(tc.requestArgs)
-
-			result, err := tool.GetHandler()(context.Background(), request)
-
-			if tc.expectError {
-				require.NotNil(t, result)
-				assert.Contains(t, result.Text, tc.expectedErrMsg)
-				return
-			}
-
-			require.NoError(t, err)
-			require.NotNil(t, result)
-
-			var returnedPayment map[string]interface{}
-			err = json.Unmarshal([]byte(result.Text), &returnedPayment)
-			require.NoError(t, err)
-
-			if diff := deep.Equal(tc.expectedResult, returnedPayment); diff != nil {
-				t.Errorf("Payment mismatch: %s", diff)
-			}
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchPayment, "Payment")
 		})
 	}
 }
