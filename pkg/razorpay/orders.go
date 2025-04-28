@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+
+	rzpsdk "github.com/razorpay/razorpay-go"
 )
 
 // CreateOrder returns a tool that creates new orders in Razorpay

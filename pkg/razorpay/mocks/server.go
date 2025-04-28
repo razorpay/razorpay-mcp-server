@@ -50,11 +50,20 @@ func SetupMockServer(endpoints ...MockEndpoint) *httptest.Server {
 
 			switch resp := response.(type) {
 			case []byte:
-				w.Write(resp)
+				_, err := w.Write(resp)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 			case string:
-				w.Write([]byte(resp))
+				_, err := w.Write([]byte(resp))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 			default:
-				json.NewEncoder(w).Encode(resp)
+				err := json.NewEncoder(w).Encode(resp)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 			}
 		}).Methods(method)
 	}
@@ -64,11 +73,10 @@ func SetupMockServer(endpoints ...MockEndpoint) *httptest.Server {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusNotFound)
 
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"error": map[string]interface{}{
 					"code":        "NOT_FOUND",
-					"description": fmt.Sprintf("No mock for %s %s", 
-					r.Method, r.URL.Path),
+					"description": fmt.Sprintf("No mock for %s %s", r.Method, r.URL.Path),
 				},
 			})
 		})

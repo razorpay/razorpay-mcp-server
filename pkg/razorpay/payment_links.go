@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+
+	rzpsdk "github.com/razorpay/razorpay-go"
 )
 
 // CreatePaymentLink returns a tool that creates payment links in Razorpay
