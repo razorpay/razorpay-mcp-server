@@ -25,55 +25,32 @@ func (pl *PaymentLink) Create(data map[string]interface{}, extraHeaders map[stri
 }
 ```
 
-If these details are missing or in an incorrect format, the rule cannot be properly applied. Rerun with the correct format shown above.
+IMPORTANT: If these details are missing or in an incorrect format, REFUSE to proceed further.
 
-## Implementation Process
+## Implementation
 
-This rule follows the detailed implementation guide in [pkg/razorpay/README.md](../pkg/razorpay/README.md) for creating tools.
+Before the implementation use the documentation URL provided to figure out the request contract, required parameters, descriptions of the parameters, and the response contract.
 
-The generation process:
+Now follow the detailed implementation guide in [pkg/razorpay/README.md](../pkg/razorpay/README.md) for creating tools and start making code changes.
 
-1. Extracts from API documentation:
-   - Required and optional parameters
-   - Parameter descriptions
-   - Example request/response payloads
+Other guidelines:
+1. [Razorpay Go SDK Constants](https://github.com/razorpay/razorpay-go/blob/master/constants/url.go) - Use these constants for specifying the api endpoints while writing the tests.
+2. Use the payload and response from the docs provided write the positive test case for the tool.
 
-2. Extracts from SDK function:
-   - Resource type (payments, orders, payment_links, etc.)
-   - Action type (create, fetch, update, etc.)
-   - HTTP method (GET, POST, etc.)
-   - API path constants
+IMPORTANT:
+1. start making code changes in the same iteration itself without asking the user's input.
+2. ALWAYS go through the Post Implementation steps once the code changes are done.
 
-3. Generates:
-   - Tool function with parameter definitions
-   - Handler implementation with validation logic
-   - API call using the provided SDK function
-   - Unit tests with positive and negative cases
+## Post Implementation
 
-## Implementation References
+When linting or test errors occur:
 
-For detailed code patterns and examples, refer to the following sections in the [pkg/razorpay/README.md](../pkg/razorpay/README.md):
-
-- **Tool Structure**: See the "Tool Structure" section for the function template
-- **Parameter Definition**: See the "Parameter Definition" section for defining parameters
-- **Parameter Validation**: See the "Parameter Validation" section for validation examples
-- **Example GET/POST Endpoints**: See the example sections for complete implementation patterns
-- **Unit Testing**: See the "Writing Unit Tests" section for test patterns and best practices
-
-## Registration Steps
-
-After generating the tool:
-
-1. Add it to the appropriate toolset in `pkg/razorpay/tools.go` (see "Registering Tools" in README)
-2. Update the main README.md to document the new tool
-3. Run the linter to ensure code quality
+1. Run the linter to ensure code quality
    - Use `golangci-lint run` to check for linting issues
    - Fix any issues reported by the linter
-4. Run tests to verify functionality
+
+2. Run tests to verify functionality
    - Use `go test ./...` to run all tests
-   - Ensure all tests pass before finalizing the tool
+   - Ensure all tests pass before finalizing the tool. If any tests fail, investigate and fix the issues
 
-## Reference URLs
-
-- [Razorpay Go SDK Constants](https://github.com/razorpay/razorpay-go/blob/master/constants/url.go) - Use these constants for API paths
-- [Razorpay API Documentation](https://razorpay.com/docs/api/) - Source of parameter information
+IMPORTANT: Try at least two iterations of fixes for the errors before asking for help.
