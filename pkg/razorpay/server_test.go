@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_RequiredParam(t *testing.T) {
@@ -209,16 +208,16 @@ func Test_OptionalInt(t *testing.T) {
 func Test_HandleValidationError(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
 		result, err := HandleValidationError(nil)
-		require.Nil(t, err)
-		require.Nil(t, result)
+		assert.Nil(t, err)
+		assert.Nil(t, result)
 	})
 
 	t.Run("error", func(t *testing.T) {
 		dummyErr := fmt.Errorf("test error")
 		result, err := HandleValidationError(dummyErr)
-		require.Nil(t, err)
-		require.NotNil(t, result)
-		require.True(t, result.IsError)
-		require.Equal(t, dummyErr.Error(), result.Text)
+		assert.Nil(t, err)
+		assert.NotNil(t, result)
+		assert.True(t, result.IsError)
+		assert.Equal(t, dummyErr.Error(), result.Text)
 	})
 }

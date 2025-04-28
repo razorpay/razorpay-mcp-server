@@ -4,18 +4,16 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetDefaultLogPath(t *testing.T) {
 	path := getDefaultLogPath()
 
-	if path == "" {
-		t.Error("expected non-empty path, got empty string")
-	}
-
-	if !filepath.IsAbs(path) {
-		t.Errorf("expected absolute path, got: %s", path)
-	}
+	assert.NotEmpty(t, path, "expected non-empty path")
+	assert.True(t, filepath.IsAbs(path),
+		"expected absolute path, got: %s", path)
 }
 
 func TestNew(t *testing.T) {
@@ -51,15 +49,9 @@ func TestNew(t *testing.T) {
 			}()
 
 			logger, cleanup, err := New(tt.path)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if logger == nil {
-				t.Error("expected non-nil logger")
-				return
-			}
+			assert.Equal(t, tt.wantErr, err != nil,
+				"New() error = %v, wantErr %v", err, tt.wantErr)
+			assert.NotNil(t, logger, "expected non-nil logger")
 
 			cleanup()
 		})
@@ -70,13 +62,8 @@ func TestNewWithInvalidPath(t *testing.T) {
 	invalidPath := "/this/path/should/not/exist/log.txt"
 
 	logger, cleanup, err := New(invalidPath)
-	if err != nil {
-		t.Errorf("New() with invalid path should not return error, got: %v", err)
-	}
-
-	if logger == nil {
-		t.Error("expected non-nil logger even with invalid path")
-	}
+	assert.Nil(t, err, "New() with invalid path should not return error")
+	assert.NotNil(t, logger, "expected non-nil logger even with invalid path")
 
 	cleanup()
 }

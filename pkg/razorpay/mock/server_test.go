@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewHTTPClient(t *testing.T) {
@@ -21,11 +20,11 @@ func TestNewHTTPClient(t *testing.T) {
 	)
 	defer server.Close()
 
-	require.NotNil(t, client)
-	require.NotNil(t, server)
+	assert.NotNil(t, client)
+	assert.NotNil(t, server)
 
 	resp, err := client.Get(server.URL + "/test")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -33,7 +32,7 @@ func TestNewHTTPClient(t *testing.T) {
 
 	var result map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&result)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "ok", result["status"])
 }
 
@@ -139,26 +138,26 @@ func TestNewServer(t *testing.T) {
 					strings.NewReader("test body"),
 				)
 			}
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			client := server.Client()
 			resp, err := client.Do(req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			defer resp.Body.Close()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
 
 			body, err := io.ReadAll(resp.Body)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			actualBody := strings.TrimSpace(string(body))
 			if strings.HasPrefix(actualBody, "{") {
 				var expected, actual interface{}
 				err = json.Unmarshal([]byte(tc.expectedBody), &expected)
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
 				err = json.Unmarshal(body, &actual)
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				assert.Equal(t, expected, actual)
 			} else {
 				assert.Equal(t, tc.expectedBody, actualBody)
@@ -211,14 +210,14 @@ func TestMultipleEndpoints(t *testing.T) {
 				resp, err = client.Post(server.URL+tc.path,
 					"application/json", nil)
 			}
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedValue, result["endpoint"])
 		})
 	}

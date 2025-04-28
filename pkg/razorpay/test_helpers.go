@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/razorpay/razorpay-go"
 
@@ -82,17 +81,17 @@ func runToolTest(
 	result, err := tool.GetHandler()(context.Background(), request)
 
 	if tc.ExpectError {
-		require.NotNil(t, result)
+		assert.NotNil(t, result)
 		assert.Contains(t, result.Text, tc.ExpectedErrMsg)
 		return
 	}
 
-	require.NoError(t, err)
-	require.NotNil(t, result)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
 
 	var returnedObj map[string]interface{}
 	err = json.Unmarshal([]byte(result.Text), &returnedObj)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	if diff := deep.Equal(tc.ExpectedResult, returnedObj); diff != nil {
 		t.Errorf("%s mismatch: %s", objectType, diff)
