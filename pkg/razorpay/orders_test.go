@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -200,52 +201,8 @@ func Test_CreateOrder(t *testing.T) {
 			err = json.Unmarshal([]byte(result.Text), &returnedOrder)
 			require.NoError(t, err)
 
-			for key, expected := range tc.expectedResult {
-				if key == "notes" ||
-					key == "partial_payment" ||
-					key == "first_payment_min_amount" {
-					continue
-				}
-				assert.Equal(
-					t,
-					expected,
-					returnedOrder[key],
-					"Field %s doesn't match",
-					key,
-				)
-			}
-
-			if notes, ok := tc.expectedResult["notes"].(map[string]interface{}); ok {
-				returnedNotes, hasNotes := returnedOrder["notes"].(map[string]interface{})
-				require.True(t, hasNotes, "Expected notes in response")
-
-				for noteKey, noteVal := range notes {
-					assert.Equal(
-						t,
-						noteVal,
-						returnedNotes[noteKey],
-						"Note %s doesn't match",
-						noteKey,
-					)
-				}
-			}
-
-			if pp, ok := tc.expectedResult["partial_payment"]; ok {
-				assert.Equal(
-					t,
-					pp,
-					returnedOrder["partial_payment"],
-					"partial_payment field doesn't match",
-				)
-			}
-
-			if minAmount, ok := tc.expectedResult["first_payment_min_amount"]; ok {
-				assert.Equal(
-					t,
-					minAmount,
-					returnedOrder["first_payment_min_amount"],
-					"first_payment_min_amount field doesn't match",
-				)
+			if diff := deep.Equal(tc.expectedResult, returnedOrder); diff != nil {
+				t.Errorf("Order mismatch: %s", diff)
 			}
 		})
 	}
@@ -353,8 +310,8 @@ func Test_FetchOrder(t *testing.T) {
 			err = json.Unmarshal([]byte(result.Text), &returnedOrder)
 			require.NoError(t, err)
 
-			for key, expected := range tc.expectedResult {
-				assert.Equal(t, expected, returnedOrder[key], "Field %s doesn't match", key)
+			if diff := deep.Equal(tc.expectedResult, returnedOrder); diff != nil {
+				t.Errorf("Order mismatch: %s", diff)
 			}
 		})
 	}

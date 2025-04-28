@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -114,14 +115,8 @@ func Test_FetchPayment(t *testing.T) {
 			err = json.Unmarshal([]byte(result.Text), &returnedPayment)
 			require.NoError(t, err)
 
-			for key, expected := range tc.expectedResult {
-				assert.Equal(
-					t,
-					expected,
-					returnedPayment[key],
-					"Field %s doesn't match",
-					key,
-				)
+			if diff := deep.Equal(tc.expectedResult, returnedPayment); diff != nil {
+				t.Errorf("Payment mismatch: %s", diff)
 			}
 		})
 	}
