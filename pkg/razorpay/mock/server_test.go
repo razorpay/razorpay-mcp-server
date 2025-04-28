@@ -168,45 +168,64 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestMultipleEndpoints(t *testing.T) {
-	server := NewServer(
-		Endpoint{
+	// Define endpoints
+	endpoints := []Endpoint{
+		{
 			Path:   "/path1",
 			Method: "GET",
 			Response: map[string]interface{}{
 				"endpoint": "path1",
 			},
 		},
-		Endpoint{
+		{
 			Path:   "/path2",
 			Method: "POST",
 			Response: map[string]interface{}{
 				"endpoint": "path2",
 			},
 		},
-	)
+	}
+
+	// Create server with multiple endpoints
+	server := NewServer(endpoints...)
 	defer server.Close()
 
 	client := server.Client()
 
-	resp1, err := client.Get(server.URL + "/path1")
-	require.NoError(t, err)
-	defer resp1.Body.Close()
-	assert.Equal(t, http.StatusOK, resp1.StatusCode)
+	// Test cases
+	testCases := []struct {
+		path          string
+		method        string
+		expectedValue string
+	}{
+		{"/path1", "GET", "path1"},
+		{"/path2", "POST", "path2"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			var (
+				resp *http.Response
+				err  error
+			)
 
-	var result1 map[string]interface{}
-	err = json.NewDecoder(resp1.Body).Decode(&result1)
-	require.NoError(t, err)
-	assert.Equal(t, "path1", result1["endpoint"])
+			// Make request based on method
+			if tc.method == "GET" {
+				resp, err = client.Get(server.URL + tc.path)
+			} else {
+				req, err := http.NewRequest(tc.method, server.URL+tc.path, nil)
+				require.NoError(t, err)
+				resp, err = client.Do(req)
+			}
+			require.NoError(t, err)
+			defer resp.Body.Close()
 
-	req2, err := http.NewRequest("POST", server.URL+"/path2", nil)
-	require.NoError(t, err)
-	resp2, err := client.Do(req2)
-	require.NoError(t, err)
-	defer resp2.Body.Close()
-	assert.Equal(t, http.StatusOK, resp2.StatusCode)
+			// Verify response
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result2 map[string]interface{}
-	err = json.NewDecoder(resp2.Body).Decode(&result2)
-	require.NoError(t, err)
-	assert.Equal(t, "path2", result2["endpoint"])
+			var result map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&result)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedValue, result["endpoint"])
+		})
+	}
 }

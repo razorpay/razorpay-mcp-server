@@ -21,7 +21,7 @@ import (
 // RazorpayToolTestCase defines a common structure for Razorpay tool tests
 type RazorpayToolTestCase struct {
 	Name           string
-	RequestArgs    map[string]interface{}
+	Request        map[string]interface{}
 	MockHttpClient func() (*http.Client, *httptest.Server)
 	ExpectError    bool
 	ExpectedResult map[string]interface{}
@@ -78,7 +78,7 @@ func runToolTest(
 	log := CreateTestLogger()
 	tool := toolCreator(log, mockRzpClient)
 
-	request := createMCPRequest(tc.RequestArgs)
+	request := createMCPRequest(tc.Request)
 	result, err := tool.GetHandler()(context.Background(), request)
 
 	if tc.ExpectError {

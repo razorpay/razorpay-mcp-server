@@ -45,7 +45,7 @@ func Test_CreatePaymentLink(t *testing.T) {
 	tests := []RazorpayToolTestCase{
 		{
 			Name: "successful payment link creation",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"amount":      float64(50000),
 				"currency":    "INR",
 				"description": "Test payment",
@@ -64,7 +64,7 @@ func Test_CreatePaymentLink(t *testing.T) {
 		},
 		{
 			Name: "payment link without description",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"amount":   float64(50000),
 				"currency": "INR",
 			},
@@ -82,7 +82,7 @@ func Test_CreatePaymentLink(t *testing.T) {
 		},
 		{
 			Name: "missing amount parameter",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"currency": "INR",
 			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
@@ -91,7 +91,7 @@ func Test_CreatePaymentLink(t *testing.T) {
 		},
 		{
 			Name: "missing currency parameter",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"amount": float64(50000),
 			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
@@ -100,7 +100,7 @@ func Test_CreatePaymentLink(t *testing.T) {
 		},
 		{
 			Name: "payment link creation fails",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"amount":   float64(50000),
 				"currency": "XYZ", // Invalid currency
 			},
@@ -152,7 +152,7 @@ func Test_FetchPaymentLink(t *testing.T) {
 	tests := []RazorpayToolTestCase{
 		{
 			Name: "successful payment link fetch",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"payment_link_id": "plink_ExjpAUN3gVHrPJ",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -169,7 +169,7 @@ func Test_FetchPaymentLink(t *testing.T) {
 		},
 		{
 			Name: "payment link not found",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"payment_link_id": "plink_invalid",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -186,7 +186,7 @@ func Test_FetchPaymentLink(t *testing.T) {
 		},
 		{
 			Name:           "missing payment_link_id parameter",
-			RequestArgs:    map[string]interface{}{},
+			Request:        map[string]interface{}{},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: payment_link_id",

@@ -50,7 +50,7 @@ func Test_CreateOrder(t *testing.T) {
 	tests := []RazorpayToolTestCase{
 		{
 			Name: "successful order creation with all parameters",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"amount":                   float64(10000),
 				"currency":                 "INR",
 				"receipt":                  "receipt-123",
@@ -75,7 +75,7 @@ func Test_CreateOrder(t *testing.T) {
 		},
 		{
 			Name: "successful order creation with required params only",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"amount":   float64(10000),
 				"currency": "INR",
 			},
@@ -93,7 +93,7 @@ func Test_CreateOrder(t *testing.T) {
 		},
 		{
 			Name: "missing required parameters",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"amount": float64(10000),
 				// Missing currency
 			},
@@ -103,7 +103,7 @@ func Test_CreateOrder(t *testing.T) {
 		},
 		{
 			Name: "order creation fails",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"amount":   float64(10000),
 				"currency": "INR",
 			},
@@ -153,7 +153,7 @@ func Test_FetchOrder(t *testing.T) {
 	tests := []RazorpayToolTestCase{
 		{
 			Name: "successful order fetch",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"order_id": "order_EKwxwAgItmmXdp",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -170,7 +170,7 @@ func Test_FetchOrder(t *testing.T) {
 		},
 		{
 			Name: "order not found",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"order_id": "order_invalid",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -187,7 +187,7 @@ func Test_FetchOrder(t *testing.T) {
 		},
 		{
 			Name:           "missing order_id parameter",
-			RequestArgs:    map[string]interface{}{},
+			Request:        map[string]interface{}{},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: order_id",

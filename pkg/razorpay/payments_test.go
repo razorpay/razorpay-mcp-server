@@ -34,7 +34,7 @@ func Test_FetchPayment(t *testing.T) {
 	tests := []RazorpayToolTestCase{
 		{
 			Name: "successful payment fetch",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"payment_id": "pay_MT48CvBhIC98MQ",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -51,7 +51,7 @@ func Test_FetchPayment(t *testing.T) {
 		},
 		{
 			Name: "payment not found",
-			RequestArgs: map[string]interface{}{
+			Request: map[string]interface{}{
 				"payment_id": "pay_invalid",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -68,7 +68,7 @@ func Test_FetchPayment(t *testing.T) {
 		},
 		{
 			Name:           "missing payment_id parameter",
-			RequestArgs:    map[string]interface{}{},
+			Request:        map[string]interface{}{},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: payment_id",
