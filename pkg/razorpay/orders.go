@@ -6,28 +6,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
-
-// OrderClient defines the interface for order operations
-//
-//nolint:iface
-type OrderClient interface {
-	Create(
-		data map[string]interface{},
-		extraHeaders map[string]string,
-	) (map[string]interface{}, error)
-	Fetch(
-		id string,
-		data map[string]interface{},
-		extraHeaders map[string]string,
-	) (map[string]interface{}, error)
-}
 
 // CreateOrder returns a tool that creates new orders in Razorpay
 func CreateOrder(
 	_ *slog.Logger,
-	orderClient OrderClient,
+	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
@@ -135,7 +121,7 @@ func CreateOrder(
 		}
 
 		// Create the order using Razorpay SDK
-		order, err := orderClient.Create(orderData, nil)
+		order, err := client.Order.Create(orderData, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating order failed: %s", err.Error()),
@@ -162,7 +148,7 @@ func CreateOrder(
 // FetchOrder returns a tool to fetch order details by ID
 func FetchOrder(
 	_ *slog.Logger,
-	orderClient OrderClient,
+	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
@@ -182,7 +168,7 @@ func FetchOrder(
 		}
 
 		// Fetch the order using Razorpay SDK
-		order, err := orderClient.Fetch(orderID, nil, nil)
+		order, err := client.Order.Fetch(orderID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching order failed: %s", err.Error()),

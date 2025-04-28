@@ -5,24 +5,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
-
-// PaymentClient defines the interface for payment operations
-//
-//nolint:iface
-type PaymentClient interface {
-	Fetch(
-		id string,
-		data map[string]interface{},
-		extraHeaders map[string]string,
-	) (map[string]interface{}, error)
-}
 
 // FetchPayment returns a tool that fetches payment details using payment_id
 func FetchPayment(
 	log *slog.Logger,
-	paymentClient PaymentClient,
+	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
@@ -42,7 +32,7 @@ func FetchPayment(
 			return result, err
 		}
 
-		payment, err := paymentClient.Fetch(paymentID, nil, nil)
+		payment, err := client.Payment.Fetch(paymentID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment failed: %s", err.Error())), nil

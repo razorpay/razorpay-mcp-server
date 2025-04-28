@@ -5,28 +5,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
-
-// PaymentLinkClient defines the interface for payment link operations
-//
-//nolint:iface
-type PaymentLinkClient interface {
-	Create(
-		data map[string]interface{},
-		options map[string]string,
-	) (map[string]interface{}, error)
-	Fetch(
-		id string,
-		data map[string]interface{},
-		options map[string]string,
-	) (map[string]interface{}, error)
-}
 
 // CreatePaymentLink returns a tool that creates payment links in Razorpay
 func CreatePaymentLink(
 	log *slog.Logger,
-	paymentLinkClient PaymentLinkClient,
+	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
@@ -75,7 +61,7 @@ func CreatePaymentLink(
 			paymentLinkData["description"] = desc
 		}
 
-		paymentLink, err := paymentLinkClient.Create(paymentLinkData, nil)
+		paymentLink, err := client.PaymentLink.Create(paymentLinkData, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating payment link failed: %s", err.Error())), nil
@@ -92,11 +78,11 @@ func CreatePaymentLink(
 	)
 }
 
-// FetchPaymentLink
-// returns a tool that fetches payment link details using payment_link_id
+// FetchPaymentLink returns a tool that fetches payment link details using
+// payment_link_id
 func FetchPaymentLink(
 	log *slog.Logger,
-	paymentLinkClient PaymentLinkClient,
+	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
@@ -116,7 +102,7 @@ func FetchPaymentLink(
 			return result, err
 		}
 
-		paymentLink, err := paymentLinkClient.Fetch(id, nil, nil)
+		paymentLink, err := client.PaymentLink.Fetch(id, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment link failed: %s", err.Error())), nil

@@ -4,19 +4,64 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/razorpay/razorpay-go"
+	"github.com/razorpay/razorpay-go/constants"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mocks"
 )
 
 func Test_CreateOrder(t *testing.T) {
-	// Setup test cases
+	createOrderPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.ORDER_URL,
+	)
+
+	sampleOrder := map[string]interface{}{
+		"id":       "order_123456789",
+		"amount":   float64(10000),
+		"currency": "INR",
+		"receipt":  "receipt-123",
+		"status":   "created",
+	}
+
+	orderWithNotes := map[string]interface{}{
+		"id":       "order_123456789",
+		"amount":   float64(10000),
+		"currency": "INR",
+		"receipt":  "receipt-123",
+		"notes": map[string]interface{}{
+			"customer_name": "test-customer",
+			"product_name":  "test-product",
+		},
+		"status": "created",
+	}
+
+	partialPaymentOrder := map[string]interface{}{
+		"id":                       "order_123456789",
+		"amount":                   float64(10000),
+		"currency":                 "INR",
+		"partial_payment":          true,
+		"first_payment_min_amount": float64(5000),
+		"status":                   "created",
+	}
+
+	errorResponse := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Razorpay API error: Bad request",
+		},
+	}
+
 	tests := []struct {
 		name           string
-		setupMock      func(client *mocks.OrderClient)
+		mockHttpClient func() (*http.Client, *httptest.Server)
 		requestArgs    map[string]interface{}
 		expectError    bool
 		expectedResult map[string]interface{}
@@ -24,65 +69,33 @@ func Test_CreateOrder(t *testing.T) {
 	}{
 		{
 			name: "successful order creation",
-			setupMock: func(mock *mocks.OrderClient) {
-				mock.CreateFunc = func(
-					data map[string]interface{},
-					_ map[string]string,
-				) (map[string]interface{}, error) {
-					// Validate that required fields are present
-					assert.Equal(t, 10000, data["amount"])
-					assert.Equal(t, "INR", data["currency"])
-					assert.Equal(t, "receipt-123", data["receipt"])
-
-					return map[string]interface{}{
-						"id":       "order_123456789",
-						"amount":   float64(10000),
-						"currency": "INR",
-						"receipt":  "receipt-123",
-						"status":   "created",
-					}, nil
-				}
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mocks.NewMockedHTTPClient(
+					mocks.MockEndpoint{
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: sampleOrder,
+					},
+				)
 			},
 			requestArgs: map[string]interface{}{
 				"amount":   float64(10000),
 				"currency": "INR",
 				"receipt":  "receipt-123",
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":       "order_123456789",
-				"amount":   float64(10000),
-				"currency": "INR",
-				"receipt":  "receipt-123",
-				"status":   "created",
-			},
+			expectError:    false,
+			expectedResult: sampleOrder,
 		},
 		{
 			name: "order with notes",
-			setupMock: func(mock *mocks.OrderClient) {
-				mock.CreateFunc = func(
-					data map[string]interface{},
-					_ map[string]string,
-				) (map[string]interface{}, error) {
-					// Validate that notes are passed correctly
-					assert.Equal(t, 10000, data["amount"])
-					assert.Equal(t, "INR", data["currency"])
-
-					notesMap := data["notes"].(map[string]interface{})
-					assert.Equal(t, "test-customer", notesMap["customer_name"])
-					assert.Equal(t, "test-product", notesMap["product_name"])
-
-					return map[string]interface{}{
-						"id":       "order_123456789",
-						"amount":   float64(10000),
-						"currency": "INR",
-						"notes": map[string]interface{}{
-							"customer_name": "test-customer",
-							"product_name":  "test-product",
-						},
-						"status": "created",
-					}, nil
-				}
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mocks.NewMockedHTTPClient(
+					mocks.MockEndpoint{
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: orderWithNotes,
+					},
+				)
 			},
 			requestArgs: map[string]interface{}{
 				"amount":   float64(10000),
@@ -92,40 +105,19 @@ func Test_CreateOrder(t *testing.T) {
 					"product_name":  "test-product",
 				},
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":       "order_123456789",
-				"amount":   float64(10000),
-				"currency": "INR",
-				"notes": map[string]interface{}{
-					"customer_name": "test-customer",
-					"product_name":  "test-product",
-				},
-				"status": "created",
-			},
+			expectError:    false,
+			expectedResult: orderWithNotes,
 		},
 		{
 			name: "order with partial payment",
-			setupMock: func(mock *mocks.OrderClient) {
-				mock.CreateFunc = func(
-					data map[string]interface{},
-					_ map[string]string,
-				) (map[string]interface{}, error) {
-					// Validate partial payment fields
-					assert.Equal(t, 10000, data["amount"])
-					assert.Equal(t, "INR", data["currency"])
-					assert.Equal(t, true, data["partial_payment"])
-					assert.Equal(t, 5000, data["first_payment_min_amount"])
-
-					return map[string]interface{}{
-						"id":                       "order_123456789",
-						"amount":                   float64(10000),
-						"currency":                 "INR",
-						"partial_payment":          true,
-						"first_payment_min_amount": float64(5000),
-						"status":                   "created",
-					}, nil
-				}
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mocks.NewMockedHTTPClient(
+					mocks.MockEndpoint{
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: partialPaymentOrder,
+					},
+				)
 			},
 			requestArgs: map[string]interface{}{
 				"amount":                   float64(10000),
@@ -133,21 +125,12 @@ func Test_CreateOrder(t *testing.T) {
 				"partial_payment":          true,
 				"first_payment_min_amount": float64(5000),
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":                       "order_123456789",
-				"amount":                   float64(10000),
-				"currency":                 "INR",
-				"partial_payment":          true,
-				"first_payment_min_amount": float64(5000),
-				"status":                   "created",
-			},
+			expectError:    false,
+			expectedResult: partialPaymentOrder,
 		},
 		{
-			name: "missing required parameters",
-			setupMock: func(mock *mocks.OrderClient) {
-				// No need to setup mock for validation error
-			},
+			name:           "missing required parameters",
+			mockHttpClient: nil, // No HTTP client needed for validation error
 			requestArgs: map[string]interface{}{
 				"amount": float64(10000),
 				// Missing currency
@@ -157,13 +140,14 @@ func Test_CreateOrder(t *testing.T) {
 		},
 		{
 			name: "order creation fails",
-			setupMock: func(mock *mocks.OrderClient) {
-				mock.CreateFunc = func(
-					data map[string]interface{},
-					_ map[string]string,
-				) (map[string]interface{}, error) {
-					return nil, fmt.Errorf("Razorpay API error: Bad request")
-				}
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mocks.NewMockedHTTPClient(
+					mocks.MockEndpoint{
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: errorResponse,
+					},
+				)
 			},
 			requestArgs: map[string]interface{}{
 				"amount":   float64(10000),
@@ -176,20 +160,25 @@ func Test_CreateOrder(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Set up mock client and tool
-			mockClient, tool := SetupCreateOrderTest()
+			mockrzpClient := razorpay.NewClient("sample_key", "sample_secret")
 
-			if tc.setupMock != nil {
-				tc.setupMock(mockClient)
+			var mockServer *httptest.Server
+			if tc.mockHttpClient != nil {
+				var client *http.Client
+				client, mockServer = tc.mockHttpClient()
+				defer mockServer.Close()
+
+				mockrzpClient.Order.Request.BaseURL = mockServer.URL
+				mockrzpClient.Order.Request.HTTPClient = client
 			}
 
-			// Create call request
+			log := CreateTestLogger()
+			tool := CreateOrder(log, mockrzpClient)
+
 			request := createMCPRequest(tc.requestArgs)
 
-			// Call handler
 			result, err := tool.GetHandler()(context.Background(), request)
 
-			// Verify results
 			if tc.expectError {
 				require.NotNil(t, result)
 				assert.Contains(t, result.Text, tc.expectedErrMsg)
@@ -199,46 +188,86 @@ func Test_CreateOrder(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, result)
 
-			if tc.expectedResult != nil {
-				// Parse the result to verify it contains expected data
-				var returnedOrder map[string]interface{}
-				err = json.Unmarshal([]byte(result.Text), &returnedOrder)
-				require.NoError(t, err)
+			var returnedOrder map[string]interface{}
+			err = json.Unmarshal([]byte(result.Text), &returnedOrder)
+			require.NoError(t, err)
 
-				// Verify key fields in the order
-				assert.Equal(t, tc.expectedResult["id"], returnedOrder["id"])
-				assert.Equal(t, tc.expectedResult["amount"], returnedOrder["amount"])
-				assert.Equal(t, tc.expectedResult["currency"], returnedOrder["currency"])
-				assert.Equal(t, tc.expectedResult["status"], returnedOrder["status"])
-
-				// Check receipt if present
-				if receipt, ok := tc.expectedResult["receipt"]; ok {
-					assert.Equal(t, receipt, returnedOrder["receipt"])
+			for key, expected := range tc.expectedResult {
+				if key == "notes" ||
+					key == "partial_payment" ||
+					key == "first_payment_min_amount" {
+					continue
 				}
+				assert.Equal(
+					t,
+					expected,
+					returnedOrder[key],
+					"Field %s doesn't match",
+					key,
+				)
+			}
 
-				// Check notes if present
-				if notes, ok := tc.expectedResult["notes"]; ok {
-					assert.Equal(t, notes, returnedOrder["notes"])
-				}
+			if notes, ok := tc.expectedResult["notes"].(map[string]interface{}); ok {
+				returnedNotes, hasNotes := returnedOrder["notes"].(map[string]interface{})
+				require.True(t, hasNotes, "Expected notes in response")
 
-				// Check partial payment fields if present
-				if pp, ok := tc.expectedResult["partial_payment"]; ok {
-					assert.Equal(t, pp, returnedOrder["partial_payment"])
+				for noteKey, noteVal := range notes {
+					assert.Equal(
+						t,
+						noteVal,
+						returnedNotes[noteKey],
+						"Note %s doesn't match",
+						noteKey,
+					)
 				}
+			}
 
-				if minAmount, ok := tc.expectedResult["first_payment_min_amount"]; ok {
-					assert.Equal(t, minAmount, returnedOrder["first_payment_min_amount"])
-				}
+			if pp, ok := tc.expectedResult["partial_payment"]; ok {
+				assert.Equal(
+					t,
+					pp,
+					returnedOrder["partial_payment"],
+					"partial_payment field doesn't match",
+				)
+			}
+
+			if minAmount, ok := tc.expectedResult["first_payment_min_amount"]; ok {
+				assert.Equal(
+					t,
+					minAmount,
+					returnedOrder["first_payment_min_amount"],
+					"first_payment_min_amount field doesn't match",
+				)
 			}
 		})
 	}
 }
 
 func Test_FetchOrder(t *testing.T) {
-	// Setup test cases
+	fetchOrderPathFmt := fmt.Sprintf(
+		"/%s%s/%%s",
+		constants.VERSION_V1,
+		constants.ORDER_URL,
+	)
+
+	sampleOrder := map[string]interface{}{
+		"id":       "order_123456789",
+		"amount":   float64(10000),
+		"currency": "INR",
+		"receipt":  "receipt-123",
+		"status":   "created",
+	}
+
+	orderNotFoundError := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "order not found",
+		},
+	}
+
 	tests := []struct {
 		name           string
-		setupMock      func(client *mocks.OrderClient)
+		mockHttpClient func() (*http.Client, *httptest.Server)
 		requestArgs    map[string]interface{}
 		expectError    bool
 		expectedResult map[string]interface{}
@@ -246,44 +275,31 @@ func Test_FetchOrder(t *testing.T) {
 	}{
 		{
 			name: "successful order fetch",
-			setupMock: func(mock *mocks.OrderClient) {
-				mock.FetchFunc = func(
-					orderID string,
-					_ map[string]interface{},
-					_ map[string]string,
-				) (map[string]interface{}, error) {
-					assert.Equal(t, "order_123456789", orderID)
-					return map[string]interface{}{
-						"id":       "order_123456789",
-						"amount":   float64(10000),
-						"currency": "INR",
-						"receipt":  "receipt-123",
-						"status":   "created",
-					}, nil
-				}
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mocks.NewMockedHTTPClient(
+					mocks.MockEndpoint{
+						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_123456789"),
+						Method:   "GET",
+						Response: sampleOrder,
+					},
+				)
 			},
 			requestArgs: map[string]interface{}{
 				"order_id": "order_123456789",
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":       "order_123456789",
-				"amount":   float64(10000),
-				"currency": "INR",
-				"receipt":  "receipt-123",
-				"status":   "created",
-			},
+			expectError:    false,
+			expectedResult: sampleOrder,
 		},
 		{
 			name: "order not found",
-			setupMock: func(mock *mocks.OrderClient) {
-				mock.FetchFunc = func(
-					orderID string,
-					_ map[string]interface{},
-					_ map[string]string,
-				) (map[string]interface{}, error) {
-					return nil, fmt.Errorf("order not found")
-				}
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mocks.NewMockedHTTPClient(
+					mocks.MockEndpoint{
+						Path:     fmt.Sprintf(fetchOrderPathFmt, "order_invalid"),
+						Method:   "GET",
+						Response: orderNotFoundError,
+					},
+				)
 			},
 			requestArgs: map[string]interface{}{
 				"order_id": "order_invalid",
@@ -293,7 +309,7 @@ func Test_FetchOrder(t *testing.T) {
 		},
 		{
 			name:           "missing order_id parameter",
-			setupMock:      func(mock *mocks.OrderClient) {},
+			mockHttpClient: nil, // No HTTP client needed for validation error
 			requestArgs:    map[string]interface{}{},
 			expectError:    true,
 			expectedErrMsg: "missing required parameter: order_id",
@@ -302,20 +318,25 @@ func Test_FetchOrder(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Set up mock client and tool
-			mockClient, tool := SetupFetchOrderTest()
+			mockrzpClient := razorpay.NewClient("sample_key", "sample_secret")
 
-			if tc.setupMock != nil {
-				tc.setupMock(mockClient)
+			var mockServer *httptest.Server
+			if tc.mockHttpClient != nil {
+				var client *http.Client
+				client, mockServer = tc.mockHttpClient()
+				defer mockServer.Close()
+
+				mockrzpClient.Order.Request.BaseURL = mockServer.URL
+				mockrzpClient.Order.Request.HTTPClient = client
 			}
 
-			// Create call request
+			log := CreateTestLogger()
+			tool := FetchOrder(log, mockrzpClient)
+
 			request := createMCPRequest(tc.requestArgs)
 
-			// Call handler
 			result, err := tool.GetHandler()(context.Background(), request)
 
-			// Verify results
 			if tc.expectError {
 				require.NotNil(t, result)
 				assert.Contains(t, result.Text, tc.expectedErrMsg)
@@ -325,22 +346,12 @@ func Test_FetchOrder(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, result)
 
-			if tc.expectedResult != nil {
-				// Parse the result to verify it contains expected data
-				var returnedOrder map[string]interface{}
-				err = json.Unmarshal([]byte(result.Text), &returnedOrder)
-				require.NoError(t, err)
+			var returnedOrder map[string]interface{}
+			err = json.Unmarshal([]byte(result.Text), &returnedOrder)
+			require.NoError(t, err)
 
-				// Verify key fields in the order
-				assert.Equal(t, tc.expectedResult["id"], returnedOrder["id"])
-				assert.Equal(t, tc.expectedResult["amount"], returnedOrder["amount"])
-				assert.Equal(t, tc.expectedResult["currency"], returnedOrder["currency"])
-				assert.Equal(t, tc.expectedResult["status"], returnedOrder["status"])
-
-				// Check receipt if present
-				if receipt, ok := tc.expectedResult["receipt"]; ok {
-					assert.Equal(t, receipt, returnedOrder["receipt"])
-				}
+			for key, expected := range tc.expectedResult {
+				assert.Equal(t, expected, returnedOrder[key], "Field %s doesn't match", key)
 			}
 		})
 	}

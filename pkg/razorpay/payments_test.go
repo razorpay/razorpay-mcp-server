@@ -4,63 +4,73 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/razorpay/razorpay-go"
+	"github.com/razorpay/razorpay-go/constants"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mocks"
 )
 
 func Test_FetchPayment(t *testing.T) {
-	// Create test cases
+	fetchPaymentPathFmt := fmt.Sprintf(
+		"/%s%s/%%s",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	samplePayment := map[string]interface{}{
+		"id":     "pay_123456789",
+		"amount": float64(1000),
+		"status": "captured",
+	}
+
+	paymentNotFoundError := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "payment not found",
+		},
+	}
+
 	tests := []struct {
 		name           string
-		paymentID      string
-		setupMock      func(client *mocks.PaymentClient)
+		mockHttpClient func() (*http.Client, *httptest.Server)
 		requestArgs    map[string]interface{}
 		expectError    bool
 		expectedResult map[string]interface{}
 		expectedErrMsg string
 	}{
 		{
-			name:      "successful payment fetch",
-			paymentID: "pay_123456789",
-			setupMock: func(mock *mocks.PaymentClient) {
-				mock.FetchFunc = func(
-					paymentID string,
-					_ map[string]interface{},
-					_ map[string]string,
-				) (map[string]interface{}, error) {
-					assert.Equal(t, "pay_123456789", paymentID)
-					return map[string]interface{}{
-						"id":     "pay_123456789",
-						"amount": float64(1000),
-						"status": "captured",
-					}, nil
-				}
+			name: "successful payment fetch",
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mocks.NewMockedHTTPClient(
+					mocks.MockEndpoint{
+						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_123456789"),
+						Method:   "GET",
+						Response: samplePayment,
+					},
+				)
 			},
 			requestArgs: map[string]interface{}{
 				"payment_id": "pay_123456789",
 			},
-			expectError: false,
-			expectedResult: map[string]interface{}{
-				"id":     "pay_123456789",
-				"amount": float64(1000),
-				"status": "captured",
-			},
+			expectError:    false,
+			expectedResult: samplePayment,
 		},
 		{
-			name:      "payment not found",
-			paymentID: "pay_invalid",
-			setupMock: func(mock *mocks.PaymentClient) {
-				mock.FetchFunc = func(
-					paymentID string,
-					_ map[string]interface{},
-					_ map[string]string,
-				) (map[string]interface{}, error) {
-					return nil, fmt.Errorf("payment not found")
-				}
+			name: "payment not found",
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mocks.NewMockedHTTPClient(
+					mocks.MockEndpoint{
+						Path:     fmt.Sprintf(fetchPaymentPathFmt, "pay_invalid"),
+						Method:   "GET",
+						Response: paymentNotFoundError,
+					},
+				)
 			},
 			requestArgs: map[string]interface{}{
 				"payment_id": "pay_invalid",
@@ -69,11 +79,8 @@ func Test_FetchPayment(t *testing.T) {
 			expectedErrMsg: "fetching payment failed: payment not found",
 		},
 		{
-			name:      "missing payment_id parameter",
-			paymentID: "",
-			setupMock: func(mock *mocks.PaymentClient) {
-				// No need to set up mock for this case
-			},
+			name:           "missing payment_id parameter",
+			mockHttpClient: nil, // No HTTP client needed for validation error
 			requestArgs:    map[string]interface{}{},
 			expectError:    true,
 			expectedErrMsg: "missing required parameter: payment_id",
@@ -82,20 +89,25 @@ func Test_FetchPayment(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Set up mock client
-			mockPayment, tool := SetupFetchPaymentTest()
+			mockrzpClient := razorpay.NewClient("sample_key", "sample_secret")
 
-			if tc.setupMock != nil {
-				tc.setupMock(mockPayment)
+			var mockServer *httptest.Server
+			if tc.mockHttpClient != nil {
+				var client *http.Client
+				client, mockServer = tc.mockHttpClient()
+				defer mockServer.Close()
+
+				mockrzpClient.Payment.Request.BaseURL = mockServer.URL
+				mockrzpClient.Payment.Request.HTTPClient = client
 			}
 
-			// Create call request
+			log := CreateTestLogger()
+			tool := FetchPayment(log, mockrzpClient)
+
 			request := createMCPRequest(tc.requestArgs)
 
-			// Call handler
 			result, err := tool.GetHandler()(context.Background(), request)
 
-			// Verify results
 			if tc.expectError {
 				require.NotNil(t, result)
 				assert.Contains(t, result.Text, tc.expectedErrMsg)
@@ -105,16 +117,18 @@ func Test_FetchPayment(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, result)
 
-			if tc.expectedResult != nil {
-				// Parse the result to verify it contains expected data
-				var returnedPayment map[string]interface{}
-				err = json.Unmarshal([]byte(result.Text), &returnedPayment)
-				require.NoError(t, err)
+			var returnedPayment map[string]interface{}
+			err = json.Unmarshal([]byte(result.Text), &returnedPayment)
+			require.NoError(t, err)
 
-				// Verify key fields in the payment
-				assert.Equal(t, tc.expectedResult["id"], returnedPayment["id"])
-				assert.Equal(t, tc.expectedResult["amount"], returnedPayment["amount"])
-				assert.Equal(t, tc.expectedResult["status"], returnedPayment["status"])
+			for key, expected := range tc.expectedResult {
+				assert.Equal(
+					t,
+					expected,
+					returnedPayment[key],
+					"Field %s doesn't match",
+					key,
+				)
 			}
 		})
 	}

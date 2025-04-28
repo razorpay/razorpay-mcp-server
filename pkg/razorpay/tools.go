@@ -20,25 +20,25 @@ func NewToolSets(
 	// Create toolsets
 	payments := toolsets.NewToolset("payments", "Razorpay Payments related tools").
 		AddReadTools(
-			FetchPayment(log, client.Payment),
+			FetchPayment(log, client),
 		)
 
 	paymentLinks := toolsets.NewToolset(
 		"payment_links",
 		"Razorpay Payment Links related tools").
 		AddReadTools(
-			FetchPaymentLink(log, client.PaymentLink),
+			FetchPaymentLink(log, client),
 		).
 		AddWriteTools(
-			CreatePaymentLink(log, client.PaymentLink),
+			CreatePaymentLink(log, client),
 		)
 
 	orders := toolsets.NewToolset("orders", "Razorpay Orders related tools").
 		AddReadTools(
-			FetchOrder(log, client.Order),
+			FetchOrder(log, client),
 		).
 		AddWriteTools(
-			CreateOrder(log, client.Order),
+			CreateOrder(log, client),
 		)
 
 	// Add toolsets to the group
