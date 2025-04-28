@@ -295,6 +295,84 @@ func NewToolSets(
 
 Tools are organized into toolsets by resource type, and each toolset has separate collections for read-only tools (`AddReadTools`) and write tools (`AddWriteTools`). This allows the server to enable/disable write operations when in read-only mode.
 
+### Writing Unit Tests
+
+All new tools should have unit tests to verify their behavior. We use a standard pattern for testing tools:
+
+```go
+func Test_ToolName(t *testing.T) {
+    // Define API path for mocking
+    apiPath := fmt.Sprintf("/%s%s", constants.VERSION_V1, constants.RESOURCE_URL)
+    
+    // Define mock responses
+    successResponse := map[string]interface{}{
+        "id": "resource_123",
+        "amount": float64(1000),
+        "currency": "INR",
+        // Other expected fields
+    }
+    
+    // Define test cases
+    tests := []RazorpayToolTestCase{
+        {
+            Name: "successful case with all parameters",
+            Request: map[string]interface{}{
+                "param1": "value1",
+                "param2": float64(1000),
+                // All parameters for a complete request
+            },
+            MockHttpClient: func() (*http.Client, *httptest.Server) {
+                return mock.NewHTTPClient(
+                    mock.Endpoint{
+                        Path:     apiPath,
+                        Method:   "POST", // or "GET" for fetch operations
+                        Response: successResponse,
+                    },
+                )
+            },
+            ExpectError:    false,
+            ExpectedResult: successResponse,
+        },
+        {
+            Name: "missing required parameter",
+            Request: map[string]interface{}{
+                // Missing a required parameter
+            },
+            MockHttpClient: nil, // No HTTP client needed for validation errors
+            ExpectError:    true,
+            ExpectedErrMsg: "missing required parameter: param1",
+        },
+        // Additional test cases for other scenarios
+    }
+    
+    // Run the tests
+    for _, tc := range tests {
+        t.Run(tc.Name, func(t *testing.T) {
+            runToolTest(t, tc, ToolFunction, "Resource Name")
+        })
+    }
+}
+```
+
+#### Best Practices while writing UTs for a new Tool
+
+1. **Test Coverage**: At minimum, include:
+   - One positive test case with all parameters (required and optional)
+   - One negative test case for each required parameter
+   - Any edge cases specific to your tool
+
+2. **Mock HTTP Responses**: Use the `mock.NewHTTPClient` function to create mock HTTP responses for Razorpay API calls.
+
+3. **Validation Errors**: For parameter validation errors, you don't need to mock HTTP responses as these errors are caught before the API call.
+
+4. **Test API Errors**: Include at least one test for API-level errors (like invalid currency, not found, etc.).
+
+5. **Naming Convention**: Use `Test_FunctionName` format for test functions.
+
+6. Use the resource URLs from [Razorpay Go sdk constants](https://github.com/razorpay/razorpay-go/blob/master/constants/url.go) to specify the apiPath to be mocked.
+
+See [`payment_links_test.go`](payment_links_test.go) for a complete example of tool tests.
+
 ### Updating Documentation
 
 After adding a new tool, Update the "Available Tools" section in the README.md in the root of the repository
