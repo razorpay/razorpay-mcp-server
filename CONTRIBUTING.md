@@ -44,6 +44,7 @@ We use a fork-based workflow for all contributions:
    - `feat`: for adding new features like a new fetch_payment tool
    - `fix`: for bug fixes
    - `ref`: for code refactoring
+   - `test`: for adding UTs or E2Es
    
    Example: `git commit -m "feat: add payment verification tool"`
 
