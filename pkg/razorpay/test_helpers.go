@@ -53,7 +53,7 @@ func newMockRzpClient(
 		var client *http.Client
 		client, mockServer = mockHttpClient()
 
-		// This Request object is shared by reference across all 
+		// This Request object is shared by reference across all
 		// API resources in the client
 		req := rzpMockClient.Order.Request
 		req.BaseURL = mockServer.URL
