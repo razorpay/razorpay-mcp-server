@@ -50,108 +50,22 @@ The generation process:
    - API call using the provided SDK function
    - Unit tests with positive and negative cases
 
-## Tool Implementation Pattern
+## Implementation References
 
-```go
-// ToolName returns a tool that [description from docs]
-func ToolName(
-    log *slog.Logger,
-    client *rzpsdk.Client,
-) mcpgo.Tool {
-    parameters := []mcpgo.ToolParameter{
-        // Parameters extracted from documentation
-        mcpgo.WithString(
-            "parameter_name",
-            mcpgo.Description("Description from API docs"),
-            mcpgo.Required(),
-        ),
-        // Additional parameters...
-    }
+For detailed code patterns and examples, refer to the following sections in the [pkg/razorpay/README.md](../pkg/razorpay/README.md):
 
-    handler := func(
-        ctx context.Context,
-        r mcpgo.CallToolRequest,
-    ) (*mcpgo.ToolResult, error) {
-        // Parameter validation
-        paramValue, err := RequiredParam[string](r, "parameter_name")
-        if result, err := HandleValidationError(err); result != nil {
-            return result, err
-        }
-
-        // Construct data payload
-        data := map[string]interface{}{
-            "key": paramValue,
-            // Additional fields...
-        }
-
-        // SDK call based on provided function signature
-        response, err := client.Resource.Method(data, nil)
-        if err != nil {
-            return mcpgo.NewToolResultError(
-                fmt.Sprintf("operation failed: %s", err.Error())), nil
-        }
-
-        return mcpgo.NewToolResultJSON(response)
-    }
-
-    return mcpgo.NewTool(
-        "tool_name", // Generated from resource and action
-        "Description from API docs",
-        parameters,
-        handler,
-    )
-}
-```
-
-## Test Implementation Pattern
-
-```go
-func Test_ToolName(t *testing.T) {
-    // Define API path based on SDK function's constants
-    apiPath := fmt.Sprintf("/%s%s", constants.VERSION_V1, constants.RESOURCE_URL)
-
-    // Define mock responses using example from documentation
-    successResponse := map[string]interface{}{
-        // Fields from documentation example response
-    }
-
-    // Define test cases
-    tests := []RazorpayToolTestCase{
-        {
-            Name: "successful case with all parameters",
-            Request: map[string]interface{}{
-                // Parameters from documentation example
-            },
-            MockHttpClient: func() (*http.Client, *httptest.Server) {
-                return mock.NewHTTPClient(
-                    mock.Endpoint{
-                        Path:     apiPath,
-                        Method:   "POST", // or "GET" based on SDK function
-                        Response: successResponse,
-                    },
-                )
-            },
-            ExpectError:    false,
-            ExpectedResult: successResponse,
-        },
-        // Negative test cases for required parameters
-    }
-
-    // Run the tests
-    for _, tc := range tests {
-        t.Run(tc.Name, func(t *testing.T) {
-            runToolTest(t, tc, ToolFunction, "Resource Name")
-        })
-    }
-}
-```
+- **Tool Structure**: See the "Tool Structure" section for the function template
+- **Parameter Definition**: See the "Parameter Definition" section for defining parameters
+- **Parameter Validation**: See the "Parameter Validation" section for validation examples
+- **Example GET/POST Endpoints**: See the example sections for complete implementation patterns
+- **Unit Testing**: See the "Writing Unit Tests" section for test patterns and best practices
 
 ## Registration Steps
 
 After generating the tool:
 
-1. Add it to the appropriate toolset in `pkg/razorpay/tools.go`
-2. Update the README.md to document the new tool
+1. Add it to the appropriate toolset in `pkg/razorpay/tools.go` (see "Registering Tools" in README)
+2. Update the main README.md to document the new tool
 3. Run tests to verify functionality
 
 ## Reference URLs
