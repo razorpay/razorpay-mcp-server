@@ -168,7 +168,6 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestMultipleEndpoints(t *testing.T) {
-	// Define endpoints
 	endpoints := []Endpoint{
 		{
 			Path:   "/path1",
@@ -186,13 +185,11 @@ func TestMultipleEndpoints(t *testing.T) {
 		},
 	}
 
-	// Create server with multiple endpoints
 	server := NewServer(endpoints...)
 	defer server.Close()
 
 	client := server.Client()
 
-	// Test cases
 	testCases := []struct {
 		path          string
 		method        string
@@ -208,18 +205,15 @@ func TestMultipleEndpoints(t *testing.T) {
 				err  error
 			)
 
-			// Make request based on method
 			if tc.method == "GET" {
 				resp, err = client.Get(server.URL + tc.path)
-			} else {
-				req, err := http.NewRequest(tc.method, server.URL+tc.path, nil)
-				require.NoError(t, err)
-				resp, err = client.Do(req)
+			} else if tc.method == "POST" {
+				resp, err = client.Post(server.URL+tc.path,
+					"application/json", nil)
 			}
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			// Verify response
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 			var result map[string]interface{}
