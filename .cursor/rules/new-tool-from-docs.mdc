@@ -27,6 +27,14 @@ func (pl *PaymentLink) Create(data map[string]interface{}, extraHeaders map[stri
 
 IMPORTANT: If these details are missing or in an incorrect format, REFUSE to proceed further.
 
+## Implementation Checklist
+- [ ] Implement tool function based on API docs
+- [ ] Register tool in tools.go
+- [ ] Create unit tests
+- [ ] Update README.md
+- [ ] Run linter and fix errors if any (REQUIRED)
+- [ ] Run tests and fix errors if any (REQUIRED)
+
 ## Implementation
 
 Before the implementation use the documentation URL provided to figure out the request contract, required parameters, descriptions of the parameters, and the response contract.
@@ -38,19 +46,21 @@ Other guidelines:
 2. Use the payload and response from the docs provided write the positive test case for the tool.
 
 IMPORTANT:
-1. start making code changes in the same iteration itself without asking the user's input.
+1. Start making code changes in the same iteration itself without asking the user's input.
 2. ALWAYS go through the Post Implementation steps once the code changes are done.
 
-## Post Implementation
+## ⚠️ Required Verification Steps ⚠️
 
-When linting or test errors occur:
+After implementing code changes, ALWAYS perform these verification steps:
 
-1. Run the linter to ensure code quality
-   - Use `golangci-lint run` to check for linting issues
-   - Fix any issues reported by the linter
+1. You MUST run the linter to ensure code quality:
+  ```
+  run_terminal_cmd golangci-lint run
+  ```
+  Fix any issues reported by the linter. Try at least two iterations of fixes for the errors before giving up.
 
-2. Run tests to verify functionality
-   - Use `go test ./...` to run all tests
-   - Ensure all tests pass before finalizing the tool. If any tests fail, investigate and fix the issues
-
-IMPORTANT: Try at least two iterations of fixes for the errors before asking for help.
+2. You MUST run tests to verify functionality:
+  ```
+  run_terminal_cmd go test ./...
+  ```
+  Ensure all tests pass. If any tests fail, investigate the failures and fix the issues. Try at least two iterations of fixes for the errors before giving up.
