@@ -1,4 +1,4 @@
-package mocks
+package mock
 
 import (
 	"encoding/json"
@@ -9,25 +9,25 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// MockEndpoint defines a route and its response
-type MockEndpoint struct {
+// Endpoint defines a route and its response
+type Endpoint struct {
 	Path     string
 	Method   string
 	Response interface{}
 }
 
-// NewMockedHTTPClient creates and returns a mock HTTP client with configured
+// NewHTTPClient creates and returns a mock HTTP client with configured
 // endpoints
-func NewMockedHTTPClient(
-	endpoints ...MockEndpoint,
+func NewHTTPClient(
+	endpoints ...Endpoint,
 ) (*http.Client, *httptest.Server) {
-	mockServer := SetupMockServer(endpoints...)
+	mockServer := NewServer(endpoints...)
 	client := mockServer.Client()
 	return client, mockServer
 }
 
-// SetupMockServer creates a mock HTTP server for testing
-func SetupMockServer(endpoints ...MockEndpoint) *httptest.Server {
+// NewServer creates a mock HTTP server for testing
+func NewServer(endpoints ...Endpoint) *httptest.Server {
 	router := mux.NewRouter()
 
 	for _, endpoint := range endpoints {

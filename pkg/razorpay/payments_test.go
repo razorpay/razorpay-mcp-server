@@ -13,8 +13,7 @@ import (
 
 	"github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
-
-	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mocks"
+	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
 )
 
 func Test_FetchPayment(t *testing.T) {
@@ -26,42 +25,45 @@ func Test_FetchPayment(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		mockHttpClient func() (*http.Client, *httptest.Server)
 		requestArgs    map[string]interface{}
+		mockHttpClient func() (*http.Client, *httptest.Server)
 		expectError    bool
 		expectedResult map[string]interface{}
 		expectedErrMsg string
 	}{
 		{
 			name: "successful payment fetch",
+			requestArgs: map[string]interface{}{
+				"payment_id": "pay_MT48CvBhIC98MQ",
+			},
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mocks.NewMockedHTTPClient(
-					mocks.MockEndpoint{
-						Path:   fmt.Sprintf(fetchPaymentPathFmt, "pay_123456789"),
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   fmt.Sprintf(fetchPaymentPathFmt, "pay_MT48CvBhIC98MQ"),
 						Method: "GET",
 						Response: map[string]interface{}{
-							"id":     "pay_123456789",
+							"id":     "pay_MT48CvBhIC98MQ",
 							"amount": float64(1000),
 							"status": "captured",
 						},
 					},
 				)
 			},
-			requestArgs: map[string]interface{}{
-				"payment_id": "pay_123456789",
-			},
 			expectError: false,
 			expectedResult: map[string]interface{}{
-				"id":     "pay_123456789",
+				"id":     "pay_MT48CvBhIC98MQ",
 				"amount": float64(1000),
 				"status": "captured",
 			},
 		},
 		{
 			name: "payment not found",
+			requestArgs: map[string]interface{}{
+				"payment_id": "pay_invalid",
+			},
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mocks.NewMockedHTTPClient(
-					mocks.MockEndpoint{
+				return mock.NewHTTPClient(
+					mock.Endpoint{
 						Path:   fmt.Sprintf(fetchPaymentPathFmt, "pay_invalid"),
 						Method: "GET",
 						Response: map[string]interface{}{
@@ -73,16 +75,13 @@ func Test_FetchPayment(t *testing.T) {
 					},
 				)
 			},
-			requestArgs: map[string]interface{}{
-				"payment_id": "pay_invalid",
-			},
 			expectError:    true,
 			expectedErrMsg: "fetching payment failed: payment not found",
 		},
 		{
 			name:           "missing payment_id parameter",
-			mockHttpClient: nil, // No HTTP client needed for validation error
 			requestArgs:    map[string]interface{}{},
+			mockHttpClient: nil, // No HTTP client needed for validation error
 			expectError:    true,
 			expectedErrMsg: "missing required parameter: payment_id",
 		},

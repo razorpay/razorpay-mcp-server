@@ -13,8 +13,7 @@ import (
 
 	"github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
-
-	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mocks"
+	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
 )
 
 func Test_CreatePaymentLink(t *testing.T) {
@@ -26,98 +25,102 @@ func Test_CreatePaymentLink(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		mockHttpClient func() (*http.Client, *httptest.Server)
 		requestArgs    map[string]interface{}
+		mockHttpClient func() (*http.Client, *httptest.Server)
 		expectError    bool
 		expectedResult map[string]interface{}
 		expectedErrMsg string
 	}{
 		{
 			name: "successful payment link creation",
+			requestArgs: map[string]interface{}{
+				"amount":      float64(50000),
+				"currency":    "INR",
+				"description": "Test payment",
+			},
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mocks.NewMockedHTTPClient(
-					mocks.MockEndpoint{
+				return mock.NewHTTPClient(
+					mock.Endpoint{
 						Path:   createPaymentLinkPath,
 						Method: "POST",
 						Response: map[string]interface{}{
-							"id":          "plink_123456789",
+							"id":          "plink_ExjpAUN3gVHrPJ",
 							"amount":      float64(50000),
 							"currency":    "INR",
 							"description": "Test payment",
 							"status":      "created",
-							"short_url":   "https://rzp.io/i/abcdef",
+							"short_url":   "https://rzp.io/i/nxrHnLJ",
 						},
 					},
 				)
 			},
-			requestArgs: map[string]interface{}{
-				"amount":      float64(50000),
-				"currency":    "INR",
-				"description": "Test payment",
-			},
 			expectError: false,
 			expectedResult: map[string]interface{}{
-				"id":          "plink_123456789",
+				"id":          "plink_ExjpAUN3gVHrPJ",
 				"amount":      float64(50000),
 				"currency":    "INR",
 				"description": "Test payment",
 				"status":      "created",
-				"short_url":   "https://rzp.io/i/abcdef",
+				"short_url":   "https://rzp.io/i/nxrHnLJ",
 			},
 		},
 		{
 			name: "payment link without description",
-			mockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mocks.NewMockedHTTPClient(
-					mocks.MockEndpoint{
-						Path:   createPaymentLinkPath,
-						Method: "POST",
-						Response: map[string]interface{}{
-							"id":        "plink_123456789",
-							"amount":    float64(50000),
-							"currency":  "INR",
-							"status":    "created",
-							"short_url": "https://rzp.io/i/abcdef",
-						},
-					},
-				)
-			},
 			requestArgs: map[string]interface{}{
 				"amount":   float64(50000),
 				"currency": "INR",
 			},
+			mockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   createPaymentLinkPath,
+						Method: "POST",
+						Response: map[string]interface{}{
+							"id":        "plink_ExjpAUN3gVHrPJ",
+							"amount":    float64(50000),
+							"currency":  "INR",
+							"status":    "created",
+							"short_url": "https://rzp.io/i/nxrHnLJ",
+						},
+					},
+				)
+			},
 			expectError: false,
 			expectedResult: map[string]interface{}{
-				"id":        "plink_123456789",
+				"id":        "plink_ExjpAUN3gVHrPJ",
 				"amount":    float64(50000),
 				"currency":  "INR",
 				"status":    "created",
-				"short_url": "https://rzp.io/i/abcdef",
+				"short_url": "https://rzp.io/i/nxrHnLJ",
 			},
 		},
 		{
-			name:           "missing amount parameter",
-			mockHttpClient: nil, // No HTTP client needed for validation error
+			name: "missing amount parameter",
 			requestArgs: map[string]interface{}{
 				"currency": "INR",
 			},
+			mockHttpClient: nil, // No HTTP client needed for validation error
 			expectError:    true,
 			expectedErrMsg: "missing required parameter: amount",
 		},
 		{
-			name:           "missing currency parameter",
-			mockHttpClient: nil, // No HTTP client needed for validation error
+			name: "missing currency parameter",
 			requestArgs: map[string]interface{}{
 				"amount": float64(50000),
 			},
+			mockHttpClient: nil, // No HTTP client needed for validation error
 			expectError:    true,
 			expectedErrMsg: "missing required parameter: currency",
 		},
 		{
 			name: "payment link creation fails",
+			requestArgs: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "XYZ", // Invalid currency
+			},
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mocks.NewMockedHTTPClient(
-					mocks.MockEndpoint{
+				return mock.NewHTTPClient(
+					mock.Endpoint{
 						Path:   createPaymentLinkPath,
 						Method: "POST",
 						Response: map[string]interface{}{
@@ -128,10 +131,6 @@ func Test_CreatePaymentLink(t *testing.T) {
 						},
 					},
 				)
-			},
-			requestArgs: map[string]interface{}{
-				"amount":   float64(50000),
-				"currency": "XYZ", // Invalid currency
 			},
 			expectError:    true,
 			expectedErrMsg: "creating payment link failed: API error: Invalid currency",
@@ -194,48 +193,51 @@ func Test_FetchPaymentLink(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		mockHttpClient func() (*http.Client, *httptest.Server)
 		requestArgs    map[string]interface{}
+		mockHttpClient func() (*http.Client, *httptest.Server)
 		expectError    bool
 		expectedResult map[string]interface{}
 		expectedErrMsg string
 	}{
 		{
 			name: "successful payment link fetch",
+			requestArgs: map[string]interface{}{
+				"payment_link_id": "plink_ExjpAUN3gVHrPJ",
+			},
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mocks.NewMockedHTTPClient(
-					mocks.MockEndpoint{
-						Path:   fmt.Sprintf(fetchPaymentLinkPathFmt, "plink_123456789"),
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   fmt.Sprintf(fetchPaymentLinkPathFmt, "plink_ExjpAUN3gVHrPJ"),
 						Method: "GET",
 						Response: map[string]interface{}{
-							"id":          "plink_123456789",
+							"id":          "plink_ExjpAUN3gVHrPJ",
 							"amount":      float64(50000),
 							"currency":    "INR",
 							"description": "Test payment",
 							"status":      "paid",
-							"short_url":   "https://rzp.io/i/abcdef",
+							"short_url":   "https://rzp.io/i/nxrHnLJ",
 						},
 					},
 				)
 			},
-			requestArgs: map[string]interface{}{
-				"payment_link_id": "plink_123456789",
-			},
 			expectError: false,
 			expectedResult: map[string]interface{}{
-				"id":          "plink_123456789",
+				"id":          "plink_ExjpAUN3gVHrPJ",
 				"amount":      float64(50000),
 				"currency":    "INR",
 				"description": "Test payment",
 				"status":      "paid",
-				"short_url":   "https://rzp.io/i/abcdef",
+				"short_url":   "https://rzp.io/i/nxrHnLJ",
 			},
 		},
 		{
 			name: "payment link not found",
+			requestArgs: map[string]interface{}{
+				"payment_link_id": "plink_invalid",
+			},
 			mockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mocks.NewMockedHTTPClient(
-					mocks.MockEndpoint{
+				return mock.NewHTTPClient(
+					mock.Endpoint{
 						Path:   fmt.Sprintf(fetchPaymentLinkPathFmt, "plink_invalid"),
 						Method: "GET",
 						Response: map[string]interface{}{
@@ -247,16 +249,13 @@ func Test_FetchPaymentLink(t *testing.T) {
 					},
 				)
 			},
-			requestArgs: map[string]interface{}{
-				"payment_link_id": "plink_invalid",
-			},
 			expectError:    true,
 			expectedErrMsg: "fetching payment link failed: payment link not found",
 		},
 		{
 			name:           "missing payment_link_id parameter",
-			mockHttpClient: nil, // No HTTP client needed for validation error
 			requestArgs:    map[string]interface{}{},
+			mockHttpClient: nil, // No HTTP client needed for validation error
 			expectError:    true,
 			expectedErrMsg: "missing required parameter: payment_link_id",
 		},
