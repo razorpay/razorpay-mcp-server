@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
-
 	rzpsdk "github.com/razorpay/razorpay-go"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
 
 // FetchPayment returns a tool that fetches payment details using payment_id
