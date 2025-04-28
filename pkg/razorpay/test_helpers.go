@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/razorpay/razorpay-go"
-	
+
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
 
@@ -23,8 +23,9 @@ func createMCPRequest(args map[string]interface{}) mcpgo.CallToolRequest {
 	}
 }
 
-// newRzpMockClient configures a Razorpay client with a mock HTTP client for testing
-// It returns the configured client and the mock server (which should be closed by the caller)
+// newRzpMockClient configures a Razorpay client with a mock
+// HTTP client for testing. It returns the configured client
+// and the mock server (which should be closed by the caller)
 func newRzpMockClient(
 	mockHttpClient func() (*http.Client, *httptest.Server),
 ) (*razorpay.Client, *httptest.Server) {

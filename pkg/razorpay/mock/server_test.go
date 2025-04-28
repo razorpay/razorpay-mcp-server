@@ -113,7 +113,8 @@ func TestNewServer(t *testing.T) {
 			requestPath:    "/nonexistent",
 			requestMethod:  "GET",
 			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"error":{"code":"NOT_FOUND","description":"No mock for GET /nonexistent"}}`,
+			expectedBody: `{"error":{"code":"NOT_FOUND",` +
+				`"description":"No mock for GET /nonexistent"}}`,
 		},
 	}
 
@@ -125,10 +126,17 @@ func TestNewServer(t *testing.T) {
 			var req *http.Request
 			var err error
 			if tc.requestMethod == "GET" {
-				req, err = http.NewRequest(tc.requestMethod, server.URL+tc.requestPath, nil)
+				req, err = http.NewRequest(
+					tc.requestMethod,
+					server.URL+tc.requestPath,
+					nil,
+				)
 			} else {
-				req, err = http.NewRequest(tc.requestMethod, server.URL+tc.requestPath,
-					strings.NewReader("test body"))
+				req, err = http.NewRequest(
+					tc.requestMethod,
+					server.URL+tc.requestPath,
+					strings.NewReader("test body"),
+				)
 			}
 			require.NoError(t, err)
 
