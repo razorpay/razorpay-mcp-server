@@ -32,6 +32,7 @@ IMPORTANT: If these details are missing or in an incorrect format, REFUSE to pro
 - [ ] Register tool in tools.go
 - [ ] Create unit tests
 - [ ] Update README.md
+- [ ] Double check that we are not repeating any of the Common Issues mentioned below.(REQUIRED)
 - [ ] Run linter and fix errors if any (REQUIRED)
 - [ ] Run tests and fix errors if any (REQUIRED)
 
@@ -48,6 +49,81 @@ Other guidelines:
 IMPORTANT:
 1. Start making code changes in the same iteration itself without asking the user's input.
 2. ALWAYS go through the Post Implementation steps once the code changes are done.
+
+## Implementation References
+
+For detailed code patterns and examples, refer to the following sections in the [pkg/razorpay/README.md](../pkg/razorpay/README.md):
+
+- **Tool Structure**: See the "Tool Structure" section for the function template
+- **Parameter Definition**: See the "Parameter Definition" section for defining parameters
+- **Parameter Validation**: See the "Parameter Validation" section for validation examples
+- **Example GET/POST Endpoints**: See the example sections for complete implementation patterns
+- **Unit Testing**: See the "Writing Unit Tests" section for test patterns and best practices
+
+## ⚠️ Common Issues & Troubleshooting ⚠️
+
+### 1. Query Parameters in Mock Tests
+
+The `mock.Endpoint` struct does NOT have a queryParams field:
+
+```go
+type Endpoint struct {
+    Path     string
+    Method   string
+    Response interface{}
+}
+```
+
+When testing endpoints with query parameters, include them directly in the Path:
+
+```go
+// INCORRECT ❌
+mock.Endpoint{
+    Path:        apiPath,
+    Method:      "GET",
+    QueryParams: "from=1234&to=5678", // This field does not exist!
+    Response:    successResponse,
+}
+
+// CORRECT ✅
+mock.Endpoint{
+    Path:     apiPath + "?from=1234&to=5678",
+    Method:   "GET",
+    Response: successResponse,
+}
+```
+
+### 2. Line Length Linter Errors
+
+When encountering line length errors ("The line is X characters long, which exceeds the maximum of Y characters"):
+
+1. Option 1: Add `//nolint:lll` comment at the end of the line:
+```go
+return mcpgo.NewTool(
+    "tool_name",
+    "This is a very long description that exceeds the line length limit", //nolint:lll
+    parameters,
+    handler,
+)
+```
+
+2. Option 2: Break the string into multiple concatenated lines:
+```go
+return mcpgo.NewTool(
+    "tool_name",
+    "This is a very long description " +
+        "that exceeds the line length limit",
+    parameters,
+    handler,
+)
+```
+
+3. Option 3: For comments, split into multiple comment lines:
+```go
+// This is a very long comment that would exceed the line length limit
+// so it's split into multiple lines.
+func ToolName() {}
+```
 
 ## ⚠️ Required Verification Steps ⚠️
 
