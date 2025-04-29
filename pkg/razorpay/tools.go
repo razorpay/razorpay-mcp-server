@@ -41,10 +41,20 @@ func NewToolSets(
 			CreateOrder(log, client),
 		)
 
+	refunds := toolsets.NewToolset("refunds", "Razorpay Refunds related tools").
+		AddReadTools(
+			FetchRefund(log, client),
+		).
+		AddWriteTools(
+			CreateRefund(log, client),
+			UpdateRefund(log, client),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
+	toolsetGroup.AddToolset(refunds)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {

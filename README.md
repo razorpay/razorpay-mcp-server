@@ -13,6 +13,9 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_payment_link`  | Fetch details of a payment link       |
 | `create_order`        | Creates an order                      |
 | `fetch_order`         | Fetch order details                   |
+| `create_refund`       | Creates a refund                      |
+| `fetch_refund`        | Fetch refund details                  |
+| `update_refund`       | Update refund notes                   |
 
 
 ## Use Cases 
