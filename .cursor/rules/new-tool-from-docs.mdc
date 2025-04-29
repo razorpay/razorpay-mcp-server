@@ -17,15 +17,15 @@ This rule requires:
 
 Example of valid invocation:
 ```
-@new-tool-from-docs.mdc @https://razorpay.com/docs/api/payment-links/create-standard/
-SDK function:
+@new-tool-from-docs.mdc DOC_LINK: @https://razorpay.com/docs/api/payment-links/create-standard/
+SDK_FUNCTION:
 func (pl *PaymentLink) Create(data map[string]interface{}, extraHeaders map[string]string) (map[string]interface{}, error) {
     url := fmt.Sprintf("/%s%s", constants.VERSION_V1, constants.PaymentLink_URL)
     return pl.Request.Post(url, data, extraHeaders)
 }
 ```
 
-IMPORTANT: If these details are missing or in an incorrect format, REFUSE to proceed further.
+IMPORTANT: If the DOC_LINK and SDK_FUNCTION are missing or in an incorrect format, REFUSE to proceed further.
 
 ## Implementation Checklist
 
