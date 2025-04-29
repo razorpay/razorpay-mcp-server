@@ -105,7 +105,29 @@ mock.Endpoint{
 }
 ```
 
-### 2. Line Length Linter Errors
+### 2. Query Parameter Order in Mock Tests
+
+When adding query parameters to mock endpoints, they MUST be in alphabetical order by parameter name:
+
+```go
+// INCORRECT ❌
+mock.Endpoint{
+    Path: apiPath + "?skip=1&count=2&from=123",  // Random order
+    Method: "GET",
+    Response: successResponse,
+}
+
+// CORRECT ✅
+mock.Endpoint{
+    Path: apiPath + "?count=2&from=123&skip=1",  // Alphabetical order
+    Method: "GET",
+    Response: successResponse,
+}
+```
+
+This is because Go's HTTP client serializes query parameters in alphabetical order when making requests.
+
+### 3. Line Length Linter Errors
 
 When encountering line length errors ("The line is X characters long, which exceeds the maximum of Y characters"):
 
@@ -137,7 +159,7 @@ return mcpgo.NewTool(
 func ToolName() {}
 ```
 
-### 3. Missing Steps in the Implementation Checklist
+### 4. Missing Steps in the Implementation Checklist
 
 IMPORTANT: The Implementation Checklist MUST be complete before submitting. Pay particular attention to these required steps:
 
