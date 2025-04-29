@@ -25,7 +25,7 @@ func (pl *PaymentLink) Create(data map[string]interface{}, extraHeaders map[stri
 }
 ```
 
-IMPORTANT: If the DOC_LINK and SDK_FUNCTION are missing or in an incorrect format, REFUSE to proceed further.
+IMPORTANT: If the DOC_LINK or SDK_FUNCTION are missing or in an incorrect format, REFUSE to proceed further.
 
 ## Implementation Checklist
 
