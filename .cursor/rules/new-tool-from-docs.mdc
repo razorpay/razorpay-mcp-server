@@ -35,11 +35,12 @@ IMPORTANT: Include this unchecked checklist at the END of the implementation, NO
 - [ ] Implement tool function based on API docs
 - [ ] Register tool in tools.go
 - [ ] Create unit tests with full coverage (positive case, all negative cases, edge cases)
-- [ ] Update README.md and make sure the new additions are correctly formatted.
+- [ ] Update the "Available Tools" section in the main README.md. Make sure the new additions are correctly formatted.
 - [ ] Double check that we are not repeating any of the Common Issues mentioned below.
 - [ ] Run linter and fix errors if any (REQUIRED)
 - [ ] Run tests and fix errors if any (REQUIRED)
 
+COMPLETION CRITERIA:
 1. The task is considered accomplished only if the checklist and summary are posted.
 2. Once the task is completed you should stop and give control to the user. You SHOULD NOT infer additional tools to implement.
 
@@ -62,7 +63,10 @@ Now follow the detailed implementation guide in [pkg/razorpay/README.md](../pkg/
 
 Other guidelines:
 1. [Razorpay Go SDK Constants](https://github.com/razorpay/razorpay-go/blob/master/constants/url.go) - Use these constants for specifying the api endpoints while writing the tests.
-2. Use the payload and response from the docs provided write the positive test case for the tool.
+2. Use the payload and response from the docs provided to write the positive test case for the tool.
+
+STYLE:
+Look at the linters in the .golangci.lint.yaml file and make sure to follow the same style while coding.
 
 IMPORTANT: You **MUST** ALWAYS go through the Post Implementation steps once the code changes are done.
 
