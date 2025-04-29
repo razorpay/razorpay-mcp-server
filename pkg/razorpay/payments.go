@@ -50,6 +50,47 @@ func FetchPayment(
 	)
 }
 
+// FetchPaymentCardDetails returns a tool that fetches card details for a payment
+func FetchPaymentCardDetails(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_id",
+			mcpgo.Description("Unique identifier of the payment for which "+
+				"you want to retrieve card details. Must start with 'pay_'"),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		paymentID, err := RequiredParam[string](r, "payment_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		cardDetails, err := client.Payment.FetchCardDetails(paymentID, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching card details failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(cardDetails)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_payment_card_details",
+		"Use this tool to retrieve the details of the card used to make a payment. "+
+			"Only works for payments made using a card.",
+		parameters,
+		handler,
+	)
+}
+
 // CapturePayment returns a tool that captures an authorized payment
 func CapturePayment(
 	log *slog.Logger,
@@ -58,7 +99,7 @@ func CapturePayment(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"payment_id",
-			mcpgo.Description("Unique identifier of the payment to be captured. Should start with prefix pay_"), //nolint:lll
+			mcpgo.Description("Unique identifier of the payment to be captured. Should start with 'pay_'"), //nolint:lll
 			mcpgo.Required(),
 		),
 		mcpgo.WithNumber(

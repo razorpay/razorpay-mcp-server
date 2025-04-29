@@ -82,6 +82,86 @@ func Test_FetchPayment(t *testing.T) {
 	}
 }
 
+func Test_FetchPaymentCardDetails(t *testing.T) {
+	fetchCardDetailsPathFmt := fmt.Sprintf(
+		"/%s%s/%%s/card",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	cardDetailsResp := map[string]interface{}{
+		"id":            "card_JXPULjlKqC5j0i",
+		"entity":        "card",
+		"name":          "Gaurav Kumar",
+		"last4":         "4366",
+		"network":       "Visa",
+		"type":          "credit",
+		"issuer":        "UTIB",
+		"international": false,
+		"emi":           false,
+		"sub_type":      "consumer",
+		"token_iin":     nil,
+	}
+
+	paymentNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "The id provided does not exist",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful card details fetch",
+			Request: map[string]interface{}{
+				"payment_id": "pay_DtFYPi3IfUTgsL",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(fetchCardDetailsPathFmt, "pay_DtFYPi3IfUTgsL"),
+						Method:   "GET",
+						Response: cardDetailsResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: cardDetailsResp,
+		},
+		{
+			Name: "payment not found",
+			Request: map[string]interface{}{
+				"payment_id": "pay_invalid",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(fetchCardDetailsPathFmt, "pay_invalid"),
+						Method:   "GET",
+						Response: paymentNotFoundResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "fetching card details failed: " +
+				"The id provided does not exist", //nolint:lll
+		},
+		{
+			Name:           "missing payment_id parameter",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchPaymentCardDetails, "Card Details")
+		})
+	}
+}
+
 func Test_CapturePayment(t *testing.T) {
 	capturePaymentPathFmt := fmt.Sprintf(
 		"/%s%s/%%s/capture",
