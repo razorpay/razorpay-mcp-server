@@ -50,7 +50,8 @@ func FetchPayment(
 	)
 }
 
-// FetchPaymentCardDetails returns a tool that fetches card details for a payment
+// FetchPaymentCardDetails returns a tool that fetches card details
+// for a payment
 func FetchPaymentCardDetails(
 	log *slog.Logger,
 	client *rzpsdk.Client,
@@ -86,6 +87,64 @@ func FetchPaymentCardDetails(
 		"fetch_payment_card_details",
 		"Use this tool to retrieve the details of the card used to make a payment. "+
 			"Only works for payments made using a card.",
+		parameters,
+		handler,
+	)
+}
+
+// UpdatePayment returns a tool that updates the notes for a payment
+func UpdatePayment(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_id",
+			mcpgo.Description("Unique identifier of the payment to be updated. "+
+				"Must start with 'pay_'"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs that can be used to store additional "+
+				"information about the payment. Values must be strings or integers."),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		paymentID, err := RequiredParam[string](r, "payment_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		notes, err := RequiredParam[map[string]interface{}](r, "notes")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		// Create request payload with notes
+		data := map[string]interface{}{
+			"notes": notes,
+		}
+
+		// Update the payment
+		updatedPayment, err := client.Payment.Edit(paymentID, data, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("updating payment failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(updatedPayment)
+	}
+
+	return mcpgo.NewTool(
+		"update_payment_notes",
+		"Use this tool to update the notes field of a payment. Notes are "+
+			"key-value pairs that can be used to store additional information.", //nolint:lll
 		parameters,
 		handler,
 	)

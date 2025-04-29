@@ -290,3 +290,131 @@ func Test_CapturePayment(t *testing.T) {
 		})
 	}
 }
+
+func Test_UpdatePayment(t *testing.T) {
+	updatePaymentPathFmt := fmt.Sprintf(
+		"/%s%s/%%s",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	successfulUpdateResp := map[string]interface{}{
+		"id":              "pay_KbCVlLqUbb3VhA",
+		"entity":          "payment",
+		"amount":          float64(400000),
+		"currency":        "INR",
+		"status":          "authorized",
+		"order_id":        nil,
+		"invoice_id":      nil,
+		"international":   false,
+		"method":          "emi",
+		"amount_refunded": float64(0),
+		"refund_status":   nil,
+		"captured":        false,
+		"description":     "Test Transaction",
+		"card_id":         "card_KbCVlPnxWRlOpH",
+		"bank":            "HDFC",
+		"wallet":          nil,
+		"vpa":             nil,
+		"email":           "gaurav.kumar@example.com",
+		"contact":         "+919000090000",
+		"notes": map[string]interface{}{
+			"key1": "value1",
+			"key2": "value2",
+		},
+		"fee":               nil,
+		"tax":               nil,
+		"error_code":        nil,
+		"error_description": nil,
+		"error_source":      nil,
+		"error_step":        nil,
+		"error_reason":      nil,
+		"acquirer_data": map[string]interface{}{
+			"auth_code": "205480",
+		},
+		"emi_plan": map[string]interface{}{
+			"issuer":   "HDFC",
+			"type":     "credit",
+			"rate":     float64(1500),
+			"duration": float64(24),
+		},
+		"created_at": float64(1667398779),
+	}
+
+	paymentNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "The id provided does not exist",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful payment notes update",
+			Request: map[string]interface{}{
+				"payment_id": "pay_KbCVlLqUbb3VhA",
+				"notes": map[string]interface{}{
+					"key1": "value1",
+					"key2": "value2",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(updatePaymentPathFmt, "pay_KbCVlLqUbb3VhA"),
+						Method:   "PATCH",
+						Response: successfulUpdateResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulUpdateResp,
+		},
+		{
+			Name: "payment not found",
+			Request: map[string]interface{}{
+				"payment_id": "pay_invalid",
+				"notes": map[string]interface{}{
+					"key1": "value1",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(updatePaymentPathFmt, "pay_invalid"),
+						Method:   "PATCH",
+						Response: paymentNotFoundResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "updating payment failed: The id provided does not exist",
+		},
+		{
+			Name: "missing payment_id parameter",
+			Request: map[string]interface{}{
+				"notes": map[string]interface{}{
+					"key1": "value1",
+				},
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
+		},
+		{
+			Name: "missing notes parameter",
+			Request: map[string]interface{}{
+				"payment_id": "pay_KbCVlLqUbb3VhA",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: notes",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, UpdatePayment, "Payment")
+		})
+	}
+}
