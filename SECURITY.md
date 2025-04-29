@@ -6,11 +6,11 @@ Our [open source repositories are outside of the scope of our bug bounty program
 
 ## Reporting Security Issues
 
-If you believe you have found a security vulnerability in any Razorpay-owned repository, please report it to us through our [Hackerone program](https://hackerone.com/razorpay).
+If you believe you have found a security vulnerability in any Razorpay owned repository, please report it to us through our [Hackerone program](https://hackerone.com/razorpay).
 
-Please do not report security vulnerabilities through public Razorpay issues, discussions, or pull requests.
+Please refrain from disclosing vulnerabilities via public channels such as issues, discussions, or pull requests.
 
-Instead, please report it via the [Hackerone program](https://hackerone.com/razorpay).
+All vulnerability reports must be submitted via our [Hackerone program](https://hackerone.com/razorpay).
 
 Please include as much of the information listed below as you can to help us better understand and resolve the issue:
 
