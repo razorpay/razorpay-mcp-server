@@ -87,48 +87,27 @@ type Endpoint struct {
 }
 ```
 
-When testing endpoints with query parameters, include them directly in the Path:
+### 1. Query Parameter Limitations in Mock Tests
+
+The mock server doesn't validate query parameters. When testing endpoints with query parameters:
 
 ```go
-// INCORRECT ❌
+// DOESN'T WORK - Gorilla Mux treats this as a literal path ❌
 mock.Endpoint{
-    Path:        apiPath,
-    Method:      "GET",
-    QueryParams: "from=1234&to=5678", // This field does not exist!
-    Response:    successResponse,
+    Path:     apiPath + "?count=2&from=123&skip=1",
+    Method:   "GET",
+    Response: successResponse,
 }
 
-// CORRECT ✅
+// WORKS - Use only the base path ✅
 mock.Endpoint{
-    Path:     apiPath + "?from=1234&to=5678",
+    Path:     apiPath,  // Only the base path without query parameters
     Method:   "GET",
     Response: successResponse,
 }
 ```
 
-### 2. Query Parameter Order in Mock Tests
-
-When adding query parameters to mock endpoints, they MUST be in alphabetical order by parameter name:
-
-```go
-// INCORRECT ❌
-mock.Endpoint{
-    Path: apiPath + "?skip=1&count=2&from=123",  // Random order
-    Method: "GET",
-    Response: successResponse,
-}
-
-// CORRECT ✅
-mock.Endpoint{
-    Path: apiPath + "?count=2&from=123&skip=1",  // Alphabetical order
-    Method: "GET",
-    Response: successResponse,
-}
-```
-
-This is because Go's HTTP client serializes query parameters in alphabetical order when making requests.
-
-### 3. Line Length Linter Errors
+### 2. Line Length Linter Errors
 
 When encountering line length errors ("The line is X characters long, which exceeds the maximum of Y characters"):
 
@@ -160,7 +139,7 @@ return mcpgo.NewTool(
 func ToolName() {}
 ```
 
-### 4. Missing Steps in the Implementation Checklist
+### 3. Missing Steps in the Implementation Checklist
 
 IMPORTANT: The Implementation Checklist MUST be complete before submitting. Pay particular attention to these required steps:
 

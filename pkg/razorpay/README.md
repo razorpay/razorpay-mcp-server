@@ -328,7 +328,7 @@ func Test_ToolName(t *testing.T) {
             MockHttpClient: func() (*http.Client, *httptest.Server) {
                 return mock.NewHTTPClient(
                     mock.Endpoint{
-                        Path:     fmt.Sprintf(apiPathFmt, "path_params") + "?query_param1=1&q2=New+Delhi", // or just apiPath if there are no path/query parameters.
+                        Path:     fmt.Sprintf(apiPathFmt, "path_params") // or just apiPath. DO NOT add query params here.
                         Method:   "POST", // or "GET" for fetch operations
                         Response: successResponse,
                     },
