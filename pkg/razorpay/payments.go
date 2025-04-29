@@ -51,7 +51,8 @@ func FetchPayment(
 	)
 }
 
-// FetchMultipleRefundsForPayment returns a tool that fetches multiple refunds for a payment
+// FetchMultipleRefundsForPayment returns a tool that fetches multiple refunds
+// for a payment
 func FetchMultipleRefundsForPayment(
 	_ *slog.Logger,
 	client *rzpsdk.Client,
@@ -108,7 +109,8 @@ func FetchMultipleRefundsForPayment(
 			queryParams["skip"] = int(skip)
 		}
 
-		refunds, err := client.Payment.FetchMultipleRefund(paymentID, queryParams, nil)
+		refunds, err := client.Payment.FetchMultipleRefund(
+			paymentID, queryParams, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching multiple refunds failed: %s",
@@ -127,7 +129,8 @@ func FetchMultipleRefundsForPayment(
 	)
 }
 
-// FetchSpecificRefundForPayment returns a tool that fetches a specific refund for a payment
+// FetchSpecificRefundForPayment returns a tool that fetches a specific refund
+// for a payment
 func FetchSpecificRefundForPayment(
 	_ *slog.Logger,
 	client *rzpsdk.Client,

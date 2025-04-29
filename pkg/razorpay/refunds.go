@@ -86,7 +86,8 @@ func CreateRefund(
 	return mcpgo.NewTool(
 		"create_refund",
 		"Use this tool to create a normal refund for a payment. "+
-			"Amount should be in the smallest currency unit (e.g., for ₹295, use 29500)",
+			"Amount should be in the smallest currency unit "+
+			"(e.g., for ₹295, use 29500)",
 		parameters,
 		handler,
 	)
@@ -189,7 +190,8 @@ func UpdateRefund(
 	)
 }
 
-// FetchAllRefunds returns a tool that fetches all refunds with pagination support
+// FetchAllRefunds returns a tool that fetches all refunds with pagination
+// support
 func FetchAllRefunds(
 	_ *slog.Logger,
 	client *rzpsdk.Client,
@@ -205,7 +207,8 @@ func FetchAllRefunds(
 		),
 		mcpgo.WithNumber(
 			"count",
-			mcpgo.Description("The number of refunds to fetch. You can fetch a maximum of 100 refunds"),
+			mcpgo.Description("The number of refunds to fetch. "+
+				"You can fetch a maximum of 100 refunds"),
 		),
 		mcpgo.WithNumber(
 			"skip",
@@ -246,7 +249,8 @@ func FetchAllRefunds(
 
 	return mcpgo.NewTool(
 		"fetch_all_refunds",
-		"Use this tool to retrieve details of all refunds. By default, only the last 10 refunds are returned.",
+		"Use this tool to retrieve details of all refunds. "+
+			"By default, only the last 10 refunds are returned.",
 		parameters,
 		handler,
 	)
