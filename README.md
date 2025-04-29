@@ -11,6 +11,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_payment`              | Fetch payment details                                  |
 | `fetch_payment_card_details` | Fetch card details used for a payment                  |
 | `capture_payment`            | Change the payment status from authorized to captured. |
+| `update_payment_notes`       | Update the notes field of a payment                    |
 | `create_payment_link`        | Creates a new payment link                             |
 | `fetch_payment_link`         | Fetch details of a payment link                        |
 | `create_order`               | Creates an order                                       |
