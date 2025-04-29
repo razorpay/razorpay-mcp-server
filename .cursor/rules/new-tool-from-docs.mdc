@@ -28,6 +28,9 @@ func (pl *PaymentLink) Create(data map[string]interface{}, extraHeaders map[stri
 IMPORTANT: If these details are missing or in an incorrect format, REFUSE to proceed further.
 
 ## Implementation Checklist
+
+This checklist **MUST** be included in the final response to verify all implementation steps are complete:
+
 - [ ] Implement tool function based on API docs
 - [ ] Register tool in tools.go
 - [ ] Create unit tests
@@ -133,6 +136,16 @@ return mcpgo.NewTool(
 // so it's split into multiple lines.
 func ToolName() {}
 ```
+
+### 3. Missing Steps in the Implementation Checklist
+
+IMPORTANT: The Implementation Checklist MUST be complete before submitting. Pay particular attention to these required steps:
+
+- [ ] Run linter and fix errors if any (REQUIRED)
+- [ ] Run tests and fix errors if any (REQUIRED)
+
+If any checklist items remain unchecked, complete them before proceeding. The implementation is considered incomplete until all required steps are addressed.
+
 
 ## ⚠️ Required Verification Steps ⚠️
 
