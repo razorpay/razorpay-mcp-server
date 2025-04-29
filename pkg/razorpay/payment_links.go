@@ -3,6 +3,7 @@ package razorpay
 import (
 	"context"
 	"fmt"
+	"github.com/razorpay/razorpay-go/constants"
 	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
@@ -532,6 +533,68 @@ func UpdatePaymentLink(
 		"update_payment_link",
 		"Update an existing standard payment link with new details such as reference ID, "+
 			"expiry date, or notes.",
+		parameters,
+		handler,
+	)
+}
+
+// FetchAllPaymentLinks returns a tool that fetches all payment links with optional filtering
+func FetchAllPaymentLinks(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_id",
+			mcpgo.Description("Optional: Filter by payment ID associated with payment links"),
+		),
+		mcpgo.WithString(
+			"reference_id",
+			mcpgo.Description("Optional: Filter by reference ID used when creating payment links"),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Create query parameters map
+		queryParams := make(map[string]interface{})
+
+		// Add optional payment_id if provided
+		paymentID, err := OptionalParam[string](r, "payment_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if paymentID != "" {
+			queryParams["payment_id"] = paymentID
+		}
+
+		// Add optional reference_id if provided
+		referenceID, err := OptionalParam[string](r, "reference_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if referenceID != "" {
+			queryParams["reference_id"] = referenceID
+		}
+
+		// To fetch all payment links, we'll use the API endpoint without a specific payment link ID
+		url := fmt.Sprintf("/%s%s", constants.VERSION_V1, constants.PaymentLink_URL)
+
+		// Call the API directly using the Request object
+		response, err := client.PaymentLink.Request.Get(url, queryParams, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching payment links failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(response)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_all_payment_links",
+		"Fetch all payment links with optional filtering by payment ID or reference ID",
 		parameters,
 		handler,
 	)

@@ -28,6 +28,7 @@ func NewToolSets(
 		"Razorpay Payment Links related tools").
 		AddReadTools(
 			FetchPaymentLink(log, client),
+			FetchAllPaymentLinks(log, client),
 		).
 		AddWriteTools(
 			CreatePaymentLink(log, client),

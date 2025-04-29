@@ -535,3 +535,83 @@ func Test_UpdatePaymentLink(t *testing.T) {
 		})
 	}
 }
+
+func Test_FetchAllPaymentLinks(t *testing.T) {
+	fetchAllPaymentLinksPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.PaymentLink_URL,
+	)
+
+	allPaymentLinksResp := map[string]interface{}{
+		"payment_links": []interface{}{
+			map[string]interface{}{
+				"id":           "plink_KBnb7I424Rc1R9",
+				"amount":       float64(10000),
+				"currency":     "INR",
+				"status":       "paid",
+				"description":  "Grocery",
+				"reference_id": "111",
+				"short_url":    "https://rzp.io/i/alaBxs0i",
+				"upi_link":     false,
+			},
+			map[string]interface{}{
+				"id":           "plink_JP6yOUDCuHgcrl",
+				"amount":       float64(10000),
+				"currency":     "INR",
+				"status":       "paid",
+				"description":  "Online Tutoring - 1 Month",
+				"reference_id": "11212",
+				"short_url":    "https://rzp.io/i/0ioYuawFu",
+				"upi_link":     false,
+			},
+		},
+	}
+
+	errorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "The api key/secret provided is invalid",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name:    "fetch all payment links",
+			Request: map[string]interface{}{},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllPaymentLinksPath,
+						Method:   "GET",
+						Response: allPaymentLinksResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: allPaymentLinksResp,
+		},
+		{
+			Name:    "api error",
+			Request: map[string]interface{}{},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllPaymentLinksPath,
+						Method:   "GET",
+						Response: errorResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching payment links failed: The api key/secret provided is invalid",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			toolFunc := FetchAllPaymentLinks
+			runToolTest(t, tc, toolFunc, "Payment Links")
+		})
+	}
+}
