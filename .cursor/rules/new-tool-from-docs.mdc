@@ -36,6 +36,17 @@ IMPORTANT: If these details are missing or in an incorrect format, REFUSE to pro
 - [ ] Run linter and fix errors if any (REQUIRED)
 - [ ] Run tests and fix errors if any (REQUIRED)
 
+## ⚠️ IMMEDIATE ACTION REQUIRED ⚠️
+
+Upon receiving this rule invocation:
+
+1. **DO NOT** ask for user input or confirmation before implementing code
+2. **DO** use the `edit_file` tool to create/modify the following files:
+   - Primary implementation: `pkg/razorpay/{resource_type}.go`
+   - Test implementation: `pkg/razorpay/{resource_type}_test.go`
+   - Update toolset registration: `pkg/razorpay/tools.go`
+   - Update the README.md
+
 ## Implementation
 
 Before the implementation use the documentation URL provided to figure out the request contract, required parameters, descriptions of the parameters, and the response contract.
@@ -46,9 +57,7 @@ Other guidelines:
 1. [Razorpay Go SDK Constants](https://github.com/razorpay/razorpay-go/blob/master/constants/url.go) - Use these constants for specifying the api endpoints while writing the tests.
 2. Use the payload and response from the docs provided write the positive test case for the tool.
 
-IMPORTANT:
-1. Start making code changes in the same iteration itself without asking the user's input.
-2. ALWAYS go through the Post Implementation steps once the code changes are done.
+IMPORTANT: You **MUST** ALWAYS go through the Post Implementation steps once the code changes are done.
 
 ## Implementation References
 
@@ -129,13 +138,13 @@ func ToolName() {}
 
 After implementing code changes, ALWAYS perform these verification steps:
 
-1. You MUST run the linter to ensure code quality:
+1. You **MUST** run the linter to ensure code quality:
   ```
   run_terminal_cmd golangci-lint run
   ```
   Fix any issues reported by the linter. Try at least two iterations of fixes for the errors before giving up.
 
-2. You MUST run tests to verify functionality:
+2. You **MUST** run tests to verify functionality:
   ```
   run_terminal_cmd go test ./...
   ```
