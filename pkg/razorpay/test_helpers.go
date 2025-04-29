@@ -80,13 +80,14 @@ func runToolTest(
 	request := createMCPRequest(tc.Request)
 	result, err := tool.GetHandler()(context.Background(), request)
 
+	assert.NoError(t, err)
+
 	if tc.ExpectError {
 		assert.NotNil(t, result)
 		assert.Contains(t, result.Text, tc.ExpectedErrMsg)
 		return
 	}
 
-	assert.NoError(t, err)
 	assert.NotNil(t, result)
 
 	var returnedObj map[string]interface{}
