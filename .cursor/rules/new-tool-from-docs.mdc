@@ -66,7 +66,7 @@ Other guidelines:
 2. Use the payload and response from the docs provided to write the positive test case for the tool.
 
 STYLE:
-Look at the linters in the .golangci.lint.yaml file and make sure to follow the same style while coding.
+Look at the linters and linter settings in the .golangci.yaml file and make sure to follow the same style while coding.
 
 IMPORTANT: You **MUST** ALWAYS go through the Post Implementation steps once the code changes are done.
 
