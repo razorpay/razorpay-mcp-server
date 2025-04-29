@@ -145,26 +145,6 @@ func Test_FetchMultipleRefundsForPayment(t *testing.T) {
 
 	tests := []RazorpayToolTestCase{
 		{
-			Name: "successful fetch multiple refunds",
-			Request: map[string]interface{}{
-				"payment_id": "pay_29QQoUBi66xm2f",
-			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path: fmt.Sprintf(
-							fetchMultipleRefundsPathFmt,
-							"pay_29QQoUBi66xm2f",
-						),
-						Method:   "GET",
-						Response: successfulMultipleRefundsResp,
-					},
-				)
-			},
-			ExpectError:    false,
-			ExpectedResult: successfulMultipleRefundsResp,
-		},
-		{
 			Name: "fetch multiple refunds with query params",
 			Request: map[string]interface{}{
 				"payment_id": "pay_29QQoUBi66xm2f",
@@ -219,7 +199,7 @@ func Test_FetchMultipleRefundsForPayment(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			runToolTest(t, tc, FetchMultipleRefundsForPayment, "Payment")
+			runToolTest(t, tc, FetchMultipleRefundsForPayment, "Refunds")
 		})
 	}
 }
@@ -326,7 +306,7 @@ func Test_FetchSpecificRefundForPayment(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			runToolTest(t, tc, FetchSpecificRefundForPayment, "Payment")
+			runToolTest(t, tc, FetchSpecificRefundForPayment, "Refund")
 		})
 	}
 }

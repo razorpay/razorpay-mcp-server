@@ -320,3 +320,107 @@ func Test_UpdateRefund(t *testing.T) {
 		})
 	}
 }
+
+func Test_FetchAllRefunds(t *testing.T) {
+	fetchAllRefundsPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.REFUND_URL,
+	)
+
+	// Define test response for successful refund fetch
+	successfulRefundsResp := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(2),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":         "rfnd_FFX6AnnIN3puqW",
+				"entity":     "refund",
+				"amount":     float64(88800),
+				"currency":   "INR",
+				"payment_id": "pay_FFX5FdEYx8jPwA",
+				"notes": map[string]interface{}{
+					"comment": "Issuing an instant refund",
+				},
+				"receipt":         nil,
+				"acquirer_data":   map[string]interface{}{},
+				"created_at":      float64(1594982363),
+				"batch_id":        nil,
+				"status":          "processed",
+				"speed_processed": "optimum",
+				"speed_requested": "optimum",
+			},
+			map[string]interface{}{
+				"id":         "rfnd_EqWThTE7dd7utf",
+				"entity":     "refund",
+				"amount":     float64(6000),
+				"currency":   "INR",
+				"payment_id": "pay_EpkFDYRirena0f",
+				"notes": map[string]interface{}{
+					"comment": "Issuing a normal refund",
+				},
+				"receipt": nil,
+				"acquirer_data": map[string]interface{}{
+					"arn": "10000000000000",
+				},
+				"created_at":      float64(1589521675),
+				"batch_id":        nil,
+				"status":          "processed",
+				"speed_processed": "normal",
+				"speed_requested": "normal",
+			},
+		},
+	}
+
+	// Define error response
+	errorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Bad request",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful fetch with pagination parameters",
+			Request: map[string]interface{}{
+				"count": float64(2),
+				"skip":  float64(1),
+				"from":  float64(1589000000),
+				"to":    float64(1595000000),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllRefundsPath,
+						Method:   "GET",
+						Response: successfulRefundsResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulRefundsResp,
+		},
+		{
+			Name:    "fetch with API error",
+			Request: map[string]interface{}{},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllRefundsPath,
+						Method:   "GET",
+						Response: errorResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching refunds failed",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchAllRefunds, "Refund")
+		})
+	}
+}

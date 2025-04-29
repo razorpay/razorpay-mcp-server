@@ -18,6 +18,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `update_refund`                     | Update refund notes                   |
 | `fetch_multiple_refunds_for_payment`| Fetch multiple refunds for a payment  |
 | `fetch_specific_refund_for_payment` | Fetch a specific refund for a payment |
+| `fetch_all_refunds`                 | Fetch details of all refunds          |
 
 
 ## Use Cases 

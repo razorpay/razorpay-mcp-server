@@ -188,3 +188,66 @@ func UpdateRefund(
 		handler,
 	)
 }
+
+// FetchAllRefunds returns a tool that fetches all refunds with pagination support
+func FetchAllRefunds(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"from",
+			mcpgo.Description("Unix timestamp at which the refunds were created"),
+		),
+		mcpgo.WithNumber(
+			"to",
+			mcpgo.Description("Unix timestamp till which the refunds were created"),
+		),
+		mcpgo.WithNumber(
+			"count",
+			mcpgo.Description("The number of refunds to fetch. You can fetch a maximum of 100 refunds"),
+		),
+		mcpgo.WithNumber(
+			"skip",
+			mcpgo.Description("The number of refunds to be skipped"),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		queryParams := make(map[string]interface{})
+
+		if fromFloat, err := OptionalParam[float64](r, "from"); err == nil {
+			queryParams["from"] = int(fromFloat)
+		}
+
+		if toFloat, err := OptionalParam[float64](r, "to"); err == nil {
+			queryParams["to"] = int(toFloat)
+		}
+
+		if countFloat, err := OptionalParam[float64](r, "count"); err == nil {
+			queryParams["count"] = int(countFloat)
+		}
+
+		if skipFloat, err := OptionalParam[float64](r, "skip"); err == nil {
+			queryParams["skip"] = int(skipFloat)
+		}
+
+		refunds, err := client.Refund.All(queryParams, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching refunds failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(refunds)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_all_refunds",
+		"Use this tool to retrieve details of all refunds. By default, only the last 10 refunds are returned.",
+		parameters,
+		handler,
+	)
+}
