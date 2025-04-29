@@ -6,16 +6,18 @@ The Razorpay MCP Server is a [Model Context Protocol (MCP)](https://modelcontext
 
 Currently, the Razorpay MCP Server provides the following tools:
 
-| Tool                  | Description                           |
-|-----------------------|---------------------------------------|
-| `fetch_payment`       | Fetch payment details                 |
-| `create_payment_link` | Creates a new payment link            |
-| `fetch_payment_link`  | Fetch details of a payment link       |
-| `create_order`        | Creates an order                      |
-| `fetch_order`         | Fetch order details                   |
-| `create_refund`       | Creates a refund                      |
-| `fetch_refund`        | Fetch refund details                  |
-| `update_refund`       | Update refund notes                   |
+| Tool                                | Description                           |
+|-------------------------------------|---------------------------------------|
+| `fetch_payment`                     | Fetch payment details                 |
+| `create_payment_link`               | Creates a new payment link            |
+| `fetch_payment_link`                | Fetch details of a payment link       |
+| `create_order`                      | Creates an order                      |
+| `fetch_order`                       | Fetch order details                   |
+| `create_refund`                     | Creates a refund                      |
+| `fetch_refund`                      | Fetch refund details                  |
+| `update_refund`                     | Update refund notes                   |
+| `fetch_multiple_refunds_for_payment`| Fetch multiple refunds for a payment  |
+| `fetch_specific_refund_for_payment` | Fetch a specific refund for a payment |
 
 
 ## Use Cases 
