@@ -171,3 +171,72 @@ After implementing code changes, ALWAYS perform these verification steps:
   run_terminal_cmd go test ./...
   ```
   Ensure all tests pass. If any tests fail, investigate the failures and fix the issues. Try at least two iterations of fixes for the errors before giving up.
+
+## Key Packages and Functionality
+
+Use this section as a reference for the key packages incase you get lost.
+
+### `pkg/razorpay` - Main Implementation Package
+
+**Path:** `pkg/razorpay/`
+
+Contains all Razorpay API tool implementations, including:
+- Tool function definitions (by resource type)
+- Parameter validation functions
+- Request/response handling
+
+### `pkg/razorpay/server.go` - Core Utilities
+
+**Path:** `pkg/razorpay/server.go`
+
+Contains essential utility functions used by all tools:
+- `RequiredParam[T]` - Type-safe required parameter extraction
+- `OptionalParam[T]` - Type-safe optional parameter extraction
+- `RequiredInt` - Integer parameter extraction
+- `OptionalInt` - Optional integer parameter extraction
+- `HandleValidationError` - Common validation error handling
+
+### `pkg/razorpay/test_helpers.go` - Testing Utilities
+
+**Path:** `pkg/razorpay/test_helpers.go`
+
+Contains testing utilities used for unit tests:
+- `RazorpayToolTestCase` - Test case structure
+- `runToolTest` - Test execution function
+- Mock client setup functions
+
+### `pkg/razorpay/tools.go` - Tool Registration
+
+**Path:** `pkg/razorpay/tools.go`
+
+Contains the toolset registration system:
+- `NewToolSets` function
+- Toolset definitions and organization
+- Tool grouping by resource type
+
+### `pkg/razorpay/mock` - HTTP Mocking
+
+**Path:** `pkg/razorpay/mock/`
+
+Contains HTTP mocking utilities for testing:
+- `NewHTTPClient` - Creates mock HTTP clients
+- `Endpoint` - Mock endpoint definition
+
+### `pkg/mcpgo` - MCP Protocol Package
+
+**Path:** `pkg/mcpgo/`
+
+Contains the Model Context Protocol implementation:
+- `Tool` interface definition
+- `ToolParameter` types
+- Response handling utilities (`NewToolResultJSON`, etc.)
+
+### `github.com/razorpay/razorpay-go` - Razorpay Go SDK
+
+**Imported as:** `rzpsdk "github.com/razorpay/razorpay-go"`
+
+Official Razorpay client library providing:
+- `Client` struct with resource-specific clients (Payment, Order, PaymentLink, etc.)
+- API methods that map to Razorpay REST endpoints
+- Constants for API URLs (`constants` package)
+- Request/response handling
