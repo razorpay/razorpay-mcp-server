@@ -207,14 +207,27 @@ func Test_CreateUpiPaymentLink(t *testing.T) {
 		constants.PaymentLink_URL,
 	)
 
-	successfulUpiPaymentLinkResp := map[string]interface{}{
-		"id":          "plink_UpiExjpAUN3gVHrPJ",
-		"amount":      float64(50000),
-		"currency":    "INR",
-		"description": "Test UPI payment",
-		"status":      "created",
-		"short_url":   "https://rzp.io/i/upiLink123",
-		"upi_link":    true,
+	upiPaymentLinkWithAllParamsResp := map[string]interface{}{
+		"id":              "plink_UpiAllParamsExjpAUN3gVHrPJ",
+		"amount":          float64(50000),
+		"currency":        "INR",
+		"description":     "Test UPI payment with all params",
+		"reference_id":    "REF12345",
+		"accept_partial":  true,
+		"expire_by":       float64(1718196584),
+		"reminder_enable": true,
+		"status":          "created",
+		"short_url":       "https://rzp.io/i/upiAllParams123",
+		"upi_link":        true,
+		"customer": map[string]interface{}{
+			"name":    "Test Customer",
+			"email":   "test@example.com",
+			"contact": "+919876543210",
+		},
+		"notes": map[string]interface{}{
+			"policy_name": "Test Policy",
+			"user_id":     "usr_123",
+		},
 	}
 
 	errorResp := map[string]interface{}{
@@ -226,22 +239,38 @@ func Test_CreateUpiPaymentLink(t *testing.T) {
 
 	tests := []RazorpayToolTestCase{
 		{
-			Name: "successful UPI payment link creation",
+			Name: "UPI payment link with all parameters",
 			Request: map[string]interface{}{
-				"amount":      float64(50000),
-				"description": "Test UPI payment",
+				"amount":                   float64(50000),
+				"description":              "Test UPI payment with all params",
+				"reference_id":             "REF12345",
+				"accept_partial":           true,
+				"first_min_partial_amount": float64(10000),
+				"expire_by":                float64(1718196584),
+				"customer_name":            "Test Customer",
+				"customer_email":           "test@example.com",
+				"customer_contact":         "+919876543210",
+				"notify_sms":               true,
+				"notify_email":             true,
+				"reminder_enable":          true,
+				"notes": map[string]interface{}{
+					"policy_name": "Test Policy",
+					"user_id":     "usr_123",
+				},
+				"callback_url":    "https://example.com/callback",
+				"callback_method": "get",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
 						Path:     createPaymentLinkPath,
 						Method:   "POST",
-						Response: successfulUpiPaymentLinkResp,
+						Response: upiPaymentLinkWithAllParamsResp,
 					},
 				)
 			},
 			ExpectError:    false,
-			ExpectedResult: successfulUpiPaymentLinkResp,
+			ExpectedResult: upiPaymentLinkWithAllParamsResp,
 		},
 		{
 			Name:           "missing amount parameter",

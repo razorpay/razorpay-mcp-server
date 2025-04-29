@@ -94,6 +94,58 @@ func CreateUpiPaymentLink(
 			"description",
 			mcpgo.Description("A brief description of the Payment Link explaining the intent of the payment."), // nolint:lll
 		),
+		mcpgo.WithBoolean(
+			"accept_partial",
+			mcpgo.Description("Indicates whether customers can make partial payments using the Payment Link. Default: false"), // nolint:lll
+		),
+		mcpgo.WithNumber(
+			"first_min_partial_amount",
+			mcpgo.Description("Minimum amount that must be paid by the customer as the first partial payment. Default value is 100."), // nolint:lll
+		),
+		mcpgo.WithNumber(
+			"expire_by",
+			mcpgo.Description("Timestamp, in Unix, when the Payment Link will expire. By default, a Payment Link will be valid for six months."), // nolint:lll
+		),
+		mcpgo.WithString(
+			"reference_id",
+			mcpgo.Description("Reference number tagged to a Payment Link. Must be unique for each Payment Link. Max 40 characters."), // nolint:lll
+		),
+		mcpgo.WithString(
+			"customer_name",
+			mcpgo.Description("Name of the customer."),
+		),
+		mcpgo.WithString(
+			"customer_email",
+			mcpgo.Description("Email address of the customer."),
+		),
+		mcpgo.WithString(
+			"customer_contact",
+			mcpgo.Description("Contact number of the customer."),
+		),
+		mcpgo.WithBoolean(
+			"notify_sms",
+			mcpgo.Description("Send SMS notifications for the Payment Link."),
+		),
+		mcpgo.WithBoolean(
+			"notify_email",
+			mcpgo.Description("Send email notifications for the Payment Link."),
+		),
+		mcpgo.WithBoolean(
+			"reminder_enable",
+			mcpgo.Description("Enable payment reminders for the Payment Link."),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs that can be used to store additional information. Maximum 15 pairs, each value limited to 256 characters."), // nolint:lll
+		),
+		mcpgo.WithString(
+			"callback_url",
+			mcpgo.Description("If specified, adds a redirect URL to the Payment Link. Customer will be redirected here after payment."), // nolint:lll
+		),
+		mcpgo.WithString(
+			"callback_method",
+			mcpgo.Description("HTTP method for callback redirection. Must be 'get' if callback_url is set."),
+		),
 	}
 
 	handler := func(
@@ -120,9 +172,127 @@ func CreateUpiPaymentLink(
 		if result, err := HandleValidationError(err); result != nil {
 			return result, err
 		}
-
 		if desc != "" {
 			paymentLinkData["description"] = desc
+		}
+
+		// Add optional accept_partial if provided
+		acceptPartial, err := OptionalParam[bool](r, "accept_partial")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if acceptPartial {
+			paymentLinkData["accept_partial"] = acceptPartial
+		}
+
+		// Add optional first_min_partial_amount if provided
+		firstMinPartialAmount, err := OptionalInt(r, "first_min_partial_amount")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if firstMinPartialAmount > 0 {
+			paymentLinkData["first_min_partial_amount"] = firstMinPartialAmount
+		}
+
+		// Add optional expire_by if provided
+		expireBy, err := OptionalInt(r, "expire_by")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if expireBy > 0 {
+			paymentLinkData["expire_by"] = expireBy
+		}
+
+		// Add optional reference_id if provided
+		referenceID, err := OptionalParam[string](r, "reference_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if referenceID != "" {
+			paymentLinkData["reference_id"] = referenceID
+		}
+
+		// Handle customer details if any are provided
+		customerName, err := OptionalParam[string](r, "customer_name")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		customerEmail, err := OptionalParam[string](r, "customer_email")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		customerContact, err := OptionalParam[string](r, "customer_contact")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		if customerName != "" || customerEmail != "" || customerContact != "" {
+			customer := make(map[string]interface{})
+			if customerName != "" {
+				customer["name"] = customerName
+			}
+			if customerEmail != "" {
+				customer["email"] = customerEmail
+			}
+			if customerContact != "" {
+				customer["contact"] = customerContact
+			}
+			paymentLinkData["customer"] = customer
+		}
+
+		// Handle notification settings if any are provided
+		notify := make(map[string]interface{})
+
+		notifySMS, err := OptionalParam[bool](r, "notify_sms")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		notifyEmail, err := OptionalParam[bool](r, "notify_email")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if notifySMS {
+			notify["sms"] = notifySMS
+		}
+		if notifyEmail {
+			notify["email"] = notifyEmail
+		}
+		paymentLinkData["notify"] = notify
+
+		// Add optional reminder_enable if provided
+		reminderEnable, err := OptionalParam[bool](r, "reminder_enable")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		paymentLinkData["reminder_enable"] = reminderEnable
+
+		// Add optional notes if provided
+		notes, err := OptionalParam[map[string]interface{}](r, "notes")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if notes != nil && len(notes) > 0 {
+			paymentLinkData["notes"] = notes
+		}
+
+		// Add optional callback_url if provided
+		callbackURL, err := OptionalParam[string](r, "callback_url")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if callbackURL != "" {
+			paymentLinkData["callback_url"] = callbackURL
+
+			// If callback_url is set, callback_method should be set to 'get'
+			callbackMethod, err := OptionalParam[string](r, "callback_method")
+			if result, err := HandleValidationError(err); result != nil {
+				return result, err
+			}
+			if callbackMethod != "" {
+				paymentLinkData["callback_method"] = callbackMethod
+			} else {
+				paymentLinkData["callback_method"] = "get" // Default to 'get' if not specified
+			}
 		}
 
 		paymentLink, err := client.PaymentLink.Create(paymentLinkData, nil)
@@ -136,7 +306,7 @@ func CreateUpiPaymentLink(
 
 	return mcpgo.NewTool(
 		"payment_link_upi.create",
-		"Create a new UPI payment link(Intent link) in Razorpay with a specified amount.", // nolint:lll
+		"Create a new UPI payment link in Razorpay with a specified amount and additional options.", // nolint:lll
 		parameters,
 		handler,
 	)
