@@ -222,20 +222,39 @@ func FetchAllRefunds(
 	) (*mcpgo.ToolResult, error) {
 		queryParams := make(map[string]interface{})
 
-		if fromFloat, err := OptionalParam[float64](r, "from"); err == nil {
-			queryParams["from"] = int(fromFloat)
+		// Process date range parameters directly
+		from, err := OptionalInt(r, "from")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if from > 0 {
+			queryParams["from"] = from
 		}
 
-		if toFloat, err := OptionalParam[float64](r, "to"); err == nil {
-			queryParams["to"] = int(toFloat)
+		to, err := OptionalInt(r, "to")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if to > 0 {
+			queryParams["to"] = to
 		}
 
-		if countFloat, err := OptionalParam[float64](r, "count"); err == nil {
-			queryParams["count"] = int(countFloat)
+		// Process optional count parameter
+		count, err := OptionalInt(r, "count")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if count > 0 {
+			queryParams["count"] = count
 		}
 
-		if skipFloat, err := OptionalParam[float64](r, "skip"); err == nil {
-			queryParams["skip"] = int(skipFloat)
+		// Process optional skip parameter
+		skip, err := OptionalInt(r, "skip")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if skip > 0 {
+			queryParams["skip"] = skip
 		}
 
 		refunds, err := client.Refund.All(queryParams, nil)
