@@ -16,7 +16,7 @@ var ErrInvalidServerImplementation = errors.New(
 )
 
 // NewStdioServer creates a new stdio transport server
-func NewStdioServer(mcpServer Server) (*mark3labsStdioImpl, error) {
+func NewStdioServer(mcpServer Server) (TransportServer, error) {
 	sImpl, ok := mcpServer.(*mark3labsImpl)
 	if !ok {
 		return nil, fmt.Errorf("%w: expected *mark3labsImpl, got %T",
