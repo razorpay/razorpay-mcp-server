@@ -29,7 +29,8 @@ IMPORTANT: If these details are missing or in an incorrect format, REFUSE to pro
 
 ## Implementation Checklist
 
-This checklist **MUST** be included in the final response to verify all implementation steps are complete:
+This checklist **MUST** be included in the final response to verify all implementation steps are complete.
+IMPORTANT: The LLM should include this unchecked checklist at the END of the implementation, NOT at the beginning:
 
 - [ ] Implement tool function based on API docs
 - [ ] Register tool in tools.go
