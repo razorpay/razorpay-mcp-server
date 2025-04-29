@@ -100,7 +100,8 @@ func FetchRefund(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"refund_id",
-			mcpgo.Description("Unique identifier of the refund which is to be retrieved."),
+			mcpgo.Description(
+				"Unique identifier of the refund which is to be retrieved."),
 			mcpgo.Required(),
 		),
 	}
