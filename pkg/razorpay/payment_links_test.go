@@ -304,3 +304,105 @@ func Test_CreateUpiPaymentLink(t *testing.T) {
 		})
 	}
 }
+
+func Test_ResendPaymentLinkNotification(t *testing.T) {
+	notifyPaymentLinkPathFmt := fmt.Sprintf(
+		"/%s%s/%%s/notify_by/%%s",
+		constants.VERSION_V1,
+		constants.PaymentLink_URL,
+	)
+
+	successResponse := map[string]interface{}{
+		"success": true,
+	}
+
+	invalidMediumErrorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "not a valid notification medium",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful SMS notification",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_ExjpAUN3gVHrPJ",
+				"medium":          "sms",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							notifyPaymentLinkPathFmt,
+							"plink_ExjpAUN3gVHrPJ",
+							"sms",
+						),
+						Method:   "POST",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successResponse,
+		},
+		{
+			Name: "invalid medium",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_ExjpAUN3gVHrPJ",
+				"medium":          "invalid",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "medium must be either 'sms' or 'email'",
+		},
+		{
+			Name: "missing payment_link_id parameter",
+			Request: map[string]interface{}{
+				"medium": "sms",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_link_id",
+		},
+		{
+			Name: "missing medium parameter",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_ExjpAUN3gVHrPJ",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: medium",
+		},
+		{
+			Name: "API error response",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_Invalid",
+				"medium":          "sms", // Using valid medium so it passes validation
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							notifyPaymentLinkPathFmt,
+							"plink_Invalid",
+							"sms",
+						),
+						Method:   "POST",
+						Response: invalidMediumErrorResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "sending notification failed: " +
+				"not a valid notification medium",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			toolFunc := ResendPaymentLinkNotification
+			runToolTest(t, tc, toolFunc, "Payment Link Notification")
+		})
+	}
+}

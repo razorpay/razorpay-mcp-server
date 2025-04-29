@@ -80,7 +80,7 @@ func CreatePaymentLink(
 }
 
 // CreateUpiPaymentLink returns a tool that creates payment links in Razorpay
-func CreateUpiPaymentLink(
+func CreateUpiPaymentLink( // nolint:gocyclo
 	log *slog.Logger,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
@@ -144,7 +144,8 @@ func CreateUpiPaymentLink(
 		),
 		mcpgo.WithString(
 			"callback_method",
-			mcpgo.Description("HTTP method for callback redirection. Must be 'get' if callback_url is set."),
+			mcpgo.Description("HTTP method for callback redirection. "+
+				"Must be 'get' if callback_url is set."),
 		),
 	}
 
@@ -271,7 +272,7 @@ func CreateUpiPaymentLink(
 		if result, err := HandleValidationError(err); result != nil {
 			return result, err
 		}
-		if notes != nil && len(notes) > 0 {
+		if len(notes) > 0 {
 			paymentLinkData["notes"] = notes
 		}
 
@@ -291,7 +292,8 @@ func CreateUpiPaymentLink(
 			if callbackMethod != "" {
 				paymentLinkData["callback_method"] = callbackMethod
 			} else {
-				paymentLinkData["callback_method"] = "get" // Default to 'get' if not specified
+				// Default to 'get' if not specified
+				paymentLinkData["callback_method"] = "get"
 			}
 		}
 
@@ -349,6 +351,67 @@ func FetchPaymentLink(
 		"fetch_payment_link",
 		"Fetch payment link details using it's ID."+
 			"Response contains the basic details like amount, status etc",
+		parameters,
+		handler,
+	)
+}
+
+// ResendPaymentLinkNotification returns a tool that sends/resends notifications
+// for a payment link via email or SMS
+func ResendPaymentLinkNotification(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_link_id",
+			mcpgo.Description("ID of the payment link for which to send notification "+
+				"(ID should have a plink_ prefix)."), // nolint:lll
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"medium",
+			mcpgo.Description("Medium through which to send the notification. "+
+				"Must be either 'sms' or 'email'."), // nolint:lll
+			mcpgo.Required(),
+			mcpgo.Enum("sms", "email"),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Validate required parameters
+		paymentLinkID, err := RequiredParam[string](r, "payment_link_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		medium, err := RequiredParam[string](r, "medium")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		// Validate medium is either "sms" or "email"
+		if medium != "sms" && medium != "email" {
+			return mcpgo.NewToolResultError(
+				"medium must be either 'sms' or 'email'"), nil
+		}
+
+		// Call the SDK function
+		response, err := client.PaymentLink.NotifyBy(paymentLinkID, medium, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("sending notification failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(response)
+	}
+
+	return mcpgo.NewTool(
+		"send_payment_link",
+		"Send or resend notification for a payment link via SMS or email.", // nolint:lll
 		parameters,
 		handler,
 	)
