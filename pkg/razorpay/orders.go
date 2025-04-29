@@ -192,3 +192,122 @@ func FetchOrder(
 		handler,
 	)
 }
+
+// FetchAllOrders returns a tool to fetch all orders with optional filtering
+func FetchAllOrders(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"count",
+			mcpgo.Description("Number of orders to be fetched "+
+				"(default: 10, max: 100)"),
+			mcpgo.Min(1),
+			mcpgo.Max(100),
+		),
+		mcpgo.WithNumber(
+			"skip",
+			mcpgo.Description("Number of orders to be skipped (default: 0)"),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithNumber(
+			"from",
+			mcpgo.Description("Timestamp (in Unix format) from when "+
+				"the orders should be fetched"),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithNumber(
+			"to",
+			mcpgo.Description("Timestamp (in Unix format) up till "+
+				"when orders are to be fetched"),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithBoolean(
+			"authorized",
+			mcpgo.Description(
+				"Filter orders based on payment authorization status"),
+		),
+		mcpgo.WithString(
+			"receipt",
+			mcpgo.Description("Filter orders that contain the "+
+				"provided value for receipt"),
+		),
+		mcpgo.WithArray(
+			"expand",
+			mcpgo.Description("Used to retrieve additional information. "+
+				"Supported values: payments, payments.card, transfers, virtual_account"),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Prepare query parameters map
+		options := make(map[string]interface{})
+
+		// Process pagination options
+		if result := AddPaginationToOptions(r, options); result != nil {
+			return result, nil
+		}
+
+		// Process date range parameters directly
+		from, err := OptionalInt(r, "from")
+		if result, _ := HandleValidationError(err); result != nil {
+			return result, nil
+		}
+		if from > 0 {
+			options["from"] = from
+		}
+
+		to, err := OptionalInt(r, "to")
+		if result, _ := HandleValidationError(err); result != nil {
+			return result, nil
+		}
+		if to > 0 {
+			options["to"] = to
+		}
+
+		// Process authorized status parameter directly
+		authorized, err := OptionalParam[bool](r, "authorized")
+		if result, _ := HandleValidationError(err); result != nil {
+			return result, nil
+		}
+		if authorized {
+			options["authorized"] = 1
+		}
+
+		// Process receipt parameter directly
+		receipt, err := OptionalParam[string](r, "receipt")
+		if result, _ := HandleValidationError(err); result != nil {
+			return result, nil
+		}
+		if receipt != "" {
+			options["receipt"] = receipt
+		}
+
+		// Process expand parameters
+		if result := AddExpandToOptions(r, options); result != nil {
+			return result, nil
+		}
+
+		// Fetch all orders using Razorpay SDK
+		orders, err := client.Order.All(options, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching orders failed: %s", err.Error()),
+			), nil
+		}
+
+		// Convert to JSON
+		return mcpgo.NewToolResultJSON(orders)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_all_orders",
+		"Fetch all orders with optional filtering and pagination",
+		parameters,
+		handler,
+	)
+}

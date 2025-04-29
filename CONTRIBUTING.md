@@ -6,6 +6,18 @@ Thank you for your interest in contributing to the Razorpay MCP Server! This doc
 
 Please be respectful and considerate of others when contributing to this project. We strive to maintain a welcoming and inclusive environment for all contributors.
 
+## TLDR;
+
+```
+make test
+make fmt
+make lint
+make run
+make build
+```
+
+We use Cursor to contribute - our AI developer. Look at `~/.cusor/rules`. It understands the standards we have defined and codes with that.
+
 ## Development Process
 
 We use a fork-based workflow for all contributions:

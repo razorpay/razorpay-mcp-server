@@ -13,7 +13,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_payment_link`  | Fetch details of a payment link       |
 | `create_order`        | Creates an order                      |
 | `fetch_order`         | Fetch order details                   |
-
+| `fetch_all_orders`    | Fetch all orders (paginated)          |
 
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
