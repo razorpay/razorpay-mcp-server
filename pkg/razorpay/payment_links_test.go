@@ -406,3 +406,132 @@ func Test_ResendPaymentLinkNotification(t *testing.T) {
 		})
 	}
 }
+
+func Test_UpdatePaymentLink(t *testing.T) {
+	updatePaymentLinkPathFmt := fmt.Sprintf(
+		"/%s%s/%%s",
+		constants.VERSION_V1,
+		constants.PaymentLink_URL,
+	)
+
+	updatedPaymentLinkResp := map[string]interface{}{
+		"id":              "plink_FL5HCrWEO112OW",
+		"amount":          float64(1000),
+		"currency":        "INR",
+		"status":          "created",
+		"reference_id":    "TS35",
+		"expire_by":       float64(1612092283),
+		"reminder_enable": false,
+		"notes": []interface{}{
+			map[string]interface{}{
+				"key":   "policy_name",
+				"value": "Jeevan Saral",
+			},
+		},
+	}
+
+	invalidStateResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "update can only be made in created or partially paid state",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful update with multiple fields",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_FL5HCrWEO112OW",
+				"reference_id":    "TS35",
+				"expire_by":       float64(1612092283),
+				"reminder_enable": false,
+				"accept_partial":  true,
+				"notes": map[string]interface{}{
+					"policy_name": "Jeevan Saral",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							updatePaymentLinkPathFmt,
+							"plink_FL5HCrWEO112OW",
+						),
+						Method:   "PATCH",
+						Response: updatedPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: updatedPaymentLinkResp,
+		},
+		{
+			Name: "successful update with single field",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_FL5HCrWEO112OW",
+				"reference_id":    "TS35",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							updatePaymentLinkPathFmt,
+							"plink_FL5HCrWEO112OW",
+						),
+						Method:   "PATCH",
+						Response: updatedPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: updatedPaymentLinkResp,
+		},
+		{
+			Name: "missing payment_link_id parameter",
+			Request: map[string]interface{}{
+				"reference_id": "TS35",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_link_id",
+		},
+		{
+			Name: "no update fields provided",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_FL5HCrWEO112OW",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "at least one field to update must be provided",
+		},
+		{
+			Name: "payment link in invalid state",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_Paid",
+				"reference_id":    "TS35",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							updatePaymentLinkPathFmt,
+							"plink_Paid",
+						),
+						Method:   "PATCH",
+						Response: invalidStateResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "updating payment link failed: update can only be made in " +
+				"created or partially paid state",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			toolFunc := UpdatePaymentLink
+			runToolTest(t, tc, toolFunc, "Payment Link Update")
+		})
+	}
+}

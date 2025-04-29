@@ -410,8 +410,128 @@ func ResendPaymentLinkNotification(
 	}
 
 	return mcpgo.NewTool(
-		"send_payment_link",
+		"payment_link_notify",
 		"Send or resend notification for a payment link via SMS or email.", // nolint:lll
+		parameters,
+		handler,
+	)
+}
+
+// UpdatePaymentLink returns a tool that updates an existing payment link
+func UpdatePaymentLink(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_link_id",
+			mcpgo.Description("ID of the payment link to update "+
+				"(ID should have a plink_ prefix)."),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"reference_id",
+			mcpgo.Description("Adds a unique reference number to the payment link."),
+		),
+		mcpgo.WithNumber(
+			"expire_by",
+			mcpgo.Description("Timestamp, in Unix format, when the payment link "+
+				"should expire."),
+		),
+		mcpgo.WithBoolean(
+			"reminder_enable",
+			mcpgo.Description("Enable or disable reminders for the payment link."),
+		),
+		mcpgo.WithBoolean(
+			"accept_partial",
+			mcpgo.Description("Allow customers to make partial payments. "+
+				"Not allowed with UPI payment links."),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs for additional information. "+
+				"Maximum 15 pairs, each value limited to 256 characters."),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Validate required parameters
+		paymentLinkID, err := RequiredParam[string](r, "payment_link_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		// Create update payload
+		updateData := make(map[string]interface{})
+
+		// Add optional reference_id if provided
+		referenceID, err := OptionalParam[string](r, "reference_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if referenceID != "" {
+			updateData["reference_id"] = referenceID
+		}
+
+		// Add optional expire_by if provided
+		expireBy, err := OptionalInt(r, "expire_by")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if expireBy > 0 {
+			updateData["expire_by"] = expireBy
+		}
+
+		// Add optional reminder_enable if provided
+		reminderEnable, err := OptionalParam[bool](r, "reminder_enable")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if reminderEnable {
+			updateData["reminder_enable"] = reminderEnable
+		}
+
+		// Add optional accept_partial if provided
+		acceptPartial, err := OptionalParam[bool](r, "accept_partial")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if acceptPartial {
+			updateData["accept_partial"] = acceptPartial
+		}
+
+		// Add optional notes if provided
+		notes, err := OptionalParam[map[string]interface{}](r, "notes")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if len(notes) > 0 {
+			updateData["notes"] = notes
+		}
+
+		// Ensure we have at least one field to update
+		if len(updateData) == 0 {
+			return mcpgo.NewToolResultError(
+				"at least one field to update must be provided"), nil
+		}
+
+		// Call the SDK function
+		paymentLink, err := client.PaymentLink.Update(paymentLinkID, updateData, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("updating payment link failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(paymentLink)
+	}
+
+	return mcpgo.NewTool(
+		"update_payment_link",
+		"Update an existing standard payment link with new details such as reference ID, "+
+			"expiry date, or notes.",
 		parameters,
 		handler,
 	)

@@ -33,6 +33,7 @@ func NewToolSets(
 			CreatePaymentLink(log, client),
 			CreateUpiPaymentLink(log, client),
 			ResendPaymentLinkNotification(log, client),
+			UpdatePaymentLink(log, client),
 		)
 
 	orders := toolsets.NewToolset("orders", "Razorpay Orders related tools").

@@ -10,6 +10,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 |---------------------------|---------------------------------------|
 | `fetch_payment`           | Fetch payment details                 |
 | `create_payment_link`     | Creates a new standard payment link   |
+| `update_payment_link`     | Updates a new standard payment link   |
 | `send_payment_link`       | Send a payment link via SMS or email. |
 | `create_payment_link_upi` | Creates a new UPI payment link        |
 | `fetch_payment_link`      | Fetch details of a payment link       |
