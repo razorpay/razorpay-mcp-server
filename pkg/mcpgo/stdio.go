@@ -16,6 +16,7 @@ var ErrInvalidServerImplementation = errors.New(
 )
 
 // NewStdioServer creates a new stdio transport server
+// nolint:iface
 func NewStdioServer(mcpServer Server) (TransportServer, error) {
 	sImpl, ok := mcpServer.(*mark3labsImpl)
 	if !ok {
