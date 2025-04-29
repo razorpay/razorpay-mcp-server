@@ -222,7 +222,6 @@ func FetchAllRefunds(
 	) (*mcpgo.ToolResult, error) {
 		queryParams := make(map[string]interface{})
 
-		// Process date range parameters directly
 		from, err := OptionalInt(r, "from")
 		if result, err := HandleValidationError(err); result != nil {
 			return result, err
@@ -239,7 +238,6 @@ func FetchAllRefunds(
 			queryParams["to"] = to
 		}
 
-		// Process optional count parameter
 		count, err := OptionalInt(r, "count")
 		if result, err := HandleValidationError(err); result != nil {
 			return result, err
@@ -248,7 +246,6 @@ func FetchAllRefunds(
 			queryParams["count"] = count
 		}
 
-		// Process optional skip parameter
 		skip, err := OptionalInt(r, "skip")
 		if result, err := HandleValidationError(err); result != nil {
 			return result, err

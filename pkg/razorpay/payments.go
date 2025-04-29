@@ -93,20 +93,36 @@ func FetchMultipleRefundsForPayment(
 
 		queryParams := make(map[string]interface{})
 
-		if from, err := OptionalParam[float64](r, "from"); err == nil {
-			queryParams["from"] = int(from)
+		from, err := OptionalInt(r, "from")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if from > 0 {
+			queryParams["from"] = from
 		}
 
-		if to, err := OptionalParam[float64](r, "to"); err == nil {
-			queryParams["to"] = int(to)
+		to, err := OptionalInt(r, "to")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if to > 0 {
+			queryParams["to"] = to
 		}
 
-		if count, err := OptionalParam[float64](r, "count"); err == nil {
-			queryParams["count"] = int(count)
+		count, err := OptionalInt(r, "count")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if count > 0 {
+			queryParams["count"] = count
 		}
 
-		if skip, err := OptionalParam[float64](r, "skip"); err == nil {
-			queryParams["skip"] = int(skip)
+		skip, err := OptionalInt(r, "skip")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if skip > 0 {
+			queryParams["skip"] = skip
 		}
 
 		refunds, err := client.Payment.FetchMultipleRefund(
