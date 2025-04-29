@@ -301,8 +301,12 @@ All new tools should have unit tests to verify their behavior. We use a standard
 
 ```go
 func Test_ToolName(t *testing.T) {
-    // Define API path for mocking
-    apiPath := fmt.Sprintf("/%s%s", constants.VERSION_V1, constants.RESOURCE_URL)
+    // Define API path that needs to be mocked
+    apiPathFmt := fmt.Sprintf(
+        "/%s%s/%%s",
+		constants.VERSION_V1,
+        constants.PAYMENT_URL,
+    )
     
     // Define mock responses
     successResponse := map[string]interface{}{
@@ -317,14 +321,14 @@ func Test_ToolName(t *testing.T) {
         {
             Name: "successful case with all parameters",
             Request: map[string]interface{}{
-                "param1": "value1",
-                "param2": float64(1000),
+                "key1": "value1",
+                "key2": float64(1000),
                 // All parameters for a complete request
             },
             MockHttpClient: func() (*http.Client, *httptest.Server) {
                 return mock.NewHTTPClient(
                     mock.Endpoint{
-                        Path:     apiPath,
+                        Path:     fmt.Sprintf(apiPathFmt, "path_params") + "?query_param1=1&q2=New+Delhi", // or just apiPath if there are no path/query parameters.
                         Method:   "POST", // or "GET" for fetch operations
                         Response: successResponse,
                     },
