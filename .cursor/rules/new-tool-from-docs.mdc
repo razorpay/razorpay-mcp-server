@@ -34,8 +34,8 @@ IMPORTANT: The LLM should include this unchecked checklist at the END of the imp
 
 - [ ] Implement tool function based on API docs
 - [ ] Register tool in tools.go
-- [ ] Create unit tests
-- [ ] Update README.md
+- [ ] Create unit tests with full coverage (positive case, all negative cases, edge cases)
+- [ ] Update README.md and make sure the new additions are correctly formatted.
 - [ ] Double check that we are not repeating any of the Common Issues mentioned below.(REQUIRED)
 - [ ] Run linter and fix errors if any (REQUIRED)
 - [ ] Run tests and fix errors if any (REQUIRED)
@@ -148,6 +148,13 @@ IMPORTANT: The Implementation Checklist MUST be complete before submitting. Pay 
 
 If any checklist items remain unchecked, complete them before proceeding. The implementation is considered incomplete until all required steps are addressed.
 
+## Test Coverage Requirements
+
+Your tests MUST include:
+- Positive test case with all parameters
+- Negative test case for EACH required parameter
+- Negative test case for validation failures (e.g., wrong types)
+- Any edge cases specific to this tool
 
 ## ⚠️ Required Verification Steps ⚠️
 
