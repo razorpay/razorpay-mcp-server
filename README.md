@@ -16,6 +16,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_all_orders`               | Fetch all orders                           | [Order](https://razorpay.com/docs/api/orders/fetch-all)
 | `fetch_settlement_with_id`       | Fetch settlement details                   | [Settlement](https://razorpay.com/docs/api/settlements/fetch-with-id)
 | `fetch_settlement_recon_details` | Fetch settlement reconciliation report     | [Settlement](https://razorpay.com/docs/api/settlements/fetch-recon)
+| `fetch_all_settlements`          | Fetch all settlements                      | [Settlement](https://razorpay.com/docs/api/settlements/fetch-all)
 
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.

@@ -211,3 +211,95 @@ func Test_FetchSettlementRecon(t *testing.T) {
 		})
 	}
 }
+
+func Test_FetchAllSettlements(t *testing.T) {
+	fetchAllSettlementsPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.SETTLEMENT_URL,
+	)
+
+	// Sample response for successful fetch
+	settlementListResp := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(2),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":         "setl_DGlQ1Rj8os78Ec",
+				"entity":     "settlement",
+				"amount":     float64(9973635),
+				"status":     "processed",
+				"fees":       float64(0),
+				"tax":        float64(0),
+				"utr":        "1568176960vxp0rj",
+				"created_at": float64(1568176960),
+			},
+			map[string]interface{}{
+				"id":         "setl_4xbSwsPABDJ8oK",
+				"entity":     "settlement",
+				"amount":     float64(50000),
+				"status":     "processed",
+				"fees":       float64(0),
+				"tax":        float64(0),
+				"utr":        "RZRP173069230702",
+				"created_at": float64(1509622306),
+			},
+		},
+	}
+
+	// Error response when parameters are invalid
+	invalidParamsResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "from must be between 946684800 and 4765046400",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful settlements fetch with all parameters",
+			Request: map[string]interface{}{
+				"from":  float64(1500000000),
+				"to":    float64(1600000000),
+				"count": float64(20),
+				"skip":  float64(0),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllSettlementsPath,
+						Method:   "GET",
+						Response: settlementListResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementListResp,
+		},
+		{
+			Name: "settlements fetch with invalid timestamp",
+			Request: map[string]interface{}{
+				"from": float64(900000000), // Invalid timestamp (too early)
+				"to":   float64(1600000000),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllSettlementsPath,
+						Method:   "GET",
+						Response: invalidParamsResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "fetching settlements failed: from must be between " +
+				"946684800 and 4765046400",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchAllSettlements, "Settlements List")
+		})
+	}
+}

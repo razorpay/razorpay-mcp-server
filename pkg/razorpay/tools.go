@@ -42,10 +42,13 @@ func NewToolSets(
 			CreateOrder(log, client),
 		)
 
-	settlements := toolsets.NewToolset("settlements", "Razorpay Settlements related tools").
+	settlements := toolsets.NewToolset(
+		"settlements",
+		"Razorpay Settlements related tools").
 		AddReadTools(
 			FetchSettlement(log, client),
 			FetchSettlementRecon(log, client),
+			FetchAllSettlements(log, client),
 		)
 
 	// Add toolsets to the group
