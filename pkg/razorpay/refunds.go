@@ -49,39 +49,48 @@ func CreateRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		validationErrors := NewValidationErrors()
+
 		paymentID, err := RequiredParam[string](r, "payment_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		var amount int64
+		amount, err = OptionalInt(r, "amount")
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		speed, err := OptionalParam[string](r, "speed")
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		notes, err := OptionalParam[map[string]interface{}](r, "notes")
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		receipt, err := OptionalParam[string](r, "receipt")
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
 		}
 
 		data := make(map[string]interface{})
 
-		var amount int64
-		amount, err = OptionalInt(r, "amount")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-
-		speed, err := OptionalParam[string](r, "speed")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
 		if speed != "" {
 			data["speed"] = speed
 		}
 
-		notes, err := OptionalParam[map[string]interface{}](r, "notes")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
 		if notes != nil {
 			data["notes"] = notes
 		}
 
-		receipt, err := OptionalParam[string](r, "receipt")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
 		if receipt != "" {
 			data["receipt"] = receipt
 		}
@@ -123,9 +132,15 @@ func FetchRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		validationErrors := NewValidationErrors()
+
 		refundID, err := RequiredParam[string](r, "refund_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
 		}
 
 		refund, err := client.Refund.Fetch(refundID, nil, nil)
@@ -170,15 +185,20 @@ func UpdateRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		validationErrors := NewValidationErrors()
+
 		refundID, err := RequiredParam[string](r, "refund_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
 
-		notesType := RequiredParam[map[string]interface{}]
-		notes, err := notesType(r, "notes")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		notes, err := RequiredParam[map[string]interface{}](r, "notes")
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
 		}
 
 		data := make(map[string]interface{})

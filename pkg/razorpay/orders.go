@@ -2,7 +2,6 @@ package razorpay
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -60,68 +59,66 @@ func CreateOrder(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		validationErrors := NewValidationErrors()
+
 		amount, err := RequiredInt(r, "amount")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
 
-		// Get and validate currency
 		currency, err := RequiredParam[string](r, "currency")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
 
-		// Get and validate receipt (optional)
 		receipt, err := OptionalParam[string](r, "receipt")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
 
-		// Get and validate notes (optional)
 		notes, err := OptionalParam[map[string]interface{}](r, "notes")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
 
-		// Get and validate partial payment options
 		partialPayment, err := OptionalParam[bool](r, "partial_payment")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
 
-		// Create request payload
+		var minAmount int64
+		if partialPayment {
+			minAmount, err = OptionalInt(r, "first_payment_min_amount")
+			if err != nil {
+				validationErrors.AddErrors(err)
+			}
+		}
+
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
+		}
+
 		orderData := map[string]interface{}{
-			"amount":   amount,
+			"amount":   int(amount),
 			"currency": currency,
 		}
 
-		// Add optional receipt if provided
 		if receipt != "" {
 			orderData["receipt"] = receipt
 		}
 
-		// Add optional notes if provided
 		if notes != nil {
 			orderData["notes"] = notes
 		}
 
-		// Process partial payment if enabled
 		if partialPayment {
 			orderData["partial_payment"] = partialPayment
 
-			// If partial payment is enabled, validate min amount
-			minAmount, err := OptionalInt(r, "first_payment_min_amount")
-			if result, err := HandleValidationError(err); result != nil {
-				return result, err
-			}
-
-			// Only add first_payment_min_amount if it was provided and > 0
 			if minAmount > 0 {
-				orderData["first_payment_min_amount"] = minAmount
+				orderData["first_payment_min_amount"] = int(minAmount)
 			}
 		}
 
-		// Create the order using Razorpay SDK
 		order, err := client.Order.Create(orderData, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
@@ -129,13 +126,7 @@ func CreateOrder(
 			), nil
 		}
 
-		// Marshal the response to JSON
-		b, err := json.Marshal(order)
-		if err != nil {
-			return mcpgo.NewToolResultError("failed to marshal result"), nil
-		}
-
-		return mcpgo.NewToolResultText(string(b)), nil
+		return mcpgo.NewToolResultJSON(order)
 	}
 
 	return mcpgo.NewTool(
@@ -163,12 +154,17 @@ func FetchOrder(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		validationErrors := NewValidationErrors()
+
 		orderID, err := RequiredParam[string](r, "order_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
 
-		// Fetch the order using Razorpay SDK
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
+		}
+
 		order, err := client.Order.Fetch(orderID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
@@ -176,13 +172,7 @@ func FetchOrder(
 			), nil
 		}
 
-		// Marshal the response to JSON
-		b, err := json.Marshal(order)
-		if err != nil {
-			return mcpgo.NewToolResultError("failed to marshal result"), nil
-		}
-
-		return mcpgo.NewToolResultText(string(b)), nil
+		return mcpgo.NewToolResultJSON(order)
 	}
 
 	return mcpgo.NewTool(
@@ -247,55 +237,52 @@ func FetchAllOrders(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Prepare query parameters map
+		validationErrors := NewValidationErrors()
 		options := make(map[string]interface{})
 
-		// Process pagination options
-		if result := AddPaginationToQueryParams(r, options); result != nil {
-			return result, nil
-		}
+		// Add pagination parameters (count and skip)
+		validationErrors.AddErrors(
+			AddPaginationToQueryParams(r, options)...)
 
-		// Process date range parameters directly
+		// Validate from and to parameters
 		from, err := OptionalInt(r, "from")
-		if result, _ := HandleValidationError(err); result != nil {
-			return result, nil
-		}
-		if from > 0 {
-			options["from"] = from
+		if err != nil {
+			validationErrors.AddErrors(err)
+		} else if from > 0 {
+			options["from"] = int(from)
 		}
 
 		to, err := OptionalInt(r, "to")
-		if result, _ := HandleValidationError(err); result != nil {
-			return result, nil
-		}
-		if to > 0 {
-			options["to"] = to
+		if err != nil {
+			validationErrors.AddErrors(err)
+		} else if to > 0 {
+			options["to"] = int(to)
 		}
 
-		// Process authorized status parameter directly
+		// Validate authorized parameter
 		authorized, err := OptionalInt(r, "authorized")
-		if result, _ := HandleValidationError(err); result != nil {
-			return result, nil
+		if err != nil {
+			validationErrors.AddErrors(err)
+		} else {
+			options["authorized"] = int(authorized)
 		}
 
-		// Always add the authorized parameter if it was provided in the request
-		options["authorized"] = authorized
-
-		// Process receipt parameter directly
+		// Validate receipt parameter
 		receipt, err := OptionalParam[string](r, "receipt")
-		if result, _ := HandleValidationError(err); result != nil {
-			return result, nil
-		}
-		if receipt != "" {
+		if err != nil {
+			validationErrors.AddErrors(err)
+		} else if receipt != "" {
 			options["receipt"] = receipt
 		}
 
-		// Process expand parameters
-		if result := AddExpandToQueryParams(r, options); result != nil {
-			return result, nil
+		// Add expand parameters
+		validationErrors.AddErrors(
+			AddExpandToQueryParams(r, options)...)
+
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
 		}
 
-		// Fetch all orders using Razorpay SDK
 		orders, err := client.Order.All(options, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
@@ -303,7 +290,6 @@ func FetchAllOrders(
 			), nil
 		}
 
-		// Convert to JSON
 		return mcpgo.NewToolResultJSON(orders)
 	}
 

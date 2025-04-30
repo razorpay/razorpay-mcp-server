@@ -18,7 +18,8 @@ func CreatePaymentLink(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Amount to be paid using the link in smallest currency unit(e.g., ₹300, use 30000)"), // nolint:lll
+			mcpgo.Description("Amount to be paid using the link in smallest "+
+				"currency unit(e.g., ₹300, use 30000)"),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
@@ -28,7 +29,8 @@ func CreatePaymentLink(
 		),
 		mcpgo.WithString(
 			"description",
-			mcpgo.Description("A brief description of the Payment Link explaining the intent of the payment."), // nolint:lll
+			mcpgo.Description("A brief description of the Payment Link "+
+				"explaining the intent of the payment."),
 		),
 	}
 
@@ -36,26 +38,30 @@ func CreatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// validate required parameters
+		validationErrors := NewValidationErrors()
+
 		amount, err := RequiredInt(r, "amount")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
+
 		currency, err := RequiredParam[string](r, "currency")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
 		}
 
-		// Create request payload
-		paymentLinkData := map[string]interface{}{
-			"amount":   amount,
-			"currency": currency,
-		}
-
-		// Add optional description if provided
 		desc, err := OptionalParam[string](r, "description")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
+		}
+
+		paymentLinkData := map[string]interface{}{
+			"amount":   int(amount),
+			"currency": currency,
 		}
 
 		if desc != "" {
@@ -88,7 +94,8 @@ func FetchPaymentLink(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"payment_link_id",
-			mcpgo.Description("ID of the payment link to be fetched(ID should have a plink_ prefix)."), // nolint:lll
+			mcpgo.Description("ID of the payment link to be fetched"+
+				"(ID should have a plink_ prefix)."),
 			mcpgo.Required(),
 		),
 	}
@@ -97,10 +104,15 @@ func FetchPaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Use the helper function to get the required parameter
+		validationErrors := NewValidationErrors()
+
 		id, err := RequiredParam[string](r, "payment_link_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
 		}
 
 		paymentLink, err := client.PaymentLink.Fetch(id, nil, nil)

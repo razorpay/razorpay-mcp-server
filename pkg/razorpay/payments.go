@@ -28,9 +28,15 @@ func FetchPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		validationErrors := NewValidationErrors()
+
 		paymentID, err := RequiredParam[string](r, "payment_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
+		if err != nil {
+			validationErrors.AddErrors(err)
+		}
+
+		if validationErrors.HasErrors() {
+			return HandleValidationErrors(validationErrors)
 		}
 
 		payment, err := client.Payment.Fetch(paymentID, nil, nil)
@@ -44,7 +50,8 @@ func FetchPayment(
 
 	return mcpgo.NewTool(
 		"fetch_payment",
-		"Use this tool to retrieve the details of a specific payment using its id. Amount returned is in paisa", //nolint:lll
+		"Use this tool to retrieve the details of a specific payment "+
+			"using its id. Amount returned is in paisa",
 		parameters,
 		handler,
 	)

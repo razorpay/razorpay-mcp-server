@@ -79,32 +79,47 @@ Available parameter types:
 
 ### Parameter Validation
 
-Inside the handler function, use the helper functions for fetching the parameters and also enforcing the mandatory parameters:
+Inside the handler function, use the helper functions for fetching the parameters and validating them. The recommended approach is to collect all validation errors before responding:
 
 ```go
+// Inside your handler function
+validationErrors := NewValidationErrors()
+
 // Required parameters
 id, err := RequiredParam[string](r, "id")
-if result, err := HandleValidationError(err); result != nil {
-    return result, err
+if err != nil {
+    validationErrors.AddErrors(err)
 }
 
 // Optional parameters
 description, err := OptionalParam[string](r, "description")
-if result, err := HandleValidationError(err); result != nil {
-    return result, err
+if err != nil {
+    validationErrors.AddErrors(err)
 }
 
 // Required integers
 amount, err := RequiredInt(r, "amount")
-if result, err := HandleValidationError(err); result != nil {
-    return result, err
+if err != nil {
+    validationErrors.AddErrors(err)
 }
 
 // Optional integers
 limit, err := OptionalInt(r, "limit")
-if result, err := HandleValidationError(err); result != nil {
-    return result, err
+if err != nil {
+    validationErrors.AddErrors(err)
 }
+
+// Process common query parameters (pagination, expand, etc.)
+options := make(map[string]interface{})
+validationErrors.AddErrors(AddPaginationToQueryParams(r, options)...)
+validationErrors.AddErrors(AddExpandToQueryParams(r, options)...)
+
+// Check if any validation errors occurred and return them all at once
+if validationErrors.HasErrors() {
+    return HandleValidationErrors(validationErrors)
+}
+
+// Proceed with API call if validation passes
 ```
 
 ### Example: GET Endpoint
@@ -127,9 +142,15 @@ func FetchResource(
         ctx context.Context,
         r mcpgo.CallToolRequest,
     ) (*mcpgo.ToolResult, error) {
+        validationErrors := NewValidationErrors()
+
         id, err := RequiredParam[string](r, "id")
-        if result, err := HandleValidationError(err); result != nil {
-            return result, err
+        if err != nil {
+            validationErrors.AddErrors(err)
+        }
+
+        if validationErrors.HasErrors() {
+            return HandleValidationErrors(validationErrors)
         }
 
         resource, err := client.Resource.Fetch(id, nil, nil)
@@ -179,27 +200,34 @@ func CreateResource(
         ctx context.Context,
         r mcpgo.CallToolRequest,
     ) (*mcpgo.ToolResult, error) {
+        validationErrors := NewValidationErrors()
+
         // Required parameters
         amount, err := RequiredInt(r, "amount")
-        if result, err := HandleValidationError(err); result != nil {
-            return result, err
+        if err != nil {
+            validationErrors.AddErrors(err)
         }
         
         currency, err := RequiredParam[string](r, "currency")
-        if result, err := HandleValidationError(err); result != nil {
-            return result, err
-        }
-
-        // Create request payload
-        data := map[string]interface{}{
-            "amount": amount,
-            "currency": currency,
+        if err != nil {
+            validationErrors.AddErrors(err)
         }
 
         // Optional parameters
         description, err := OptionalParam[string](r, "description")
-        if result, err := HandleValidationError(err); result != nil {
-            return result, err
+        if err != nil {
+            validationErrors.AddErrors(err)
+        }
+
+        // Check for validation errors
+        if validationErrors.HasErrors() {
+            return HandleValidationErrors(validationErrors)
+        }
+        
+        // Create request payload
+        data := map[string]interface{}{
+            "amount": int(amount),
+            "currency": currency,
         }
         
         if description != "" {
@@ -346,6 +374,16 @@ func Test_ToolName(t *testing.T) {
             ExpectError:    true,
             ExpectedErrMsg: "missing required parameter: param1",
         },
+        {
+            Name: "multiple validation errors",
+            Request: map[string]interface{}{
+                // Missing required parameters and/or including invalid types
+                "optional_param": "invalid_type", // Wrong type for a parameter
+            },
+            MockHttpClient: nil, // No HTTP client needed for validation errors
+            ExpectError:    true,
+            ExpectedErrMsg: "Validation errors:\n- missing required parameter: param1\n- invalid parameter type: optional_param",
+        },
         // Additional test cases for other scenarios
     }
     
@@ -390,10 +428,8 @@ After adding a new tool, Update the "Available Tools" section in the README.md i
 
 2. **Error Handling**: Always provide clear error messages
 
-3. **Validation**: Always validate required parameters
+3. **Validation**: Always validate required parameters and collect all validation errors before returning
 
 4. **Documentation**: Describe all the parameters clearly for the LLMs to understand.
 
 5. **Organization**: Add tools to the appropriate file based on resource type
-
-6. **Testing**: Test your tool with different parameter combinations 
