@@ -8,16 +8,30 @@ LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.
 GO = go
 GOBIN = $(shell $(GO) env GOPATH)/bin
 
+# Docker variables
+IMAGE = razorpay-mcp-server
+TAG ?= latest
+
 # Default target
 all: verify fmt test lint build
 
-# Build the application
+# Build docker image
 build:
-	$(GO) build -v ./cmd/razorpay-mcp-server
+	docker build -t $(IMAGE):$(TAG) .
+
+# Run docker container
+run:
+	docker run -it --rm \
+		-e RAZORPAY_KEY_ID=your_key_id \
+		-e RAZORPAY_KEY_SECRET=your_key_secret \
+		$(IMAGE):$(TAG)
 
 # Run the application
-run:
+local-run:
 	$(GO) run ./cmd/razorpay-mcp-server
+
+local-build:
+	$(GO) build -v ./cmd/razorpay-mcp-server
 
 # Verify dependencies
 verify:
@@ -66,8 +80,10 @@ clean:
 help:
 	@echo "Available targets:"
 	@echo "  all            - Run verify, fmt, test, lint, and build (default)"
-	@echo "  build          - Build the application"
-	@echo "  run            - Run the application"
+	@echo "  build          - Build Docker image"
+	@echo "  run            - Run Docker container"
+	@echo "  local-build    - Build the application"
+	@echo "  local-run      - Run the application"
 	@echo "  verify         - Verify dependencies"
 	@echo "  fmt            - Format code"
 	@echo "  test           - Run tests"

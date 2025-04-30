@@ -12,8 +12,8 @@ Please be respectful and considerate of others when contributing to this project
 make test
 make fmt
 make lint
-make run
 make build
+make run
 ```
 
 We use Cursor to contribute - our AI developer. Look at `~/.cusor/rules`. It understands the standards we have defined and codes with that.
@@ -106,6 +106,8 @@ We use a fork-based workflow for all contributions:
    ```
 
 ### Running the Server Locally
+
+There are `make` commands also available now for the below, refer TLDR; above.
 
 To run the server in development mode:
 
