@@ -12,7 +12,7 @@ import (
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/razorpay/razorpay-go"
+	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
@@ -44,8 +44,8 @@ func createMCPRequest(args map[string]interface{}) mcpgo.CallToolRequest {
 // and the mock server (which should be closed by the caller)
 func newMockRzpClient(
 	mockHttpClient func() (*http.Client, *httptest.Server),
-) (*razorpay.Client, *httptest.Server) {
-	rzpMockClient := razorpay.NewClient("sample_key", "sample_secret")
+) (*rzpsdk.Client, *httptest.Server) {
+	rzpMockClient := rzpsdk.NewClient("sample_key", "sample_secret")
 
 	var mockServer *httptest.Server
 	if mockHttpClient != nil {
@@ -66,7 +66,7 @@ func newMockRzpClient(
 func runToolTest(
 	t *testing.T,
 	tc RazorpayToolTestCase,
-	toolCreator func(*slog.Logger, *razorpay.Client) mcpgo.Tool,
+	toolCreator func(*slog.Logger, *rzpsdk.Client) mcpgo.Tool,
 	objectType string,
 ) {
 	mockRzpClient, mockServer := newMockRzpClient(tc.MockHttpClient)
