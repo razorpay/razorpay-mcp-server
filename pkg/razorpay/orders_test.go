@@ -200,3 +200,168 @@ func Test_FetchOrder(t *testing.T) {
 		})
 	}
 }
+
+func Test_FetchAllOrders(t *testing.T) {
+	fetchAllOrdersPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.ORDER_URL,
+	)
+
+	// Define the sample response for all orders
+	ordersResp := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(2),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":          "order_EKzX2WiEWbMxmx",
+				"entity":      "order",
+				"amount":      float64(1234),
+				"amount_paid": float64(0),
+				"amount_due":  float64(1234),
+				"currency":    "INR",
+				"receipt":     "Receipt No. 1",
+				"offer_id":    nil,
+				"status":      "created",
+				"attempts":    float64(0),
+				"notes":       []interface{}{},
+				"created_at":  float64(1582637108),
+			},
+			map[string]interface{}{
+				"id":          "order_EAI5nRfThga2TU",
+				"entity":      "order",
+				"amount":      float64(100),
+				"amount_paid": float64(0),
+				"amount_due":  float64(100),
+				"currency":    "INR",
+				"receipt":     "Receipt No. 1",
+				"offer_id":    nil,
+				"status":      "created",
+				"attempts":    float64(0),
+				"notes":       []interface{}{},
+				"created_at":  float64(1580300731),
+			},
+		},
+	}
+
+	// Define error response
+	errorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Razorpay API error: Bad request",
+		},
+	}
+
+	// Define the test cases
+	tests := []RazorpayToolTestCase{
+		{
+			Name:    "successful fetch all orders with no parameters",
+			Request: map[string]interface{}{},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllOrdersPath,
+						Method:   "GET",
+						Response: ordersResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: ordersResp,
+		},
+		{
+			Name: "successful fetch all orders with pagination",
+			Request: map[string]interface{}{
+				"count": float64(2),
+				"skip":  float64(1),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllOrdersPath,
+						Method:   "GET",
+						Response: ordersResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: ordersResp,
+		},
+		{
+			Name: "successful fetch all orders with time range",
+			Request: map[string]interface{}{
+				"from": float64(1580000000),
+				"to":   float64(1590000000),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllOrdersPath,
+						Method:   "GET",
+						Response: ordersResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: ordersResp,
+		},
+		{
+			Name: "successful fetch all orders with filtering",
+			Request: map[string]interface{}{
+				"authorized": float64(1),
+				"receipt":    "Receipt No. 1",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllOrdersPath,
+						Method:   "GET",
+						Response: ordersResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: ordersResp,
+		},
+		{
+			Name: "successful fetch all orders with expand",
+			Request: map[string]interface{}{
+				"expand": []interface{}{"payments"},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllOrdersPath,
+						Method:   "GET",
+						Response: ordersResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: ordersResp,
+		},
+		{
+			Name: "fetch all orders fails",
+			Request: map[string]interface{}{
+				"count": float64(100),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllOrdersPath,
+						Method:   "GET",
+						Response: errorResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching orders failed: Razorpay API error: Bad request",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchAllOrders, "Order")
+		})
+	}
+}
