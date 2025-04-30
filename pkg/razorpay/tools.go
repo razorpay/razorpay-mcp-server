@@ -41,10 +41,16 @@ func NewToolSets(
 			CreateOrder(log, client),
 		)
 
+	settlements := toolsets.NewToolset("settlements", "Razorpay Settlements related tools").
+		AddReadTools(
+			FetchSettlement(log, client),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
+	toolsetGroup.AddToolset(settlements)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
