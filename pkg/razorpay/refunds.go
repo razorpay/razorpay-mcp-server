@@ -261,20 +261,9 @@ func FetchMultipleRefundsForPayment(
 			queryParams["to"] = to
 		}
 
-		count, err := OptionalInt(r, "count")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if count > 0 {
-			queryParams["count"] = count
-		}
-
-		skip, err := OptionalInt(r, "skip")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if skip > 0 {
-			queryParams["skip"] = skip
+		// Add pagination parameters (count and skip)
+		if result := AddPaginationToQueryParams(r, queryParams); result != nil {
+			return result, nil
 		}
 
 		refunds, err := client.Payment.FetchMultipleRefund(
@@ -397,20 +386,9 @@ func FetchAllRefunds(
 			queryParams["to"] = to
 		}
 
-		count, err := OptionalInt(r, "count")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if count > 0 {
-			queryParams["count"] = count
-		}
-
-		skip, err := OptionalInt(r, "skip")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if skip > 0 {
-			queryParams["skip"] = skip
+		// Add pagination parameters (count and skip)
+		if result := AddPaginationToQueryParams(r, queryParams); result != nil {
+			return result, nil
 		}
 
 		refunds, err := client.Refund.All(queryParams, nil)
