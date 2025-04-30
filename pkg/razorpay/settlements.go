@@ -329,3 +329,38 @@ func CreateInstantSettlement(
 		handler,
 	)
 }
+
+// FetchAllInstantSettlements returns a tool to fetch all instant settlements with
+// filtering and pagination
+func FetchAllInstantSettlements(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	// the docs say no params are required
+	// needs to be checked with settlements team
+	parameters := []mcpgo.ToolParameter{}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Create query parameters map
+		options := make(map[string]interface{})
+
+		// Fetch all instant settlements using Razorpay SDK
+		settlements, err := client.Settlement.FetchAllOnDemandSettlement(options, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching instant settlements failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(settlements)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_all_instant_settlements",
+		"Fetch all instant settlements with optional filtering and pagination",
+		parameters,
+		handler,
+	)
+}

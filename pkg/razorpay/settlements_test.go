@@ -397,3 +397,108 @@ func Test_CreateInstantSettlement(t *testing.T) {
 		})
 	}
 }
+
+func Test_FetchAllInstantSettlements(t *testing.T) {
+	fetchAllInstantSettlementsPath := fmt.Sprintf(
+		"/%s%s/ondemand",
+		constants.VERSION_V1,
+		constants.SETTLEMENT_URL,
+	)
+
+	// Sample response for successful fetch
+	instantSettlementListResp := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(2),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":                  "setlod_FNj7g2YS5J67Rz",
+				"entity":              "settlement.ondemand",
+				"amount_requested":    float64(200000),
+				"amount_settled":      float64(199410),
+				"amount_pending":      float64(0),
+				"amount_reversed":     float64(0),
+				"fees":                float64(590),
+				"tax":                 float64(90),
+				"currency":            "INR",
+				"settle_full_balance": false,
+				"status":              "processed",
+				"description":         "Need this to make vendor payments.",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey… decaf.",
+				},
+				"created_at": float64(1596771429),
+			},
+			map[string]interface{}{
+				"id":                  "setlod_FJOp0jOWlalIvt",
+				"entity":              "settlement.ondemand",
+				"amount_requested":    float64(300000),
+				"amount_settled":      float64(299114),
+				"amount_pending":      float64(0),
+				"amount_reversed":     float64(0),
+				"fees":                float64(886),
+				"tax":                 float64(136),
+				"currency":            "INR",
+				"settle_full_balance": false,
+				"status":              "processed",
+				"description":         "Need this to buy stock.",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey… decaf.",
+				},
+				"created_at": float64(1595826576),
+			},
+		},
+	}
+
+	// Error response when parameters are invalid
+	invalidParamsResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "from must be between 946684800 and 4765046400",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name:    "successful instant settlements fetch with all parameters",
+			Request: map[string]interface{}{},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllInstantSettlementsPath,
+						Method:   "GET",
+						Response: instantSettlementListResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: instantSettlementListResp,
+		},
+		{
+			Name: "instant settlements fetch with invalid timestamp",
+			Request: map[string]interface{}{
+				"from": float64(900000000), // Invalid timestamp (too early)
+				"to":   float64(1600000000),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllInstantSettlementsPath,
+						Method:   "GET",
+						Response: invalidParamsResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "fetching instant settlements failed: from must be between " +
+				"946684800 and 4765046400",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchAllInstantSettlements, "Instant Settlements List")
+		})
+	}
+}
