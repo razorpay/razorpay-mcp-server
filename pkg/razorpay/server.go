@@ -1,7 +1,6 @@
 package razorpay
 
 import (
-	"fmt"
 	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
@@ -68,67 +67,4 @@ func (s *Server) RegisterTools() {
 // GetMCPServer returns the underlying MCP server instance
 func (s *Server) GetMCPServer() mcpgo.Server {
 	return s.server
-}
-
-// RequiredParam gets a required parameter
-func RequiredParam[T any](r mcpgo.CallToolRequest, name string) (T, error) {
-	var zero T
-	arg, exists := r.Arguments[name]
-	if !exists {
-		return zero, fmt.Errorf("missing required parameter: %s", name)
-	}
-
-	value, ok := arg.(T)
-	if !ok {
-		return zero, fmt.Errorf("parameter %s is not of type %T", name, zero)
-	}
-
-	return value, nil
-}
-
-// OptionalParam gets an optional parameter
-func OptionalParam[T any](r mcpgo.CallToolRequest, name string) (T, error) {
-	var zero T
-	arg, exists := r.Arguments[name]
-	if !exists {
-		return zero, nil
-	}
-
-	value, ok := arg.(T)
-	if !ok {
-		return zero, fmt.Errorf("parameter %s is not of type %T", name, zero)
-	}
-
-	return value, nil
-}
-
-// RequiredInt gets a required integer parameter
-func RequiredInt(r mcpgo.CallToolRequest, name string) (int, error) {
-	// First get as float64 (JSON numbers are floats)
-	val, err := RequiredParam[float64](r, name)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(val), nil
-}
-
-// OptionalInt gets an optional integer parameter
-func OptionalInt(r mcpgo.CallToolRequest, name string) (int, error) {
-	// First get as float64 (JSON numbers are floats)
-	val, err := OptionalParam[float64](r, name)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(val), nil
-}
-
-// HandleValidationError is a helper for handling validation
-// errors in tool handlers
-func HandleValidationError(err error) (*mcpgo.ToolResult, error) {
-	if err != nil {
-		return mcpgo.NewToolResultError(err.Error()), nil
-	}
-	return nil, nil
 }
