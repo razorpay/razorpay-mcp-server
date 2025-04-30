@@ -38,6 +38,7 @@ func NewToolSets(
 	orders := toolsets.NewToolset("orders", "Razorpay Orders related tools").
 		AddReadTools(
 			FetchOrder(log, client),
+			FetchAllOrders(log, client),
 		).
 		AddWriteTools(
 			CreateOrder(log, client),

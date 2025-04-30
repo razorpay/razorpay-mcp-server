@@ -19,7 +19,7 @@ func CreateRefund(
 		mcpgo.WithString(
 			"payment_id",
 			mcpgo.Description("Unique identifier of the payment which "+
-				"needs to be refunded."),
+				"needs to be refunded. ID should have a pay_ prefix."),
 			mcpgo.Required(),
 		),
 		mcpgo.WithNumber(
@@ -57,20 +57,32 @@ func CreateRefund(
 		data := make(map[string]interface{})
 
 		var amount int
-		if amountFloat, err := OptionalParam[float64](r, "amount"); err == nil {
-			amount = int(amountFloat)
+		amount, err = OptionalInt(r, "amount")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
 		}
 
-		if speed, err := OptionalParam[string](r, "speed"); err == nil {
+		speed, err := OptionalParam[string](r, "speed")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if speed != "" {
 			data["speed"] = speed
 		}
 
-		notesType := OptionalParam[map[string]interface{}]
-		if notes, err := notesType(r, "notes"); err == nil {
+		notes, err := OptionalParam[map[string]interface{}](r, "notes")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if notes != nil {
 			data["notes"] = notes
 		}
 
-		if receipt, err := OptionalParam[string](r, "receipt"); err == nil {
+		receipt, err := OptionalParam[string](r, "receipt")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if receipt != "" {
 			data["receipt"] = receipt
 		}
 
@@ -102,7 +114,8 @@ func FetchRefund(
 		mcpgo.WithString(
 			"refund_id",
 			mcpgo.Description(
-				"Unique identifier of the refund which is to be retrieved."),
+				"Unique identifier of the refund which is to be retrieved. "+
+					"ID should have a rfnd_ prefix."),
 			mcpgo.Required(),
 		),
 	}
@@ -142,7 +155,7 @@ func UpdateRefund(
 		mcpgo.WithString(
 			"refund_id",
 			mcpgo.Description("Unique identifier of the refund which "+
-				"needs to be updated."),
+				"needs to be updated. ID should have a rfnd_ prefix."),
 			mcpgo.Required(),
 		),
 		mcpgo.WithObject(
