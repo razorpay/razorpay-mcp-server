@@ -52,9 +52,9 @@ func Min(value float64) PropertyOption {
 		case "number", "integer":
 			schema["minimum"] = value
 		case "string":
-			schema["minLength"] = int64(value)
+			schema["minLength"] = int(value)
 		case "array":
-			schema["minItems"] = int64(value)
+			schema["minItems"] = int(value)
 		}
 	}
 }
@@ -72,9 +72,9 @@ func Max(value float64) PropertyOption {
 		case "number", "integer":
 			schema["maximum"] = value
 		case "string":
-			schema["maxLength"] = int64(value)
+			schema["maxLength"] = int(value)
 		case "array":
-			schema["maxItems"] = int64(value)
+			schema["maxItems"] = int(value)
 		}
 	}
 }
@@ -253,13 +253,13 @@ func addStringPropertyOptions(
 	propOpts []mcp.PropertyOption,
 	schema map[string]interface{}) []mcp.PropertyOption {
 	// Add minLength if present
-	if minLength, ok := schema["minLength"].(int64); ok {
-		propOpts = append(propOpts, mcp.MinLength(int(minLength)))
+	if minLength, ok := schema["minLength"].(int); ok {
+		propOpts = append(propOpts, mcp.MinLength(minLength))
 	}
 
 	// Add maxLength if present
-	if maxLength, ok := schema["maxLength"].(int64); ok {
-		propOpts = append(propOpts, mcp.MaxLength(int(maxLength)))
+	if maxLength, ok := schema["maxLength"].(int); ok {
+		propOpts = append(propOpts, mcp.MaxLength(maxLength))
 	}
 
 	// Add pattern if present
@@ -314,16 +314,12 @@ func addObjectPropertyOptions(
 	propOpts []mcp.PropertyOption,
 	schema map[string]interface{}) []mcp.PropertyOption {
 	// Add maxProperties if present
-	if maxProps, ok := schema["maxProperties"].(int64); ok {
-		propOpts = append(propOpts, mcp.MaxProperties(int(maxProps)))
-	} else if maxProps, ok := schema["maxProperties"].(int); ok {
+	if maxProps, ok := schema["maxProperties"].(int); ok {
 		propOpts = append(propOpts, mcp.MaxProperties(maxProps))
 	}
 
 	// Add minProperties if present
-	if minProps, ok := schema["minProperties"].(int64); ok {
-		propOpts = append(propOpts, mcp.MinProperties(int(minProps)))
-	} else if minProps, ok := schema["minProperties"].(int); ok {
+	if minProps, ok := schema["minProperties"].(int); ok {
 		propOpts = append(propOpts, mcp.MinProperties(minProps))
 	}
 
@@ -335,13 +331,13 @@ func addArrayPropertyOptions(
 	propOpts []mcp.PropertyOption,
 	schema map[string]interface{}) []mcp.PropertyOption {
 	// Add minItems if present
-	if minItems, ok := schema["minItems"].(int64); ok {
-		propOpts = append(propOpts, mcp.MinItems(int(minItems)))
+	if minItems, ok := schema["minItems"].(int); ok {
+		propOpts = append(propOpts, mcp.MinItems(minItems))
 	}
 
 	// Add maxItems if present
-	if maxItems, ok := schema["maxItems"].(int64); ok {
-		propOpts = append(propOpts, mcp.MaxItems(int(maxItems)))
+	if maxItems, ok := schema["maxItems"].(int); ok {
+		propOpts = append(propOpts, mcp.MaxItems(maxItems))
 	}
 
 	return propOpts

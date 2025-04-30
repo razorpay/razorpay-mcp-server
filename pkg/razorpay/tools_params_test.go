@@ -203,8 +203,8 @@ func TestAddPaginationToQueryParams(t *testing.T) {
 				"skip":  float64(5),
 			},
 			expected: map[string]interface{}{
-				"count": int64(10),
-				"skip":  int64(5),
+				"count": 10,
+				"skip":  5,
 			},
 			wantErr: false,
 		},
@@ -361,7 +361,7 @@ func Test_RequiredInt(t *testing.T) {
 		name        string
 		params      map[string]interface{}
 		paramName   string
-		expected    int64
+		expected    int
 		expectError bool
 	}{
 		{
@@ -407,7 +407,7 @@ func Test_OptionalInt(t *testing.T) {
 		name        string
 		params      map[string]interface{}
 		paramName   string
-		expected    int64
+		expected    int
 		expectError bool
 	}{
 		{

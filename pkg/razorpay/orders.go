@@ -86,7 +86,7 @@ func CreateOrder(
 			validationErrors.AddErrors(err)
 		}
 
-		var minAmount int64
+		var minAmount int
 		if partialPayment {
 			minAmount, err = OptionalInt(r, "first_payment_min_amount")
 			if err != nil {

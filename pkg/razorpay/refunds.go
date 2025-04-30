@@ -56,7 +56,7 @@ func CreateRefund(
 			validationErrors.AddErrors(err)
 		}
 
-		var amount int64
+		var amount int
 		amount, err = OptionalInt(r, "amount")
 		if err != nil {
 			validationErrors.AddErrors(err)
@@ -95,7 +95,7 @@ func CreateRefund(
 			data["receipt"] = receipt
 		}
 
-		refund, err := client.Payment.Refund(paymentID, int(amount), data, nil)
+		refund, err := client.Payment.Refund(paymentID, amount, data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating refund failed: %s", err.Error())), nil
