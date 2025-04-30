@@ -44,6 +44,7 @@ func NewToolSets(
 	settlements := toolsets.NewToolset("settlements", "Razorpay Settlements related tools").
 		AddReadTools(
 			FetchSettlement(log, client),
+			FetchSettlementRecon(log, client),
 		)
 
 	// Add toolsets to the group
