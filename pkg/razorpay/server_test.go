@@ -111,7 +111,7 @@ func Test_RequiredInt(t *testing.T) {
 		name        string
 		params      map[string]interface{}
 		paramName   string
-		expected    int
+		expected    int64
 		expectError bool
 	}{
 		{
@@ -157,7 +157,7 @@ func Test_OptionalInt(t *testing.T) {
 		name        string
 		params      map[string]interface{}
 		paramName   string
-		expected    int
+		expected    int64
 		expectError bool
 	}{
 		{

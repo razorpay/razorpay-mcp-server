@@ -52,23 +52,23 @@ func OptionalParam[T any](r mcpgo.CallToolRequest, name string) (T, error) {
 }
 
 // RequiredInt extracts a required integer parameter from the request
-func RequiredInt(r mcpgo.CallToolRequest, name string) (int, error) {
+func RequiredInt(r mcpgo.CallToolRequest, name string) (int64, error) {
 	v, err := RequiredParam[float64](r, name)
 	if err != nil {
 		return 0, err
 	}
 
-	return int(v), nil
+	return int64(v), nil
 }
 
 // OptionalInt extracts an optional integer parameter from the request
-func OptionalInt(r mcpgo.CallToolRequest, name string) (int, error) {
+func OptionalInt(r mcpgo.CallToolRequest, name string) (int64, error) {
 	v, err := OptionalParam[float64](r, name)
 	if err != nil {
 		return 0, err
 	}
 
-	return int(v), nil
+	return int64(v), nil
 }
 
 // HandleValidationError handles parameter validation errors
