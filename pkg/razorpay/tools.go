@@ -49,6 +49,9 @@ func NewToolSets(
 			FetchSettlement(log, client),
 			FetchSettlementRecon(log, client),
 			FetchAllSettlements(log, client),
+		).
+		AddWriteTools(
+			CreateInstantSettlement(log, client),
 		)
 
 	// Add toolsets to the group

@@ -236,3 +236,96 @@ func FetchAllSettlements(
 		handler,
 	)
 }
+
+// CreateInstantSettlement returns a tool that creates an instant settlement
+func CreateInstantSettlement(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"amount",
+			mcpgo.Description("The amount you want to get settled instantly in amount in the smallest "+
+				"currency sub-unit (e.g., for ₹295, use 29500)"),
+			mcpgo.Required(),
+			mcpgo.Min(200), // Minimum amount is 200 (₹2)
+		),
+		mcpgo.WithBoolean(
+			"settle_full_balance",
+			mcpgo.Description("If true, Razorpay will settle the maximum amount "+
+				"possible and ignore amount parameter"),
+			mcpgo.DefaultValue(false),
+		),
+		mcpgo.WithString(
+			"description",
+			mcpgo.Description("Custom note for the instant settlement. "+
+				"Max 30 characters"),
+			mcpgo.Max(30),
+			mcpgo.Pattern("^[a-zA-Z0-9 ]*$"),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs for additional information. "+
+				"Max 15 pairs, 256 chars each"),
+			mcpgo.MaxProperties(15),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Get and validate required amount parameter
+		amount, err := RequiredInt(r, "amount")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		// Create request data
+		data := map[string]interface{}{
+			"amount": amount,
+		}
+
+		// Get and validate optional settle_full_balance parameter
+		settleFullBalance, err := OptionalParam[bool](r, "settle_full_balance")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		data["settle_full_balance"] = settleFullBalance
+
+		// Get and validate optional description parameter
+		description, err := OptionalParam[string](r, "description")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if description != "" {
+			data["description"] = description
+		}
+
+		// Get and validate optional notes parameter
+		notes, err := OptionalParam[map[string]interface{}](r, "notes")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+		if notes != nil {
+			data["notes"] = notes
+		}
+
+		// Create the instant settlement
+		settlement, err := client.Settlement.CreateOnDemandSettlement(data, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("creating instant settlement failed: %s",
+					err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(settlement)
+	}
+
+	return mcpgo.NewTool(
+		"create_instant_settlement",
+		"Create an instant settlement to get funds transferred to your bank account",
+		parameters,
+		handler,
+	)
+}

@@ -303,3 +303,97 @@ func Test_FetchAllSettlements(t *testing.T) {
 		})
 	}
 }
+
+func Test_CreateInstantSettlement(t *testing.T) {
+	createInstantSettlementPath := fmt.Sprintf(
+		"/%s%s/ondemand",
+		constants.VERSION_V1,
+		constants.SETTLEMENT_URL,
+	)
+
+	// Successful response with all parameters
+	successfulSettlementResp := map[string]interface{}{
+		"id":                  "setlod_FNj7g2YS5J67Rz",
+		"entity":              "settlement.ondemand",
+		"amount_requested":    float64(200000),
+		"amount_settled":      float64(0),
+		"amount_pending":      float64(199410),
+		"amount_reversed":     float64(0),
+		"fees":                float64(590),
+		"tax":                 float64(90),
+		"currency":            "INR",
+		"settle_full_balance": false,
+		"status":              "initiated",
+		"description":         "Need this to make vendor payments.",
+		"notes": map[string]interface{}{
+			"notes_key_1": "Tea, Earl Grey, Hot",
+			"notes_key_2": "Tea, Earl Grey… decaf.",
+		},
+		"created_at": float64(1596771429),
+	}
+
+	// Error response for insufficient amount
+	insufficientAmountResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Minimum amount that can be settled is ₹ 1.",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful settlement creation with all parameters",
+			Request: map[string]interface{}{
+				"amount":              float64(200000),
+				"settle_full_balance": false,
+				"description":         "Need this to make vendor payments.",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey… decaf.",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createInstantSettlementPath,
+						Method:   "POST",
+						Response: successfulSettlementResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulSettlementResp,
+		},
+		{
+			Name: "settlement creation with insufficient amount",
+			Request: map[string]interface{}{
+				"amount": float64(10), // Less than minimum
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createInstantSettlementPath,
+						Method:   "POST",
+						Response: insufficientAmountResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "creating instant settlement failed: Minimum amount that " +
+				"can be settled is ₹ 1.",
+		},
+		{
+			Name:           "missing amount parameter",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: amount",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, CreateInstantSettlement, "Instant Settlement")
+		})
+	}
+}
