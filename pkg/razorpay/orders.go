@@ -99,7 +99,7 @@ func CreateOrder(
 		}
 
 		orderData := map[string]interface{}{
-			"amount":   int(amount),
+			"amount":   amount,
 			"currency": currency,
 		}
 

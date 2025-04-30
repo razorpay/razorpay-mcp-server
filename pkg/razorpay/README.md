@@ -226,7 +226,7 @@ func CreateResource(
         
         // Create request payload
         data := map[string]interface{}{
-            "amount": int(amount),
+            "amount": amount,
             "currency": currency,
         }
         

@@ -60,7 +60,7 @@ func CreatePaymentLink(
 		}
 
 		paymentLinkData := map[string]interface{}{
-			"amount":   int(amount),
+			"amount":   amount,
 			"currency": currency,
 		}
 
