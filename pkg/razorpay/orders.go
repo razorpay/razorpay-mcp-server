@@ -223,10 +223,13 @@ func FetchAllOrders(
 				"when orders are to be fetched"),
 			mcpgo.Min(0),
 		),
-		mcpgo.WithBoolean(
+		mcpgo.WithNumber(
 			"authorized",
-			mcpgo.Description(
-				"Filter orders based on payment authorization status"),
+			mcpgo.Description("Filter orders based on payment authorization status. "+
+				"Values: 0 (orders with unauthorized payments), "+
+				"1 (orders with authorized payments)"),
+			mcpgo.Min(0),
+			mcpgo.Max(1),
 		),
 		mcpgo.WithString(
 			"receipt",
@@ -248,7 +251,7 @@ func FetchAllOrders(
 		options := make(map[string]interface{})
 
 		// Process pagination options
-		if result := AddPaginationToOptions(r, options); result != nil {
+		if result := AddPaginationToQueryParams(r, options); result != nil {
 			return result, nil
 		}
 
@@ -270,13 +273,13 @@ func FetchAllOrders(
 		}
 
 		// Process authorized status parameter directly
-		authorized, err := OptionalParam[bool](r, "authorized")
+		authorized, err := OptionalInt(r, "authorized")
 		if result, _ := HandleValidationError(err); result != nil {
 			return result, nil
 		}
-		if authorized {
-			options["authorized"] = 1
-		}
+
+		// Always add the authorized parameter if it was provided in the request
+		options["authorized"] = authorized
 
 		// Process receipt parameter directly
 		receipt, err := OptionalParam[string](r, "receipt")
@@ -288,7 +291,7 @@ func FetchAllOrders(
 		}
 
 		// Process expand parameters
-		if result := AddExpandToOptions(r, options); result != nil {
+		if result := AddExpandToQueryParams(r, options); result != nil {
 			return result, nil
 		}
 

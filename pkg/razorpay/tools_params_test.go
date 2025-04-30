@@ -8,7 +8,7 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
 
-func TestAddExpandToOptions(t *testing.T) {
+func TestAddExpandToQueryParams(t *testing.T) {
 	tests := []struct {
 		name     string
 		request  map[string]interface{}
@@ -60,7 +60,7 @@ func TestAddExpandToOptions(t *testing.T) {
 			options := make(map[string]interface{})
 
 			// Call the function being tested
-			toolResult := AddExpandToOptions(request, options)
+			toolResult := AddExpandToQueryParams(request, options)
 
 			// Check if an error was expected
 			if tt.wantErr {
@@ -73,7 +73,7 @@ func TestAddExpandToOptions(t *testing.T) {
 	}
 }
 
-func TestAddPaginationToOptions(t *testing.T) {
+func TestAddPaginationToQueryParams(t *testing.T) {
 	tests := []struct {
 		name     string
 		request  map[string]interface{}
@@ -128,7 +128,7 @@ func TestAddPaginationToOptions(t *testing.T) {
 			options := make(map[string]interface{})
 
 			// Call the function being tested
-			toolResult := AddPaginationToOptions(request, options)
+			toolResult := AddPaginationToQueryParams(request, options)
 
 			// Check if an error was expected
 			if tt.wantErr {

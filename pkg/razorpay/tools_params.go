@@ -79,9 +79,9 @@ func HandleValidationError(err error) (*mcpgo.ToolResult, error) {
 	return nil, nil
 }
 
-// AddPaginationToOptions processes and adds pagination parameters
+// AddPaginationToQueryParams processes and adds pagination parameters
 // (count and skip) to the options map
-func AddPaginationToOptions(
+func AddPaginationToQueryParams(
 	r mcpgo.CallToolRequest,
 	options map[string]interface{},
 ) *mcpgo.ToolResult {
@@ -106,8 +106,8 @@ func AddPaginationToOptions(
 	return nil
 }
 
-// AddExpandToOptions handles and adds expand parameters to the options map
-func AddExpandToOptions(
+// AddExpandToQueryParams handles and adds expand parameters to the options map
+func AddExpandToQueryParams(
 	r mcpgo.CallToolRequest,
 	options map[string]interface{},
 ) *mcpgo.ToolResult {

@@ -308,7 +308,7 @@ func Test_FetchAllOrders(t *testing.T) {
 		{
 			Name: "successful fetch all orders with filtering",
 			Request: map[string]interface{}{
-				"authorized": true,
+				"authorized": float64(1),
 				"receipt":    "Receipt No. 1",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
