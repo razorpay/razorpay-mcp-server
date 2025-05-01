@@ -49,53 +49,23 @@ func CreateRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
-
-		paymentID, err := RequiredParam[string](r, "payment_id")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		var amount int
-		amount, err = OptionalInt(r, "amount")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		speed, err := OptionalParam[string](r, "speed")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		notes, err := OptionalParam[map[string]interface{}](r, "notes")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		receipt, err := OptionalParam[string](r, "receipt")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
+		payload := make(map[string]interface{})
 		data := make(map[string]interface{})
 
-		if speed != "" {
-			data["speed"] = speed
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "payment_id").
+			ValidateAndAddRequiredFloat(payload, "amount").
+			ValidateAndAddOptionalString(data, "speed").
+			ValidateAndAddOptionalString(data, "receipt").
+			ValidateAndAddOptionalMap(data, "notes")
+
+		if validator.HasErrors() {
+			return validator.HandleErrors()
 		}
 
-		if notes != nil {
-			data["notes"] = notes
-		}
-
-		if receipt != "" {
-			data["receipt"] = receipt
-		}
-
-		refund, err := client.Payment.Refund(paymentID, amount, data, nil)
+		refund, err := client.Payment.Refund(
+			payload["payment_id"].(string), 
+			int(payload["amount"].(float64)), data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating refund failed: %s", err.Error())), nil
@@ -132,18 +102,16 @@ func FetchRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
+		payload := make(map[string]interface{})
 
-		refundID, err := RequiredParam[string](r, "refund_id")
-		if err != nil {
-			validationErrors.AddErrors(err)
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "refund_id")
+
+		if validator.HasErrors() {
+			return validator.HandleErrors()
 		}
 
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
-		refund, err := client.Refund.Fetch(refundID, nil, nil)
+		refund, err := client.Refund.Fetch(payload["refund_id"].(string), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching refund failed: %s", err.Error())), nil
@@ -185,26 +153,18 @@ func UpdateRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
-
-		refundID, err := RequiredParam[string](r, "refund_id")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		notes, err := RequiredParam[map[string]interface{}](r, "notes")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
+		payload := make(map[string]interface{})
 		data := make(map[string]interface{})
-		data["notes"] = notes
 
-		refund, err := client.Refund.Update(refundID, data, nil)
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "refund_id").
+			ValidateAndAddRequiredMap(data, "notes")
+
+		if validator.HasErrors() {
+			return validator.HandleErrors()
+		}
+
+		refund, err := client.Refund.Update(payload["refund_id"].(string), data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("updating refund failed: %s", err.Error())), nil

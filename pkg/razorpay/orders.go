@@ -59,67 +59,25 @@ func CreateOrder(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
+		payload := make(map[string]interface{})
 
-		amount, err := RequiredInt(r, "amount")
-		if err != nil {
-			validationErrors.AddErrors(err)
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredFloat(payload, "amount").
+			ValidateAndAddRequiredString(payload, "currency").
+			ValidateAndAddOptionalString(payload, "receipt").
+			ValidateAndAddOptionalMap(payload, "notes").
+			ValidateAndAddOptionalBool(payload, "partial_payment")
+
+		// Add first_payment_min_amount only if partial_payment is true
+		if payload["partial_payment"] == true {
+			validator.ValidateAndAddOptionalFloat(payload, "first_payment_min_amount")
 		}
 
-		currency, err := RequiredParam[string](r, "currency")
-		if err != nil {
-			validationErrors.AddErrors(err)
+		if validator.HasErrors() {
+			return validator.HandleErrors()
 		}
 
-		receipt, err := OptionalParam[string](r, "receipt")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		notes, err := OptionalParam[map[string]interface{}](r, "notes")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		partialPayment, err := OptionalParam[bool](r, "partial_payment")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		var minAmount int
-		if partialPayment {
-			minAmount, err = OptionalInt(r, "first_payment_min_amount")
-			if err != nil {
-				validationErrors.AddErrors(err)
-			}
-		}
-
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
-		orderData := map[string]interface{}{
-			"amount":   amount,
-			"currency": currency,
-		}
-
-		if receipt != "" {
-			orderData["receipt"] = receipt
-		}
-
-		if notes != nil {
-			orderData["notes"] = notes
-		}
-
-		if partialPayment {
-			orderData["partial_payment"] = partialPayment
-
-			if minAmount > 0 {
-				orderData["first_payment_min_amount"] = int(minAmount)
-			}
-		}
-
-		order, err := client.Order.Create(orderData, nil)
+		order, err := client.Order.Create(payload, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating order failed: %s", err.Error()),
@@ -154,18 +112,16 @@ func FetchOrder(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
+		payload := make(map[string]interface{})
 
-		orderID, err := RequiredParam[string](r, "order_id")
-		if err != nil {
-			validationErrors.AddErrors(err)
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "order_id")
+
+		if validator.HasErrors() {
+			return validator.HandleErrors()
 		}
 
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
-		order, err := client.Order.Fetch(orderID, nil, nil)
+		order, err := client.Order.Fetch(payload["order_id"].(string), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching order failed: %s", err.Error()),
@@ -237,53 +193,22 @@ func FetchAllOrders(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
-		options := make(map[string]interface{})
+		queryParams := make(map[string]interface{})
 
-		// Add pagination parameters (count and skip)
-		validationErrors.AddErrors(
-			AddPaginationToQueryParams(r, options)...)
+		validator := NewValidator(&r).
+			ValidateAndAddPagination(queryParams).
+			ValidateAndAddOptionalInt(queryParams, "from").
+			ValidateAndAddOptionalInt(queryParams, "to").
+			ValidateAndAddOptionalInt(queryParams, "authorized").
+			ValidateAndAddOptionalString(queryParams, "receipt").
+			ValidateAndAddOptionalArray(queryParams, "expand").
+			ValidateAndAddExpand(queryParams)
 
-		// Validate from and to parameters
-		from, err := OptionalInt(r, "from")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		} else if from > 0 {
-			options["from"] = int(from)
+		if validator.HasErrors() {
+			return validator.HandleErrors()
 		}
 
-		to, err := OptionalInt(r, "to")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		} else if to > 0 {
-			options["to"] = int(to)
-		}
-
-		// Validate authorized parameter
-		authorized, err := OptionalInt(r, "authorized")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		} else {
-			options["authorized"] = int(authorized)
-		}
-
-		// Validate receipt parameter
-		receipt, err := OptionalParam[string](r, "receipt")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		} else if receipt != "" {
-			options["receipt"] = receipt
-		}
-
-		// Add expand parameters
-		validationErrors.AddErrors(
-			AddExpandToQueryParams(r, options)...)
-
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
-		orders, err := client.Order.All(options, nil)
+		orders, err := client.Order.All(queryParams, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching orders failed: %s", err.Error()),

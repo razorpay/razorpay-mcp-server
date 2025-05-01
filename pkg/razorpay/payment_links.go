@@ -38,37 +38,18 @@ func CreatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
+		payload := make(map[string]interface{})
 
-		amount, err := RequiredInt(r, "amount")
-		if err != nil {
-			validationErrors.AddErrors(err)
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredFloat(payload, "amount").
+			ValidateAndAddRequiredString(payload, "currency").
+			ValidateAndAddOptionalString(payload, "description")
+
+		if validator.HasErrors() {
+			return validator.HandleErrors()
 		}
 
-		currency, err := RequiredParam[string](r, "currency")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		desc, err := OptionalParam[string](r, "description")
-		if err != nil {
-			validationErrors.AddErrors(err)
-		}
-
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
-		paymentLinkData := map[string]interface{}{
-			"amount":   amount,
-			"currency": currency,
-		}
-
-		if desc != "" {
-			paymentLinkData["description"] = desc
-		}
-
-		paymentLink, err := client.PaymentLink.Create(paymentLinkData, nil)
+		paymentLink, err := client.PaymentLink.Create(payload, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating payment link failed: %s", err.Error())), nil
@@ -104,18 +85,16 @@ func FetchPaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
+		payload := make(map[string]interface{})
 
-		id, err := RequiredParam[string](r, "payment_link_id")
-		if err != nil {
-			validationErrors.AddErrors(err)
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "payment_link_id")
+
+		if validator.HasErrors() {
+			return validator.HandleErrors()
 		}
 
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
-		paymentLink, err := client.PaymentLink.Fetch(id, nil, nil)
+		paymentLink, err := client.PaymentLink.Fetch(payload["payment_link_id"].(string), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment link failed: %s", err.Error())), nil

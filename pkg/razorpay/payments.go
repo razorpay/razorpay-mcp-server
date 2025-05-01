@@ -28,18 +28,16 @@ func FetchPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validationErrors := NewValidationErrors()
+		payload := make(map[string]interface{})
 
-		paymentID, err := RequiredParam[string](r, "payment_id")
-		if err != nil {
-			validationErrors.AddErrors(err)
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "payment_id")
+
+		if validator.HasErrors() {
+			return validator.HandleErrors()
 		}
 
-		if validationErrors.HasErrors() {
-			return HandleValidationErrors(validationErrors)
-		}
-
-		payment, err := client.Payment.Fetch(paymentID, nil, nil)
+		payment, err := client.Payment.Fetch(payload["payment_id"].(string), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment failed: %s", err.Error())), nil

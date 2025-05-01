@@ -289,8 +289,8 @@ func Test_FetchAllOrders(t *testing.T) {
 		{
 			Name: "successful fetch all orders with pagination",
 			Request: map[string]interface{}{
-				"count": float64(2),
-				"skip":  float64(1),
+				"count": 2,
+				"skip":  1,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -307,8 +307,8 @@ func Test_FetchAllOrders(t *testing.T) {
 		{
 			Name: "successful fetch all orders with time range",
 			Request: map[string]interface{}{
-				"from": float64(1580000000),
-				"to":   float64(1590000000),
+				"from": 1580000000,
+				"to":   1590000000,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -325,7 +325,7 @@ func Test_FetchAllOrders(t *testing.T) {
 		{
 			Name: "successful fetch all orders with filtering",
 			Request: map[string]interface{}{
-				"authorized": float64(1),
+				"authorized": 1,
 				"receipt":    "Receipt No. 1",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -378,7 +378,7 @@ func Test_FetchAllOrders(t *testing.T) {
 		{
 			Name: "fetch all orders fails",
 			Request: map[string]interface{}{
-				"count": float64(100),
+				"count": 100,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(

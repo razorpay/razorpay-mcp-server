@@ -79,47 +79,31 @@ Available parameter types:
 
 ### Parameter Validation
 
-Inside the handler function, use the helper functions for fetching the parameters and validating them. The recommended approach is to collect all validation errors before responding:
+Inside the handler function, use the fluent validator pattern for parameter validation. This provides cleaner, more readable code through method chaining:
 
 ```go
-// Inside your handler function
-validationErrors := NewValidationErrors()
+// Create a new validator
+v := NewValidator(&r)
 
-// Required parameters
-id, err := RequiredParam[string](r, "id")
-if err != nil {
-    validationErrors.AddErrors(err)
+// Create a map for API request parameters
+payload := make(map[string]interface{})
+
+// Validate and add parameters to the payload with method chaining
+v.ValidateAndAddRequiredString(payload, "id").
+  ValidateAndAddOptionalString(payload, "description").
+  ValidateAndAddRequiredInt(payload, "amount").
+  ValidateAndAddOptionalInt(payload, "limit")
+
+// Validate and add common parameters
+v.ValidateAndAddPagination(payload)
+v.ValidateAndAddExpand(payload)
+
+// Check for validation errors
+if v.HasErrors() {
+    return v.HandleErrors()
 }
 
-// Optional parameters
-description, err := OptionalParam[string](r, "description")
-if err != nil {
-    validationErrors.AddErrors(err)
-}
-
-// Required integers
-amount, err := RequiredInt(r, "amount")
-if err != nil {
-    validationErrors.AddErrors(err)
-}
-
-// Optional integers
-limit, err := OptionalInt(r, "limit")
-if err != nil {
-    validationErrors.AddErrors(err)
-}
-
-// Process common query parameters (pagination, expand, etc.)
-options := make(map[string]interface{})
-validationErrors.AddErrors(AddPaginationToQueryParams(r, options)...)
-validationErrors.AddErrors(AddExpandToQueryParams(r, options)...)
-
-// Check if any validation errors occurred and return them all at once
-if validationErrors.HasErrors() {
-    return HandleValidationErrors(validationErrors)
-}
-
-// Proceed with API call if validation passes
+// Proceed with API call using validated parameters in payload
 ```
 
 ### Example: GET Endpoint
@@ -142,17 +126,18 @@ func FetchResource(
         ctx context.Context,
         r mcpgo.CallToolRequest,
     ) (*mcpgo.ToolResult, error) {
-        validationErrors := NewValidationErrors()
-
-        id, err := RequiredParam[string](r, "id")
-        if err != nil {
-            validationErrors.AddErrors(err)
+        // Create validator and a payload map
+        payload := make(map[string]interface{})
+        v := NewValidator(&r).
+            ValidateAndAddRequiredString(payload, "id")
+        
+        // Check for validation errors
+        if v.HasErrors() {
+            return v.HandleErrors()
         }
 
-        if validationErrors.HasErrors() {
-            return HandleValidationErrors(validationErrors)
-        }
-
+        // Extract validated ID and make API call
+        id := payload["id"].(string)
         resource, err := client.Resource.Fetch(id, nil, nil)
         if err != nil {
             return mcpgo.NewToolResultError(
@@ -200,41 +185,19 @@ func CreateResource(
         ctx context.Context,
         r mcpgo.CallToolRequest,
     ) (*mcpgo.ToolResult, error) {
-        validationErrors := NewValidationErrors()
-
-        // Required parameters
-        amount, err := RequiredInt(r, "amount")
-        if err != nil {
-            validationErrors.AddErrors(err)
-        }
+        // Create payload map and validator
+        data := make(map[string]interface{})
+        v := NewValidator(&r).
+            ValidateAndAddRequiredInt(data, "amount").
+            ValidateAndAddRequiredString(data, "currency").
+            ValidateAndAddOptionalString(data, "description")
         
-        currency, err := RequiredParam[string](r, "currency")
-        if err != nil {
-            validationErrors.AddErrors(err)
-        }
-
-        // Optional parameters
-        description, err := OptionalParam[string](r, "description")
-        if err != nil {
-            validationErrors.AddErrors(err)
-        }
-
         // Check for validation errors
-        if validationErrors.HasErrors() {
-            return HandleValidationErrors(validationErrors)
-        }
-        
-        // Create request payload
-        data := map[string]interface{}{
-            "amount": amount,
-            "currency": currency,
-        }
-        
-        if description != "" {
-            data["description"] = description
+        if v.HasErrors() {
+            return v.HandleErrors()
         }
 
-        // Call the API
+        // Call the API with validated data
         resource, err := client.Resource.Create(data, nil)
         if err != nil {
             return mcpgo.NewToolResultError(
@@ -428,7 +391,11 @@ After adding a new tool, Update the "Available Tools" section in the README.md i
 
 2. **Error Handling**: Always provide clear error messages
 
-3. **Validation**: Always validate required parameters and collect all validation errors before returning
+3. **Validation**: Always validate required parameters and collect all validation errors before returning using fluent validator pattern.
+   - Use the `NewValidator` to create a validator
+   - Chain validation methods (`ValidateAndAddRequiredString`, etc.)
+   - Check for validation errors with `HasErrors()`
+   - Return formatted errors with `HandleErrors()`
 
 4. **Documentation**: Describe all the parameters clearly for the LLMs to understand.
 
