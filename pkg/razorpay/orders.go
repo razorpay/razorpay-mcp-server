@@ -362,3 +362,61 @@ func FetchOrderPayments(
 		handler,
 	)
 }
+
+// UpdateOrder returns a tool to update an order
+// only the order's notes can be updated
+func UpdateOrder(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"order_id",
+			mcpgo.Description("Unique identifier of the order which "+
+				"needs to be updated. ID should have an order_ prefix."),
+			mcpgo.Required(),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs used to store additional "+
+				"information about the order. A maximum of 15 key-value pairs "+
+				"can be included, with each value not exceeding 256 characters."),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		orderID, err := RequiredParam[string](r, "order_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		notesType := RequiredParam[map[string]interface{}]
+		notes, err := notesType(r, "notes")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		data := make(map[string]interface{})
+		data["notes"] = notes
+
+		order, err := client.Order.Update(orderID, data, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("updating order failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(order)
+	}
+
+	return mcpgo.NewTool(
+		"update_order",
+		"Use this tool to update the notes for a specific order. "+
+			"Only the notes field can be modified.",
+		parameters,
+		handler,
+	)
+}

@@ -41,6 +41,7 @@ func NewToolSets(
 		).
 		AddWriteTools(
 			CreateOrder(log, client),
+			UpdateOrder(log, client),
 		)
 
 	refunds := toolsets.NewToolset("refunds", "Razorpay Refunds related tools").

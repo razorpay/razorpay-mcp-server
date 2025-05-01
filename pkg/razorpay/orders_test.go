@@ -523,3 +523,108 @@ func Test_FetchOrderPayments(t *testing.T) {
 		})
 	}
 }
+
+func Test_UpdateOrder(t *testing.T) {
+	updateOrderPathFmt := fmt.Sprintf(
+		"/%s%s/%%s",
+		constants.VERSION_V1,
+		constants.ORDER_URL,
+	)
+
+	updatedOrderResp := map[string]interface{}{
+		"id":         "order_EKwxwAgItmmXdp",
+		"entity":     "order",
+		"amount":     float64(10000),
+		"currency":   "INR",
+		"receipt":    "receipt-123",
+		"status":     "created",
+		"attempts":   float64(0),
+		"created_at": float64(1572505143),
+		"notes": map[string]interface{}{
+			"customer_name": "updated-customer",
+			"product_name":  "updated-product",
+		},
+	}
+
+	orderNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "order not found",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful order update",
+			Request: map[string]interface{}{
+				"order_id": "order_EKwxwAgItmmXdp",
+				"notes": map[string]interface{}{
+					"customer_name": "updated-customer",
+					"product_name":  "updated-product",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							updateOrderPathFmt, "order_EKwxwAgItmmXdp"),
+						Method:   "PATCH",
+						Response: updatedOrderResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: updatedOrderResp,
+		},
+		{
+			Name: "missing required parameters - order_id",
+			Request: map[string]interface{}{
+				// Missing order_id
+				"notes": map[string]interface{}{
+					"customer_name": "updated-customer",
+					"product_name":  "updated-product",
+				},
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: order_id",
+		},
+		{
+			Name: "missing required parameters - notes",
+			Request: map[string]interface{}{
+				"order_id": "order_EKwxwAgItmmXdp",
+				// Missing notes
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: notes",
+		},
+		{
+			Name: "order not found",
+			Request: map[string]interface{}{
+				"order_id": "order_invalid_id",
+				"notes": map[string]interface{}{
+					"customer_name": "updated-customer",
+					"product_name":  "updated-product",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(updateOrderPathFmt, "order_invalid_id"),
+						Method:   "PATCH",
+						Response: orderNotFoundResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "updating order failed: order not found",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, UpdateOrder, "Order")
+		})
+	}
+}
