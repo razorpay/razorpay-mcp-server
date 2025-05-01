@@ -14,6 +14,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `create_order`        | Creates an order                                | [Order](https://razorpay.com/docs/api/orders/create/)
 | `fetch_order`         | Fetch order with ID                             | [Order](https://razorpay.com/docs/api/orders/fetch-with-id)
 | `fetch_all_orders`    | Fetch all orders                                | [Order](https://razorpay.com/docs/api/orders/fetch-all)
+| `update_order`        | Update an order                                 | [Order](https://razorpay.com/docs/api/orders/update) 
 | `fetch_order_payments` | Fetch all payments for an order                | [Order](https://razorpay.com/docs/api/orders/fetch-payments/)
 | `create_refund`       | Creates a refund                                | [Refund](https://razorpay.com/docs/api/refunds/create-instant/)
 | `fetch_refund`        | Fetch refund details with ID                    | [Refund](https://razorpay.com/docs/api/refunds/fetch-with-id/)
