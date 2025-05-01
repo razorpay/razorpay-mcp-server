@@ -502,3 +502,90 @@ func Test_FetchAllInstantSettlements(t *testing.T) {
 		})
 	}
 }
+
+func Test_FetchInstantSettlement(t *testing.T) {
+	fetchInstantSettlementPathFmt := fmt.Sprintf(
+		"/%s%s/ondemand/%%s",
+		constants.VERSION_V1,
+		constants.SETTLEMENT_URL,
+	)
+
+	instantSettlementResp := map[string]interface{}{
+		"id":                  "setlod_FNj7g2YS5J67Rz",
+		"entity":              "settlement.ondemand",
+		"amount_requested":    float64(200000),
+		"amount_settled":      float64(199410),
+		"amount_pending":      float64(0),
+		"amount_reversed":     float64(0),
+		"fees":                float64(590),
+		"tax":                 float64(90),
+		"currency":            "INR",
+		"settle_full_balance": false,
+		"status":              "processed",
+		"description":         "Need this to make vendor payments.",
+		"notes": map[string]interface{}{
+			"notes_key_1": "Tea, Earl Grey, Hot",
+			"notes_key_2": "Tea, Earl Grey… decaf.",
+		},
+		"created_at": float64(1596771429),
+	}
+
+	instantSettlementNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "instant settlement not found",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful instant settlement fetch",
+			Request: map[string]interface{}{
+				"settlement_id": "setlod_FNj7g2YS5J67Rz",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(fetchInstantSettlementPathFmt,
+							"setlod_FNj7g2YS5J67Rz"),
+						Method:   "GET",
+						Response: instantSettlementResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: instantSettlementResp,
+		},
+		{
+			Name: "instant settlement not found",
+			Request: map[string]interface{}{
+				"settlement_id": "setlod_invalid",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(fetchInstantSettlementPathFmt, "setlod_invalid"),
+						Method:   "GET",
+						Response: instantSettlementNotFoundResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "fetching instant settlement failed: " +
+				"instant settlement not found",
+		},
+		{
+			Name:           "missing settlement_id parameter",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: settlement_id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchInstantSettlement, "Instant Settlement")
+		})
+	}
+}

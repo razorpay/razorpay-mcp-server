@@ -50,6 +50,7 @@ func NewToolSets(
 			FetchSettlementRecon(log, client),
 			FetchAllSettlements(log, client),
 			FetchAllInstantSettlements(log, client),
+			FetchInstantSettlement(log, client),
 		).
 		AddWriteTools(
 			CreateInstantSettlement(log, client),

@@ -364,3 +364,45 @@ func FetchAllInstantSettlements(
 		handler,
 	)
 }
+
+// FetchInstantSettlement returns a tool that fetches an instant settlement by ID
+func FetchInstantSettlement(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"settlement_id",
+			mcpgo.Description("The ID of the instant settlement to fetch. "+
+				"ID starts with 'setlod_'"),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		settlementID, err := RequiredParam[string](r, "settlement_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		// Fetch the instant settlement by ID using SDK
+		settlement, err := client.Settlement.FetchOnDemandSettlementById(
+			settlementID, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching instant settlement failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(settlement)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_instant_settlement_with_id",
+		"Fetch details of a specific instant settlement using its ID",
+		parameters,
+		handler,
+	)
+}
