@@ -314,3 +314,51 @@ func FetchAllOrders(
 		handler,
 	)
 }
+
+// FetchOrderPayments returns a tool to fetch all payments for a specific order
+func FetchOrderPayments(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"order_id",
+			mcpgo.Description(
+				"Unique identifier of the order for which payments should"+
+					" be retrieved"),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		orderID, err := RequiredParam[string](r, "order_id")
+		if result, err := HandleValidationError(err); result != nil {
+			return result, err
+		}
+
+		// Fetch payments for the order using Razorpay SDK
+		// Note: Using the Order.Payments method from SDK
+		payments, err := client.Order.Payments(orderID, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf(
+					"fetching payments for order failed: %s",
+					err.Error(),
+				),
+			), nil
+		}
+
+		// Return the result as JSON
+		return mcpgo.NewToolResultJSON(payments)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_order_payments",
+		"Fetch all payments made for a specific order in Razorpay",
+		parameters,
+		handler,
+	)
+}
