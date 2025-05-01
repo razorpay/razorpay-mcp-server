@@ -22,6 +22,7 @@ func NewToolSets(
 		AddReadTools(
 			FetchPayment(log, client),
 			FetchPaymentCardDetails(log, client),
+			FetchAllPayments(log, client),
 		).
 		AddWriteTools(
 			CapturePayment(log, client),

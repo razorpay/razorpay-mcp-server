@@ -142,7 +142,7 @@ func UpdatePayment(
 	}
 
 	return mcpgo.NewTool(
-		"update_payment_notes",
+		"update_payment",
 		"Use this tool to update the notes field of a payment. Notes are "+
 			"key-value pairs that can be used to store additional information.", //nolint:lll
 		parameters,
@@ -212,6 +212,89 @@ func CapturePayment(
 	return mcpgo.NewTool(
 		"capture_payment",
 		"Use this tool to capture a previously authorized payment. Only payments with 'authorized' status can be captured", //nolint:lll
+		parameters,
+		handler,
+	)
+}
+
+// FetchAllPayments returns a tool to fetch multiple payments with filtering and pagination
+//
+//nolint:lll
+func FetchAllPayments(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		// Pagination parameters
+		mcpgo.WithNumber(
+			"count",
+			mcpgo.Description("Number of payments to fetch "+
+				"(default: 10, max: 100)"),
+			mcpgo.Min(1),
+			mcpgo.Max(100),
+		),
+		mcpgo.WithNumber(
+			"skip",
+			mcpgo.Description("Number of payments to skip (default: 0)"),
+			mcpgo.Min(0),
+		),
+		// Time range filters
+		mcpgo.WithNumber(
+			"from",
+			mcpgo.Description("Unix timestamp (in seconds) from when "+
+				"payments are to be fetched"),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithNumber(
+			"to",
+			mcpgo.Description("Unix timestamp (in seconds) up till when "+
+				"payments are to be fetched"),
+			mcpgo.Min(0),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Create query parameters map
+		options := make(map[string]interface{})
+
+		// Handle pagination parameters
+		if result := AddPaginationToQueryParams(r, options); result != nil {
+			return result, nil
+		}
+
+		// Handle date range parameters
+		from, err := OptionalInt(r, "from")
+		if result, _ := HandleValidationError(err); result != nil {
+			return result, nil
+		}
+		if from > 0 {
+			options["from"] = from
+		}
+
+		to, err := OptionalInt(r, "to")
+		if result, _ := HandleValidationError(err); result != nil {
+			return result, nil
+		}
+		if to > 0 {
+			options["to"] = to
+		}
+
+		// Fetch all payments using Razorpay SDK
+		payments, err := client.Payment.All(options, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching payments failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(payments)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_all_payments",
+		"Fetch all payments with optional filtering and pagination",
 		parameters,
 		handler,
 	)

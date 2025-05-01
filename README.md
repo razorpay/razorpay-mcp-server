@@ -8,10 +8,11 @@ Currently, the Razorpay MCP Server provides the following tools:
 
 | Tool                         | Description                                            | API
 |:-----------------------------|:-------------------------------------------------------|:-----------------------------------
+| `capture_payment`            | Change the payment status from authorized to captured. | [Payment](https://razorpay.com/docs/api/payments/capture)
 | `fetch_payment`              | Fetch payment details with ID                          | [Payment](https://razorpay.com/docs/api/payments/fetch-with-id)
-| `fetch_payment_card_details` | Fetch card details used for a payment                  |
-| `capture_payment`            | Change the payment status from authorized to captured. |
-| `update_payment_notes`       | Update the notes field of a payment                    |
+| `fetch_payment_card_details` | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card)
+| `fetch_all_payments`         | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments)
+| `update_payment`             | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update)
 | `create_payment_link`        | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard)
 | `fetch_payment_link`         | Fetch details of a payment link (standard)             | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-id-standard/)
 | `create_order`               | Creates an order                                       | [Order](https://razorpay.com/docs/api/orders/create/)

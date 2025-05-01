@@ -418,3 +418,146 @@ func Test_UpdatePayment(t *testing.T) {
 		})
 	}
 }
+
+func Test_FetchAllPayments(t *testing.T) {
+	fetchAllPaymentsPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	// Sample response for successful fetch
+	paymentsListResp := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(2),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":              "pay_KbCFyQ0t9Lmi1n",
+				"entity":          "payment",
+				"amount":          float64(1000),
+				"currency":        "INR",
+				"status":          "authorized",
+				"order_id":        nil,
+				"invoice_id":      nil,
+				"international":   false,
+				"method":          "netbanking",
+				"amount_refunded": float64(0),
+				"refund_status":   nil,
+				"captured":        false,
+				"description":     "Test Transaction",
+				"card_id":         nil,
+				"bank":            "IBKL",
+				"wallet":          nil,
+				"vpa":             nil,
+				"email":           "gaurav.kumar@gmail.com",
+				"contact":         "+919000090000",
+				"notes": map[string]interface{}{
+					"address": "Razorpay Corporate Office",
+				},
+				"fee":               nil,
+				"tax":               nil,
+				"error_code":        nil,
+				"error_description": nil,
+				"error_source":      nil,
+				"error_step":        nil,
+				"error_reason":      nil,
+				"acquirer_data": map[string]interface{}{
+					"bank_transaction_id": "5733649",
+				},
+				"created_at": float64(1667397881),
+			},
+			map[string]interface{}{
+				"id":              "pay_KbCEDHh1IrU4RJ",
+				"entity":          "payment",
+				"amount":          float64(1000),
+				"currency":        "INR",
+				"status":          "authorized",
+				"order_id":        nil,
+				"invoice_id":      nil,
+				"international":   false,
+				"method":          "upi",
+				"amount_refunded": float64(0),
+				"refund_status":   nil,
+				"captured":        false,
+				"description":     "Test Transaction",
+				"card_id":         nil,
+				"bank":            nil,
+				"wallet":          nil,
+				"vpa":             "gaurav.kumar@okhdfcbank",
+				"email":           "gaurav.kumar@gmail.com",
+				"contact":         "+919000090000",
+				"notes": map[string]interface{}{
+					"address": "Razorpay Corporate Office",
+				},
+				"fee":               nil,
+				"tax":               nil,
+				"error_code":        nil,
+				"error_description": nil,
+				"error_source":      nil,
+				"error_step":        nil,
+				"error_reason":      nil,
+				"acquirer_data": map[string]interface{}{
+					"rrn":                "230901495295",
+					"upi_transaction_id": "6935B87A72C2A7BC83FA927AA264AD53",
+				},
+				"created_at": float64(1667397781),
+			},
+		},
+	}
+
+	// Error response when parameters are invalid
+	invalidParamsResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "from must be between 946684800 and 4765046400",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful payments fetch with all parameters",
+			Request: map[string]interface{}{
+				"from":  float64(1593320020),
+				"to":    float64(1624856020),
+				"count": float64(2),
+				"skip":  float64(1),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllPaymentsPath,
+						Method:   "GET",
+						Response: paymentsListResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: paymentsListResp,
+		},
+		{
+			Name: "payments fetch with invalid timestamp",
+			Request: map[string]interface{}{
+				"from": float64(900000000), // Invalid timestamp (too early)
+				"to":   float64(1624856020),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllPaymentsPath,
+						Method:   "GET",
+						Response: invalidParamsResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "fetching payments failed: from must be between " +
+				"946684800 and 4765046400",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchAllPayments, "Payments List")
+		})
+	}
+}
