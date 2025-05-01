@@ -206,7 +206,7 @@ func (v *Validator) ValidateAndAddExpand(
 
 	if len(expand) > 0 {
 		for _, val := range expand {
-				params["expand[]"] = val
+			params["expand[]"] = val
 		}
 	}
 	return v

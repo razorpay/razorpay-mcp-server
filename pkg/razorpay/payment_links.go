@@ -94,7 +94,8 @@ func FetchPaymentLink(
 			return validator.HandleErrors()
 		}
 
-		paymentLink, err := client.PaymentLink.Fetch(payload["payment_link_id"].(string), nil, nil)
+		paymentLink, err := client.PaymentLink.Fetch(
+			payload["payment_link_id"].(string), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment link failed: %s", err.Error())), nil

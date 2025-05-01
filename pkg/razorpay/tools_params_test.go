@@ -3,8 +3,9 @@ package razorpay
 import (
 	"testing"
 
-	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
 
 func TestValidator(t *testing.T) {

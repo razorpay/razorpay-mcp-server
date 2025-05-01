@@ -95,8 +95,8 @@ v.ValidateAndAddRequiredString(payload, "id").
   ValidateAndAddOptionalInt(payload, "limit")
 
 // Validate and add common parameters
-v.ValidateAndAddPagination(payload)
-v.ValidateAndAddExpand(payload)
+v.ValidateAndAddPagination(payload).
+  ValidateAndAddExpand(payload)
 
 // Check for validation errors
 if v.HasErrors() {
@@ -400,3 +400,5 @@ After adding a new tool, Update the "Available Tools" section in the README.md i
 4. **Documentation**: Describe all the parameters clearly for the LLMs to understand.
 
 5. **Organization**: Add tools to the appropriate file based on resource type
+
+6. **Testing**: Test your tool with different parameter combinations 

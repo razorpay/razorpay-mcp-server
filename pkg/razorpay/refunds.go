@@ -64,7 +64,7 @@ func CreateRefund(
 		}
 
 		refund, err := client.Payment.Refund(
-			payload["payment_id"].(string), 
+			payload["payment_id"].(string),
 			int(payload["amount"].(float64)), data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
