@@ -92,14 +92,31 @@ func Test_CreateOrder(t *testing.T) {
 			ExpectedResult: orderWithRequiredParamsResp,
 		},
 		{
-			Name: "missing required parameters",
+			Name: "multiple validation errors",
 			Request: map[string]interface{}{
-				"amount": float64(10000),
-				// Missing currency
+				// Missing both amount and currency (required parameters)
+				"partial_payment":          "invalid_boolean", // Wrong type for boolean
+				"first_payment_min_amount": "invalid_number",  // Wrong type for number
 			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: currency",
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: amount\n- " +
+				"missing required parameter: currency\n- " +
+				"invalid parameter type: partial_payment",
+		},
+		{
+			Name: "first_payment_min_amount validation when partial_payment is true",
+			Request: map[string]interface{}{
+				"amount":                   float64(10000),
+				"currency":                 "INR",
+				"partial_payment":          true,
+				"first_payment_min_amount": "invalid_number",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"invalid parameter type: first_payment_min_amount",
 		},
 		{
 			Name: "order creation fails",
@@ -272,8 +289,8 @@ func Test_FetchAllOrders(t *testing.T) {
 		{
 			Name: "successful fetch all orders with pagination",
 			Request: map[string]interface{}{
-				"count": float64(2),
-				"skip":  float64(1),
+				"count": 2,
+				"skip":  1,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -290,8 +307,8 @@ func Test_FetchAllOrders(t *testing.T) {
 		{
 			Name: "successful fetch all orders with time range",
 			Request: map[string]interface{}{
-				"from": float64(1580000000),
-				"to":   float64(1590000000),
+				"from": 1580000000,
+				"to":   1590000000,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -308,7 +325,7 @@ func Test_FetchAllOrders(t *testing.T) {
 		{
 			Name: "successful fetch all orders with filtering",
 			Request: map[string]interface{}{
-				"authorized": float64(1),
+				"authorized": 1,
 				"receipt":    "Receipt No. 1",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -341,9 +358,27 @@ func Test_FetchAllOrders(t *testing.T) {
 			ExpectedResult: ordersResp,
 		},
 		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				"count":  "not-a-number",
+				"skip":   "not-a-number",
+				"from":   "not-a-number",
+				"to":     "not-a-number",
+				"expand": "not-an-array",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"invalid parameter type: count\n- " +
+				"invalid parameter type: skip\n- " +
+				"invalid parameter type: from\n- " +
+				"invalid parameter type: to\n- " +
+				"invalid parameter type: expand",
+		},
+		{
 			Name: "fetch all orders fails",
 			Request: map[string]interface{}{
-				"count": float64(100),
+				"count": 100,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
