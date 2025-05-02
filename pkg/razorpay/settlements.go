@@ -245,7 +245,7 @@ func CreateInstantSettlement(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("The amount you want to get settled instantly in amount in the smallest "+
+			mcpgo.Description("The amount you want to get settled instantly in amount in the smallest "+ //nolint:lll
 				"currency sub-unit (e.g., for ₹295, use 29500)"),
 			mcpgo.Required(),
 			mcpgo.Min(200), // Minimum amount is 200 (₹2)
@@ -336,9 +336,46 @@ func FetchAllInstantSettlements(
 	log *slog.Logger,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
-	// the docs say no params are required
-	// needs to be checked with settlements team
-	parameters := []mcpgo.ToolParameter{}
+	parameters := []mcpgo.ToolParameter{
+		// Pagination parameters
+		mcpgo.WithNumber(
+			"count",
+			mcpgo.Description("Number of instant settlement records to fetch "+
+				"(default: 10, max: 100)"),
+			mcpgo.Min(1),
+			mcpgo.Max(100),
+		),
+		mcpgo.WithNumber(
+			"skip",
+			mcpgo.Description("Number of instant settlement records to skip (default: 0)"), //nolint:lll
+			mcpgo.Min(0),
+		),
+		// Time range filters
+		mcpgo.WithNumber(
+			"from",
+			mcpgo.Description("Unix timestamp (in seconds) from when "+
+				"instant settlements are to be fetched"),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithNumber(
+			"to",
+			mcpgo.Description("Unix timestamp (in seconds) up till when "+
+				"instant settlements are to be fetched"),
+			mcpgo.Min(0),
+		),
+		// Expand parameter for payout details
+		mcpgo.WithBoolean(
+			"expand_payouts",
+			mcpgo.Description("Include payout details in the response"),
+		),
+		mcpgo.WithArray(
+			"expand",
+			mcpgo.Description("Used to retrieve additional information. "+
+				"Supported values: ondemand_payouts"+
+				"Pass ondemand_payouts if you want to fetch payout details"+
+				"for all instant settlements."),
+		),
+	}
 
 	handler := func(
 		ctx context.Context,
@@ -346,6 +383,33 @@ func FetchAllInstantSettlements(
 	) (*mcpgo.ToolResult, error) {
 		// Create query parameters map
 		options := make(map[string]interface{})
+
+		// Handle pagination parameters
+		if result := AddPaginationToQueryParams(r, options); result != nil {
+			return result, nil
+		}
+
+		// Handle date range parameters
+		from, err := OptionalInt(r, "from")
+		if result, _ := HandleValidationError(err); result != nil {
+			return result, nil
+		}
+		if from > 0 {
+			options["from"] = from
+		}
+
+		to, err := OptionalInt(r, "to")
+		if result, _ := HandleValidationError(err); result != nil {
+			return result, nil
+		}
+		if to > 0 {
+			options["to"] = to
+		}
+
+		// Process expand parameters
+		if result := AddExpandToQueryParams(r, options); result != nil {
+			return result, nil
+		}
 
 		// Fetch all instant settlements using Razorpay SDK
 		settlements, err := client.Settlement.FetchAllOnDemandSettlement(options, nil)
@@ -359,13 +423,15 @@ func FetchAllInstantSettlements(
 
 	return mcpgo.NewTool(
 		"fetch_all_instant_settlements",
-		"Fetch all instant settlements with optional filtering and pagination",
+		"Fetch all instant settlements with optional filtering, pagination, and payout details", //nolint:lll
 		parameters,
 		handler,
 	)
 }
 
 // FetchInstantSettlement returns a tool that fetches an instant settlement by ID
+//
+//nolint:lll
 func FetchInstantSettlement(
 	log *slog.Logger,
 	client *rzpsdk.Client,

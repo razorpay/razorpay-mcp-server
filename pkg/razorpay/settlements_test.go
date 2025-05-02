@@ -461,7 +461,7 @@ func Test_FetchAllInstantSettlements(t *testing.T) {
 
 	tests := []RazorpayToolTestCase{
 		{
-			Name:    "successful instant settlements fetch with all parameters",
+			Name:    "successful instant settlements fetch with no parameters",
 			Request: map[string]interface{}{},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -491,8 +491,8 @@ func Test_FetchAllInstantSettlements(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "fetching instant settlements failed: from must be between " +
-				"946684800 and 4765046400",
+			ExpectedErrMsg: "fetching instant settlements failed: from must be " +
+				"between 946684800 and 4765046400",
 		},
 	}
 
