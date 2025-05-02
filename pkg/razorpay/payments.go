@@ -33,8 +33,8 @@ func FetchPayment(
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "payment_id")
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		payment, err := client.Payment.Fetch(payload["payment_id"].(string), nil, nil)

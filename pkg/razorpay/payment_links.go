@@ -45,8 +45,8 @@ func CreatePaymentLink(
 			ValidateAndAddRequiredString(payload, "currency").
 			ValidateAndAddOptionalString(payload, "description")
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		paymentLink, err := client.PaymentLink.Create(payload, nil)
@@ -90,8 +90,8 @@ func FetchPaymentLink(
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "payment_link_id")
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		paymentLink, err := client.PaymentLink.Fetch(

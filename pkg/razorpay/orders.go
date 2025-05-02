@@ -73,8 +73,8 @@ func CreateOrder(
 			validator.ValidateAndAddOptionalFloat(payload, "first_payment_min_amount")
 		}
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		order, err := client.Order.Create(payload, nil)
@@ -117,8 +117,8 @@ func FetchOrder(
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "order_id")
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		order, err := client.Order.Fetch(payload["order_id"].(string), nil, nil)
@@ -204,8 +204,8 @@ func FetchAllOrders(
 			ValidateAndAddOptionalArray(queryParams, "expand").
 			ValidateAndAddExpand(queryParams)
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		orders, err := client.Order.All(queryParams, nil)

@@ -59,8 +59,8 @@ func CreateRefund(
 			ValidateAndAddOptionalString(data, "receipt").
 			ValidateAndAddOptionalMap(data, "notes")
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		refund, err := client.Payment.Refund(
@@ -107,8 +107,8 @@ func FetchRefund(
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "refund_id")
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		refund, err := client.Refund.Fetch(payload["refund_id"].(string), nil, nil)
@@ -160,8 +160,8 @@ func UpdateRefund(
 			ValidateAndAddRequiredString(payload, "refund_id").
 			ValidateAndAddRequiredMap(data, "notes")
 
-		if validator.HasErrors() {
-			return validator.HandleErrors()
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		refund, err := client.Refund.Update(payload["refund_id"].(string), data, nil)
