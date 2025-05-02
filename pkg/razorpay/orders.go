@@ -245,13 +245,18 @@ func FetchOrderPayments(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		orderID, err := RequiredParam[string](r, "order_id")
-		if result, err := HandleValidationError(err); result != nil {
+		orderPaymentsReq := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(orderPaymentsReq, "order_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
 		// Fetch payments for the order using Razorpay SDK
 		// Note: Using the Order.Payments method from SDK
+		orderID := orderPaymentsReq["order_id"].(string)
 		payments, err := client.Order.Payments(orderID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
@@ -300,19 +305,19 @@ func UpdateOrder(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		orderID, err := RequiredParam[string](r, "order_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-
-		notesType := RequiredParam[map[string]interface{}]
-		notes, err := notesType(r, "notes")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-
+		orderUpdateReq := make(map[string]interface{})
 		data := make(map[string]interface{})
-		data["notes"] = notes
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(orderUpdateReq, "order_id").
+			ValidateAndAddRequiredMap(orderUpdateReq, "notes")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		data["notes"] = orderUpdateReq["notes"]
+		orderID := orderUpdateReq["order_id"].(string)
 
 		order, err := client.Order.Update(orderID, data, nil)
 		if err != nil {
