@@ -200,7 +200,7 @@ Contains the fluent validator implementation for parameter validation:
 - `Validator` - Type that provides a fluent interface for validation
 - `NewValidator` - Creates a new validator for a request
 - `HasErrors` - Checks if validation errors exist
-- `HandleErrors` - Formats all errors into a tool result
+- `HandleErrorsIfAny` - Formats all errors into a tool result
 - `ValidateAndAddRequiredString` - Validates required string parameters
 - `ValidateAndAddOptionalString` - Validates optional string parameters
 - `ValidateAndAddRequiredInt` - Validates required integer parameters

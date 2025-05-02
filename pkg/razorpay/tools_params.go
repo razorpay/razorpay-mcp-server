@@ -36,8 +36,8 @@ func (v *Validator) HasErrors() bool {
 	return len(v.errors) > 0
 }
 
-// HandleErrors formats all errors and returns an appropriate tool result
-func (v *Validator) HandleErrors() (*mcpgo.ToolResult, error) {
+// HandleErrorsIfAny formats all errors and returns an appropriate tool result
+func (v *Validator) HandleErrorsIfAny() (*mcpgo.ToolResult, error) {
 	if v.HasErrors() {
 		messages := make([]string, 0, len(v.errors))
 		for _, err := range v.errors {

@@ -99,8 +99,8 @@ v.ValidateAndAddPagination(payload).
   ValidateAndAddExpand(payload)
 
 // Check for validation errors
-if v.HasErrors() {
-    return v.HandleErrors()
+if result, err := validator.HandleErrorsIfAny(); result != nil {
+	return result, err
 }
 
 // Proceed with API call using validated parameters in payload
@@ -132,9 +132,9 @@ func FetchResource(
             ValidateAndAddRequiredString(payload, "id")
         
         // Check for validation errors
-        if v.HasErrors() {
-            return v.HandleErrors()
-        }
+        if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
 
         // Extract validated ID and make API call
         id := payload["id"].(string)
@@ -193,9 +193,9 @@ func CreateResource(
             ValidateAndAddOptionalString(data, "description")
         
         // Check for validation errors
-        if v.HasErrors() {
-            return v.HandleErrors()
-        }
+        if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
 
         // Call the API with validated data
         resource, err := client.Resource.Create(data, nil)
@@ -394,8 +394,7 @@ After adding a new tool, Update the "Available Tools" section in the README.md i
 3. **Validation**: Always validate required parameters and collect all validation errors before returning using fluent validator pattern.
    - Use the `NewValidator` to create a validator
    - Chain validation methods (`ValidateAndAddRequiredString`, etc.)
-   - Check for validation errors with `HasErrors()`
-   - Return formatted errors with `HandleErrors()`
+   - Return formatted errors with `HandleErrorsIfAny()`
 
 4. **Documentation**: Describe all the parameters clearly for the LLMs to understand.
 
