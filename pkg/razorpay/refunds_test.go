@@ -465,6 +465,24 @@ func Test_FetchMultipleRefundsForPayment(t *testing.T) {
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: payment_id",
 		},
+		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				// Missing payment_id parameter
+				"from":  "not-a-number", // Wrong type for from
+				"to":    "not-a-number", // Wrong type for to
+				"count": "not-a-number", // Wrong type for count
+				"skip":  "not-a-number", // Wrong type for skip
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: payment_id\n- " +
+				"invalid parameter type: from\n- " +
+				"invalid parameter type: to\n- " +
+				"invalid parameter type: count\n- " +
+				"invalid parameter type: skip",
+		},
 	}
 
 	for _, tc := range tests {
@@ -572,6 +590,18 @@ func Test_FetchSpecificRefundForPayment(t *testing.T) {
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: refund_id",
 		},
+		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				// Missing both payment_id and refund_id parameters
+				"non_existent_param": 12345, // Additional parameter that doesn't exist
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: payment_id\n- " +
+				"missing required parameter: refund_id",
+		},
 	}
 
 	for _, tc := range tests {
@@ -675,6 +705,22 @@ func Test_FetchAllRefunds(t *testing.T) {
 			},
 			ExpectError:    true,
 			ExpectedErrMsg: "fetching refunds failed",
+		},
+		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				"from":  "not-a-number", // Wrong type for from
+				"to":    "not-a-number", // Wrong type for to
+				"count": "not-a-number", // Wrong type for count
+				"skip":  "not-a-number", // Wrong type for skip
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"invalid parameter type: from\n- " +
+				"invalid parameter type: to\n- " +
+				"invalid parameter type: count\n- " +
+				"invalid parameter type: skip",
 		},
 	}
 
