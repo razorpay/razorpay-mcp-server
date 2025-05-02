@@ -418,10 +418,10 @@ func Test_FetchMultipleRefundsForPayment(t *testing.T) {
 			Name: "fetch multiple refunds with query params",
 			Request: map[string]interface{}{
 				"payment_id": "pay_29QQoUBi66xm2f",
-				"from":       float64(1500826740),
-				"to":         float64(1500826760),
-				"count":      float64(10),
-				"skip":       float64(0),
+				"from":       1500826740,
+				"to":         1500826760,
+				"count":      10,
+				"skip":       0,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -644,10 +644,10 @@ func Test_FetchAllRefunds(t *testing.T) {
 		{
 			Name: "successful fetch with pagination parameters",
 			Request: map[string]interface{}{
-				"count": float64(2),
-				"skip":  float64(1),
-				"from":  float64(1589000000),
-				"to":    float64(1595000000),
+				"count": 2,
+				"skip":  1,
+				"from":  1589000000,
+				"to":    1595000000,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
