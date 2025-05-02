@@ -117,11 +117,20 @@ func Test_CreateRefund(t *testing.T) {
 			ExpectedErrMsg: "creating refund failed: Razorpay API error: Bad request",
 		},
 		{
-			Name:           "missing payment_id parameter",
-			Request:        map[string]interface{}{},
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				// Missing payment_id parameter
+				"amount": "not-a-number",  // Wrong type for amount
+				"speed":  12345,           // Wrong type for speed
+				"notes":  "not-an-object", // Wrong type for notes
+			},
 			MockHttpClient: nil,
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: payment_id",
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: payment_id\n- " +
+				"invalid parameter type: amount\n- " +
+				"invalid parameter type: speed\n- " +
+				"invalid parameter type: notes",
 		},
 	}
 
@@ -206,6 +215,16 @@ func Test_FetchRefund(t *testing.T) {
 		{
 			Name:           "missing refund_id parameter",
 			Request:        map[string]interface{}{},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: refund_id",
+		},
+		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				// Missing refund_id parameter
+				"non_existent_param": 12345, // Additional parameter that doesn't exist
+			},
 			MockHttpClient: nil,
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: refund_id",
@@ -311,6 +330,18 @@ func Test_UpdateRefund(t *testing.T) {
 			MockHttpClient: nil,
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: notes",
+		},
+		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				// Missing both refund_id and notes parameters
+				"non_existent_param": 12345, // Additional parameter that doesn't exist
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: refund_id\n- " +
+				"missing required parameter: notes",
 		},
 	}
 

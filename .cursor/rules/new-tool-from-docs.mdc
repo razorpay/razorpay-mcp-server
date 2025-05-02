@@ -59,10 +59,10 @@ Upon receiving this rule invocation:
 
 Before the implementation use the documentation URL provided to figure out the request contract, required parameters, descriptions of the parameters, and the response contract.
 
-Now follow the detailed implementation guide in [pkg/razorpay/README.md](../pkg/razorpay/README.md) for creating tools and start making code changes.
+Now follow the detailed implementation guide in [pkg/razorpay/README.md](mdc:../pkg/razorpay/README.md) for creating tools and start making code changes.
 
 Other guidelines:
-1. [Razorpay Go SDK Constants](https://github.com/razorpay/razorpay-go/blob/master/constants/url.go) - Use these constants for specifying the api endpoints while writing the tests.
+1. [Razorpay Go SDK Constants](mdc:https:/github.com/razorpay/razorpay-go/blob/master/constants/url.go) - Use these constants for specifying the api endpoints while writing the tests.
 2. Use the payload and response from the docs provided to write the positive test case for the tool.
 
 STYLE:
@@ -72,7 +72,7 @@ IMPORTANT: You **MUST** ALWAYS go through the Post Implementation steps once the
 
 ## Implementation References
 
-For detailed code patterns and examples, refer to the following sections in the [pkg/razorpay/README.md](../pkg/razorpay/README.md):
+For detailed code patterns and examples, refer to the following sections in the [pkg/razorpay/README.md](mdc:../pkg/razorpay/README.md):
 
 - **Tool Structure**: See the "Tool Structure" section for the function template
 - **Parameter Definition**: See the "Parameter Definition" section for defining parameters
@@ -160,7 +160,7 @@ If any checklist items remain unchecked, complete them before proceeding. The im
 Your tests MUST include:
 - Positive test case with all parameters
 - Negative test case for EACH required parameter
-- Negative test case for validation failures (e.g., wrong types)
+- Negative test case for multiple validation failures (e.g., wrong types)
 - Any edge cases specific to this tool
 
 ## ⚠️ Required Verification Steps ⚠️
@@ -192,16 +192,29 @@ Contains all Razorpay API tool implementations, including:
 - Parameter validation functions
 - Request/response handling
 
-### `pkg/razorpay/server.go` - Core Utilities
+### `pkg/razorpay/tools_params.go` - Fluent Validator
 
-**Path:** `pkg/razorpay/server.go`
+**Path:** `pkg/razorpay/tools_params.go`
 
-Contains essential utility functions used by all tools:
-- `RequiredParam[T]` - Type-safe required parameter extraction
-- `OptionalParam[T]` - Type-safe optional parameter extraction
-- `RequiredInt` - Integer parameter extraction
-- `OptionalInt` - Optional integer parameter extraction
-- `HandleValidationError` - Common validation error handling
+Contains the fluent validator implementation for parameter validation:
+- `Validator` - Type that provides a fluent interface for validation
+- `NewValidator` - Creates a new validator for a request
+- `HasErrors` - Checks if validation errors exist
+- `HandleErrorsIfAny` - Formats all errors into a tool result
+- `ValidateAndAddRequiredString` - Validates required string parameters
+- `ValidateAndAddOptionalString` - Validates optional string parameters
+- `ValidateAndAddRequiredInt` - Validates required integer parameters
+- `ValidateAndAddOptionalInt` - Validates optional integer parameters
+- `ValidateAndAddRequiredFloat` - Validates required float parameters
+- `ValidateAndAddOptionalFloat` - Validates optional float parameters
+- `ValidateAndAddRequiredBool` - Validates required boolean parameters
+- `ValidateAndAddOptionalBool` - Validates optional boolean parameters
+- `ValidateAndAddRequiredMap` - Validates required map parameters
+- `ValidateAndAddOptionalMap` - Validates optional map parameters
+- `ValidateAndAddRequiredArray` - Validates required array parameters
+- `ValidateAndAddOptionalArray` - Validates optional array parameters
+- `ValidateAndAddPagination` - Validates and adds pagination parameters
+- `ValidateAndAddExpand` - Validates and adds expand parameters
 
 ### `pkg/razorpay/test_helpers.go` - Testing Utilities
 
