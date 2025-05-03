@@ -132,8 +132,60 @@ Add the following to your VS Code settings (JSON):
   }
 }
 ```
-
 Learn more about MCP servers in VS Code's [agent mode documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
+
+## Usage with SSE Server
+
+The Razorpay MCP Server also supports the Server-Sent Events (SSE) transport protocol, allowing you to run it as a standalone service that clients can connect to.
+
+### Running the SSE Server with Docker
+
+Build the SSE server Docker image:
+
+```bash
+# Build the SSE server image
+docker build -f Dockerfile.sse -t razorpay-mcp-sse-server:latest .
+```
+
+Run the SSE server:
+
+```bash
+# Run the SSE server on port 8090
+docker run -p 8090:8080 \
+  -e AUTH_TOKEN="your_auth_token" \
+  -e PORT="your_sse_port" \
+  razorpay-mcp-sse-server:latest
+```
+
+### Connecting to the SSE Server
+
+You can connect to the SSE server by adding the following to your MCP configuration:
+
+```json
+{
+  "rzp-mcp-sse-server": {
+    "type": "sse",
+    "url": "http://localhost:8090/sse",
+    "description": "Razorpay MCP SSE server running"
+  }
+}
+```
+
+For Cursor, add this to your `~/.cursor/mcp.json` file.
+
+### Testing with MCP Inspector
+
+You can test your SSE server using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) tool:
+
+```bash
+# Install MCP Inspector
+npm install -g @modelcontextprotocol/inspector
+
+# Open MCP Inspector tool
+npx @modelcontextprotocol/inspector
+```
+
+This will open a browser interface where you can inspect and test the available tools on your SSE server.
 
 ## Configuration
 
