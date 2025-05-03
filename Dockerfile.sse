@@ -26,8 +26,8 @@ RUN chown -R rzp:rzpgroup /app
 
 ENV CONFIG="" \
     LOG_FILE="" \
-    PORT="8080" \
-    AUTH_TOKEN=""
+    PORT="8090" \
+    AUTH_TOKEN="cnpwX3Rlc3RfZVg5QzRISTBEaXJFWWQ6am5qTEcwRUpwTnVaWk1CUEk3dmVaWWRP"
 
 # Switch to the non-root user
 USER rzp

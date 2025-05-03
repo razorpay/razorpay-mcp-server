@@ -3,6 +3,7 @@ package mcpgo
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"runtime/debug"
@@ -94,7 +95,7 @@ func (s *mark3labsSseImpl) Start() error {
 	defer func() {
 		if r := recover(); r != nil {
 			// Log the panic, but don't crash the server
-			fmt.Fprintf(os.Stderr, "Panic recovered in SSE server: %v\n", r)
+			log.Printf("Panic recovered in SSE server: %v\n\n", r)
 			debug.PrintStack()
 		}
 	}()
