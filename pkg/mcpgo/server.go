@@ -1,7 +1,15 @@
 package mcpgo
 
 import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"strings"
+
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	rzpsdk "github.com/razorpay/razorpay-go"
 )
 
 // Server defines the minimal MCP server interface needed by the application
@@ -92,5 +100,52 @@ func WithResourceCapabilities(read, list bool) ServerOption {
 func WithToolCapabilities(enabled bool) ServerOption {
 	return func(s OptionSetter) error {
 		return s.SetOption(server.WithToolCapabilities(enabled))
+	}
+}
+
+func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
+	return func(s OptionSetter) error {
+		return s.SetOption(server.WithToolHandlerMiddleware(
+			func(next server.ToolHandlerFunc) server.ToolHandlerFunc {
+				return func(
+					ctx context.Context,
+					request mcp.CallToolRequest,
+				) (result *mcp.CallToolResult, err error) {
+					// If Auth credentials are already set, assuming this is the stdio mcp server
+					clientAuth := client.Order.Request.Auth
+					if clientAuth.Key != "" || clientAuth.Secret != "" {
+						return next(ctx, request)
+					}
+
+					// Check if auth token is provided
+					auth := authFromContext(ctx)
+					if auth == "" {
+						return nil, fmt.Errorf("unauthorized: no auth token provided")
+					}
+
+					// Base64 decode the auth token
+					token, err := base64.StdEncoding.DecodeString(auth)
+					if err != nil {
+						return nil, fmt.Errorf("unauthorized: invalid auth token")
+					}
+
+					// Split token into key:secret
+					parts := strings.Split(string(token), ":")
+					if len(parts) != 2 {
+						return nil, fmt.Errorf("unauthorized: invalid auth token")
+					}
+
+					// Set the key and secret
+					client.Order.Request.Auth.Key = parts[0]
+					client.Order.Request.Auth.Secret = parts[1]
+
+					result, err = next(ctx, request)
+
+					// Reset the auth credentials
+					client.Order.Request.Auth = clientAuth
+					return result, err
+				}
+			}),
+		)
 	}
 }
