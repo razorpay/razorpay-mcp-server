@@ -109,5 +109,14 @@ func authFromRequest(ctx context.Context, r *http.Request) context.Context {
 		auth = parts[1]
 	}
 
+	if auth == "" {
+		auth = authFromEnv()
+	}
+
 	return WithAuthToken(ctx, auth)
+}
+
+// authFromEnv extracts the auth token from the environment variable
+func authFromEnv() string {
+	return os.Getenv("AUTH_TOKEN")
 }
