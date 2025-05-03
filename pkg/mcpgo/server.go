@@ -10,6 +10,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
+	"github.com/razorpay/razorpay-go/requests"
 )
 
 // Server defines the minimal MCP server interface needed by the application
@@ -140,11 +141,12 @@ func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 					client.Order.Request.Auth.Key = parts[0]
 					client.Order.Request.Auth.Secret = parts[1]
 
-					result, err = next(ctx, request)
+					defer func() {
+						// Reset the auth credentials
+						client.Order.Request.Auth = requests.Auth{}
+					}()
 
-					// Reset the auth credentials
-					client.Order.Request.Auth = clientAuth
-					return result, err
+					return next(ctx, request)
 				}
 			}),
 		)
