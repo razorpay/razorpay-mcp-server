@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
+
 	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay"
@@ -70,7 +71,7 @@ func runSseServer(
 	}
 	srv.RegisterTools()
 
-	sseSrv, err := mcpgo.NewSseServer(
+	sseSrv, err := mcpgo.NewSSEServer(
 		srv.GetMCPServer(),
 		mcpgo.NewSSEConfig(
 			mcpgo.WithSSEAddress(viper.GetString("address")),

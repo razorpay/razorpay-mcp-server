@@ -111,7 +111,8 @@ func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 					ctx context.Context,
 					request mcp.CallToolRequest,
 				) (result *mcp.CallToolResult, err error) {
-					// If Auth credentials are already set, assuming this is the stdio mcp server
+					// If Auth credentials are already set, assuming this is 
+					// the stdio mcp server
 					clientAuth := client.Order.Request.Auth
 					if clientAuth.Key != "" || clientAuth.Secret != "" {
 						return next(ctx, request)

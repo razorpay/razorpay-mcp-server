@@ -54,8 +54,11 @@ func NewSSEConfig(opts ...SSEConfigOpts) *SSEConfig {
 	return config
 }
 
-// NewSseServer creates a new sse transport server
-func NewSseServer(mcpServer Server, config *SSEConfig) (*mark3labsSseImpl, error) {
+// NewSSEServer creates a new sse transport server
+func NewSSEServer(
+	mcpServer Server,
+	config *SSEConfig,
+) (*mark3labsSseImpl, error) {
 	sImpl, ok := mcpServer.(*mark3labsImpl)
 	if !ok {
 		return nil, fmt.Errorf("%w: expected *mark3labsImpl, got %T",
