@@ -1,4 +1,3 @@
-// Package mcpgo provides Model Context Protocol (MCP) server implementations.
 package mcpgo
 
 import (
