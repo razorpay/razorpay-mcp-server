@@ -11,36 +11,41 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-type sseConfig struct {
+type SSEConfig struct {
 	// address is the address to bind the server to
 	address string
 	// port is the port to bind the server to
 	port int
 }
 
-func getDefaultSseConfig() *sseConfig {
-	return &sseConfig{
+// getDefaultSSEConfig returns a default configuration for the SSE server
+func getDefaultSSEConfig() *SSEConfig {
+	return &SSEConfig{
 		address: "localhost",
 		port:    8080,
 	}
 }
 
-type sseConfigOpts func(*sseConfig)
+// SSEConfigOpts defines a function type for applying configuration options
+type SSEConfigOpts func(*SSEConfig)
 
-func WithSseAddress(address string) sseConfigOpts {
-	return func(config *sseConfig) {
+// WithSSEAddress returns an option to set the server address
+func WithSSEAddress(address string) SSEConfigOpts {
+	return func(config *SSEConfig) {
 		config.address = address
 	}
 }
 
-func WithSsePort(port int) sseConfigOpts {
-	return func(config *sseConfig) {
+// WithSSEPort returns an option to set the server port
+func WithSSEPort(port int) SSEConfigOpts {
+	return func(config *SSEConfig) {
 		config.port = port
 	}
 }
 
-func NewSseConfig(opts ...sseConfigOpts) *sseConfig {
-	config := getDefaultSseConfig()
+// NewSSEConfig creates a new SSE server configuration with the provided options
+func NewSSEConfig(opts ...SSEConfigOpts) *SSEConfig {
+	config := getDefaultSSEConfig()
 
 	for _, opt := range opts {
 		opt(config)
@@ -50,7 +55,7 @@ func NewSseConfig(opts ...sseConfigOpts) *sseConfig {
 }
 
 // NewSseServer creates a new sse transport server
-func NewSseServer(mcpServer Server, config *sseConfig) (*mark3labsSseImpl, error) {
+func NewSseServer(mcpServer Server, config *SSEConfig) (*mark3labsSseImpl, error) {
 	sImpl, ok := mcpServer.(*mark3labsImpl)
 	if !ok {
 		return nil, fmt.Errorf("%w: expected *mark3labsImpl, got %T",
@@ -67,7 +72,7 @@ func NewSseServer(mcpServer Server, config *sseConfig) (*mark3labsSseImpl, error
 	// Wrap the server with a recovery handler
 	impl := &mark3labsSseImpl{
 		mcpSseServer: sseServer,
-		sseConfig:    config,
+		SSEConfig:    config,
 	}
 
 	return impl, nil
@@ -77,7 +82,7 @@ func NewSseServer(mcpServer Server, config *sseConfig) (*mark3labsSseImpl, error
 // interface for sse transport
 type mark3labsSseImpl struct {
 	mcpSseServer *server.SSEServer
-	sseConfig    *sseConfig
+	SSEConfig    *SSEConfig
 }
 
 // Start implements the TransportServer interface
@@ -91,15 +96,7 @@ func (s *mark3labsSseImpl) Start() error {
 		}
 	}()
 
-	return s.mcpSseServer.Start(fmt.Sprintf(":%d", s.sseConfig.port))
-}
-
-// authKey is a custom context key for storing the auth token.
-type authKey struct{}
-
-// withAuthKey adds an auth key to the context.
-func withAuthKey(ctx context.Context, auth string) context.Context {
-	return context.WithValue(ctx, authKey{}, auth)
+	return s.mcpSseServer.Start(fmt.Sprintf(":%d", s.SSEConfig.port))
 }
 
 // authFromRequest extracts the auth token from the request headers.
@@ -112,19 +109,5 @@ func authFromRequest(ctx context.Context, r *http.Request) context.Context {
 		auth = parts[1]
 	}
 
-	return withAuthKey(ctx, auth)
-}
-
-func authFromContext(ctx context.Context) string {
-	value := ctx.Value(authKey{})
-	if value == nil {
-		return ""
-	}
-
-	auth, ok := value.(string)
-	if !ok {
-		return ""
-	}
-
-	return auth
+	return WithAuthToken(ctx, auth)
 }

@@ -118,7 +118,7 @@ func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 					}
 
 					// Check if auth token is provided
-					auth := authFromContext(ctx)
+					auth := AuthTokenFromContext(ctx)
 					if auth == "" {
 						return nil, fmt.Errorf("unauthorized: no auth token provided")
 					}
