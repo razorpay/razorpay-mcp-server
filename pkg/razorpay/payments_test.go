@@ -282,6 +282,18 @@ func Test_CapturePayment(t *testing.T) {
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: currency",
 		},
+		{
+			Name:    "multiple validation errors",
+			Request: map[string]interface{}{
+				// All required parameters missing
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: payment_id\n- " +
+				"missing required parameter: amount\n- " +
+				"missing required parameter: currency",
+		},
 	}
 
 	for _, tc := range tests {
@@ -409,6 +421,17 @@ func Test_UpdatePayment(t *testing.T) {
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: notes",
+		},
+		{
+			Name:    "multiple validation errors",
+			Request: map[string]interface{}{
+				// All required parameters missing
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: payment_id\n- " +
+				"missing required parameter: notes",
 		},
 	}
 
@@ -552,6 +575,22 @@ func Test_FetchAllPayments(t *testing.T) {
 			ExpectError: true,
 			ExpectedErrMsg: "fetching payments failed: from must be between " +
 				"946684800 and 4765046400",
+		},
+		{
+			Name: "multiple validation errors with wrong types",
+			Request: map[string]interface{}{
+				"count": "not_a_number",
+				"skip":  "not_a_number",
+				"from":  "not_a_number",
+				"to":    "not_a_number",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"invalid parameter type: count\n- " +
+				"invalid parameter type: skip\n- " +
+				"invalid parameter type: from\n- " +
+				"invalid parameter type: to",
 		},
 	}
 
