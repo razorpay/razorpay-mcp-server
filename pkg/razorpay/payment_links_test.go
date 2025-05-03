@@ -99,6 +99,19 @@ func Test_CreatePaymentLink(t *testing.T) {
 			ExpectedErrMsg: "missing required parameter: currency",
 		},
 		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				// Missing both amount and currency (required parameters)
+				"description": 12345, // Wrong type for description
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: amount\n- " +
+				"missing required parameter: currency\n- " +
+				"invalid parameter type: description",
+		},
+		{
 			Name: "payment link creation fails",
 			Request: map[string]interface{}{
 				"amount":   float64(50000),
@@ -187,6 +200,16 @@ func Test_FetchPaymentLink(t *testing.T) {
 		{
 			Name:           "missing payment_link_id parameter",
 			Request:        map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_link_id",
+		},
+		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				// Missing payment_link_id parameter
+				"non_existent_param": 12345, // Additional parameter that doesn't exist
+			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: payment_link_id",

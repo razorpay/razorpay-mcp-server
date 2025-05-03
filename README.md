@@ -6,18 +6,17 @@ The Razorpay MCP Server is a [Model Context Protocol (MCP)](https://modelcontext
 
 Currently, the Razorpay MCP Server provides the following tools:
 
-| Tool                        | Description                           |
-|-----------------------------|---------------------------------------|
-| `fetch_payment`             | Fetch payment details                 |
-| `create_payment_link`       | Creates a new standard payment link   |
-| `update_payment_link`       | Updates a new standard payment link   |
-| `send_payment_link`         | Send a payment link via SMS or email. |
-| `create_payment_link_upi`   | Creates a new UPI payment link        |
-| `fetch_payment_link`        | Fetch details of a payment link       |
-| `fetch_all_payment_links`   | Fetch all the payment links           |
-| `create_order`              | Creates an order                      |
-| `fetch_order`               | Fetch order details                   |
-
+| Tool                  | Description                                     | API
+|:----------------------|:------------------------------------------------|:-----------------------------------
+| `fetch_payment`       | Fetch payment details with ID                   | [Payment](https://razorpay.com/docs/api/payments/fetch-with-id)
+| `create_payment_link` | Creates a new payment link (standard)           | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard)
+| `fetch_payment_link`  | Fetch details of a payment link (standard)      | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-id-standard/)
+| `create_order`        | Creates an order                                | [Order](https://razorpay.com/docs/api/orders/create/)
+| `fetch_order`         | Fetch order with ID                             | [Order](https://razorpay.com/docs/api/orders/fetch-with-id)
+| `fetch_all_orders`    | Fetch all orders                                | [Order](https://razorpay.com/docs/api/orders/fetch-all)
+| `create_refund`       | Creates a refund                                | [Refund](https://razorpay.com/docs/api/refunds/create-instant/)
+| `fetch_refund`        | Fetch refund details with ID                    | [Refund](https://razorpay.com/docs/api/refunds/fetch-with-id/)
+| `update_refund`       | Update refund notes with ID                     | [Refund](https://razorpay.com/docs/api/refunds/update/)
 
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
