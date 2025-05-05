@@ -37,7 +37,7 @@ func CreateQRCode(
 					"Possible values: 'single_use', 'multiple_use'",
 			),
 			mcpgo.Required(),
-			mcpgo.Pattern("^(single_use|multiple_use)$"),
+			mcpgo.Enum("single_use", "multiple_use"),
 		),
 		mcpgo.WithBoolean(
 			"fixed_amount",
@@ -86,76 +86,30 @@ func CreateQRCode(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Validate required parameters
-		qrType, err := RequiredParam[string](r, "type")
-		if result, err := HandleValidationError(err); result != nil {
+		qrData := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(qrData, "type").
+			ValidateAndAddRequiredString(qrData, "usage").
+			ValidateAndAddOptionalString(qrData, "name").
+			ValidateAndAddOptionalBool(qrData, "fixed_amount").
+			ValidateAndAddOptionalFloat(qrData, "payment_amount").
+			ValidateAndAddOptionalString(qrData, "description").
+			ValidateAndAddOptionalString(qrData, "customer_id").
+			ValidateAndAddOptionalFloat(qrData, "close_by").
+			ValidateAndAddOptionalMap(qrData, "notes")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		usage, err := RequiredParam[string](r, "usage")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-
-		// Create request payload
-		qrData := map[string]interface{}{
-			"type":  qrType,
-			"usage": usage,
-		}
-
-		// Add optional parameters if provided
-		name, err := OptionalParam[string](r, "name")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if name != "" {
-			qrData["name"] = name
-		}
-
-		fixedAmount, err := OptionalParam[bool](r, "fixed_amount")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		qrData["fixed_amount"] = fixedAmount
-
-		paymentAmount, err := OptionalInt(r, "payment_amount")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if paymentAmount > 0 {
-			qrData["payment_amount"] = paymentAmount
-		}
-
-		description, err := OptionalParam[string](r, "description")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if description != "" {
-			qrData["description"] = description
-		}
-
-		customerID, err := OptionalParam[string](r, "customer_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if customerID != "" {
-			qrData["customer_id"] = customerID
-		}
-
-		closeBy, err := OptionalInt(r, "close_by")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if closeBy > 0 {
-			qrData["close_by"] = closeBy
-		}
-
-		notes, err := OptionalParam[map[string]interface{}](r, "notes")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if notes != nil {
-			qrData["notes"] = notes
+		// Check if fixed_amount is true, then payment_amount is required
+		if fixedAmount, exists := qrData["fixed_amount"]; exists &&
+			fixedAmount.(bool) {
+			if _, exists := qrData["payment_amount"]; !exists {
+				return mcpgo.NewToolResultError(
+					"payment_amount is required when fixed_amount is true"), nil
+			}
 		}
 
 		// Create QR code using Razorpay SDK
