@@ -46,7 +46,7 @@ func CreatePaymentLink(
 		// Validate all parameters with fluent validator
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredInt(plCreateReq, "amount").
-			ValidateAndAddRequiredInt(plCreateReq, "currency").
+			ValidateAndAddRequiredString(plCreateReq, "currency").
 			ValidateAndAddOptionalString(plCreateReq, "description").
 			ValidateAndAddOptionalBool(plCreateReq, "accept_partial").
 			ValidateAndAddOptionalInt(plCreateReq, "first_min_partial_amount").
@@ -80,7 +80,7 @@ func CreatePaymentLink(
 		paymentLink, err := client.PaymentLink.Create(plCreateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("upi pl create failed: %s", err.Error())), nil
+				fmt.Sprintf("creating payment link failed: %s", err.Error())), nil
 		}
 
 		return mcpgo.NewToolResultJSON(paymentLink)
