@@ -135,9 +135,9 @@ func validateAndAddOptional[T any](
 	return v
 }
 
-// validateAndAddTo is a generic helper to extract a value and write it into
+// validateAndAddToPath is a generic helper to extract a value and write it into
 // `target[targetKey]` if non-empty
-func validateAndAddTo[T any](
+func validateAndAddToPath[T any](
 	v *Validator,
 	target map[string]interface{},
 	paramName string,
@@ -154,8 +154,8 @@ func validateAndAddTo[T any](
 	return v
 }
 
-// ValidateAndAddOptionalStringTo validates an optional string and writes it into target[targetKey]
-func (v *Validator) ValidateAndAddOptionalStringTo(
+// ValidateAndAddOptionalStringToPath validates an optional string and writes it into target[targetKey]
+func (v *Validator) ValidateAndAddOptionalStringToPath(
 	target map[string]interface{},
 	paramName, targetKey string,
 ) *Validator {
@@ -165,12 +165,12 @@ func (v *Validator) ValidateAndAddOptionalStringTo(
 		return v
 	}
 
-	return validateAndAddTo[string](v, target, paramName, targetKey, isEmptyString)
+	return validateAndAddToPath[string](v, target, paramName, targetKey, isEmptyString)
 }
 
-// ValidateAndAddOptionalBoolTo validates an optional bool and writes it into target[targetKey]
+// ValidateAndAddOptionalBoolToPath validates an optional bool and writes it into target[targetKey]
 // only if it was explicitly provided in the request
-func (v *Validator) ValidateAndAddOptionalBoolTo(
+func (v *Validator) ValidateAndAddOptionalBoolToPath(
 	target map[string]interface{},
 	paramName, targetKey string,
 ) *Validator {
@@ -189,8 +189,8 @@ func (v *Validator) ValidateAndAddOptionalBoolTo(
 	return v
 }
 
-// ValidateAndAddOptionalIntTo validates an optional integer and writes it into target[targetKey]
-func (v *Validator) ValidateAndAddOptionalIntTo(
+// ValidateAndAddOptionalIntToPath validates an optional integer and writes it into target[targetKey]
+func (v *Validator) ValidateAndAddOptionalIntToPath(
 	target map[string]interface{},
 	paramName, targetKey string,
 ) *Validator {
@@ -200,7 +200,7 @@ func (v *Validator) ValidateAndAddOptionalIntTo(
 		return v
 	}
 
-	return validateAndAddTo[int64](v, target, paramName, targetKey, isZeroInt)
+	return validateAndAddToPath[int64](v, target, paramName, targetKey, isZeroInt)
 }
 
 // Type-specific validator methods

@@ -407,13 +407,13 @@ func TestValidatorToFunctions(t *testing.T) {
 		expectValue interface{}
 		expectError bool
 	}{
-		// ValidateAndAddOptionalStringTo tests
+		// ValidateAndAddOptionalStringToPath tests
 		{
 			name:        "optional string to target - valid",
 			args:        map[string]interface{}{"customer_name": "Test User"},
 			paramName:   "customer_name",
 			targetKey:   "name",
-			testFunc:    (*Validator).ValidateAndAddOptionalStringTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
 			expectValue: "Test User",
 			expectError: false,
 		},
@@ -422,7 +422,7 @@ func TestValidatorToFunctions(t *testing.T) {
 			args:        map[string]interface{}{"customer_name": ""},
 			paramName:   "customer_name",
 			targetKey:   "name",
-			testFunc:    (*Validator).ValidateAndAddOptionalStringTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
 			expectValue: nil,
 			expectError: false,
 		},
@@ -431,7 +431,7 @@ func TestValidatorToFunctions(t *testing.T) {
 			args:        map[string]interface{}{},
 			paramName:   "customer_name",
 			targetKey:   "name",
-			testFunc:    (*Validator).ValidateAndAddOptionalStringTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
 			expectValue: nil,
 			expectError: false,
 		},
@@ -440,18 +440,18 @@ func TestValidatorToFunctions(t *testing.T) {
 			args:        map[string]interface{}{"customer_name": 123},
 			paramName:   "customer_name",
 			targetKey:   "name",
-			testFunc:    (*Validator).ValidateAndAddOptionalStringTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
 			expectValue: nil,
 			expectError: true,
 		},
 
-		// ValidateAndAddOptionalBoolTo tests
+		// ValidateAndAddOptionalBoolToPath tests
 		{
 			name:        "optional bool to target - true",
 			args:        map[string]interface{}{"notify_sms": true},
 			paramName:   "notify_sms",
 			targetKey:   "sms",
-			testFunc:    (*Validator).ValidateAndAddOptionalBoolTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalBoolToPath,
 			expectValue: true,
 			expectError: false,
 		},
@@ -460,7 +460,7 @@ func TestValidatorToFunctions(t *testing.T) {
 			args:        map[string]interface{}{"notify_sms": false},
 			paramName:   "notify_sms",
 			targetKey:   "sms",
-			testFunc:    (*Validator).ValidateAndAddOptionalBoolTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalBoolToPath,
 			expectValue: false,
 			expectError: false,
 		},
@@ -469,18 +469,18 @@ func TestValidatorToFunctions(t *testing.T) {
 			args:        map[string]interface{}{"notify_sms": "not a bool"},
 			paramName:   "notify_sms",
 			targetKey:   "sms",
-			testFunc:    (*Validator).ValidateAndAddOptionalBoolTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalBoolToPath,
 			expectValue: nil,
 			expectError: true,
 		},
 
-		// ValidateAndAddOptionalIntTo tests
+		// ValidateAndAddOptionalIntToPath tests
 		{
 			name:        "optional int to target - valid",
 			args:        map[string]interface{}{"age": float64(25)},
 			paramName:   "age",
 			targetKey:   "customer_age",
-			testFunc:    (*Validator).ValidateAndAddOptionalIntTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
 			expectValue: int64(25),
 			expectError: false,
 		},
@@ -489,7 +489,7 @@ func TestValidatorToFunctions(t *testing.T) {
 			args:        map[string]interface{}{"age": float64(0)},
 			paramName:   "age",
 			targetKey:   "customer_age",
-			testFunc:    (*Validator).ValidateAndAddOptionalIntTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
 			expectValue: nil,
 			expectError: false,
 		},
@@ -498,7 +498,7 @@ func TestValidatorToFunctions(t *testing.T) {
 			args:        map[string]interface{}{},
 			paramName:   "age",
 			targetKey:   "customer_age",
-			testFunc:    (*Validator).ValidateAndAddOptionalIntTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
 			expectValue: nil,
 			expectError: false,
 		},
@@ -507,7 +507,7 @@ func TestValidatorToFunctions(t *testing.T) {
 			args:        map[string]interface{}{"age": "not a number"},
 			paramName:   "age",
 			targetKey:   "customer_age",
-			testFunc:    (*Validator).ValidateAndAddOptionalIntTo,
+			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
 			expectValue: nil,
 			expectError: true,
 		},
@@ -568,9 +568,9 @@ func TestValidatorNestedObjects(t *testing.T) {
 
 		// Create validator and validate customer fields
 		validator := NewValidator(request).
-			ValidateAndAddOptionalStringTo(customer, "customer_name", "name").
-			ValidateAndAddOptionalStringTo(customer, "customer_email", "email").
-			ValidateAndAddOptionalStringTo(customer, "customer_contact", "contact")
+			ValidateAndAddOptionalStringToPath(customer, "customer_name", "name").
+			ValidateAndAddOptionalStringToPath(customer, "customer_email", "email").
+			ValidateAndAddOptionalStringToPath(customer, "customer_contact", "contact")
 
 		// Should not have errors
 		assert.False(t, validator.HasErrors())
@@ -596,8 +596,8 @@ func TestValidatorNestedObjects(t *testing.T) {
 
 		// Create validator and validate notification fields
 		validator := NewValidator(request).
-			ValidateAndAddOptionalBoolTo(notify, "notify_sms", "sms").
-			ValidateAndAddOptionalBoolTo(notify, "notify_email", "email")
+			ValidateAndAddOptionalBoolToPath(notify, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolToPath(notify, "notify_email", "email")
 
 		// Should not have errors
 		assert.False(t, validator.HasErrors())
@@ -622,8 +622,8 @@ func TestValidatorNestedObjects(t *testing.T) {
 
 		// Create validator and validate fields
 		validator := NewValidator(request).
-			ValidateAndAddOptionalStringTo(customer, "customer_name", "name").
-			ValidateAndAddOptionalStringTo(customer, "customer_email", "email")
+			ValidateAndAddOptionalStringToPath(customer, "customer_name", "name").
+			ValidateAndAddOptionalStringToPath(customer, "customer_email", "email")
 
 		// Should have errors
 		assert.True(t, validator.HasErrors())
@@ -702,8 +702,8 @@ func TestOptionalBoolBehavior(t *testing.T) {
 
 		// Validate both parameters
 		validator := NewValidator(request).
-			ValidateAndAddOptionalBoolTo(target, "notify_sms", "sms").
-			ValidateAndAddOptionalBoolTo(target, "notify_email", "email")
+			ValidateAndAddOptionalBoolToPath(target, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolToPath(target, "notify_email", "email")
 
 		// Verify no errors occurred
 		assert.False(t, validator.HasErrors())
@@ -727,8 +727,8 @@ func TestOptionalBoolBehavior(t *testing.T) {
 
 		// Try to validate missing bool parameters
 		validator := NewValidator(request).
-			ValidateAndAddOptionalBoolTo(target, "notify_sms", "sms").
-			ValidateAndAddOptionalBoolTo(target, "notify_email", "email")
+			ValidateAndAddOptionalBoolToPath(target, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolToPath(target, "notify_email", "email")
 
 		// Verify no errors occurred
 		assert.False(t, validator.HasErrors())

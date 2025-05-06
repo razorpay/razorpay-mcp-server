@@ -103,11 +103,11 @@ func CreatePaymentLink(
 			ValidateAndAddOptionalInt(plCreateReq, "first_min_partial_amount").
 			ValidateAndAddOptionalInt(plCreateReq, "expire_by").
 			ValidateAndAddOptionalString(plCreateReq, "reference_id").
-			ValidateAndAddOptionalStringTo(customer, "customer_name", "name").
-			ValidateAndAddOptionalStringTo(customer, "customer_email", "email").
-			ValidateAndAddOptionalStringTo(customer, "customer_contact", "contact").
-			ValidateAndAddOptionalBoolTo(notify, "notify_sms", "sms").
-			ValidateAndAddOptionalBoolTo(notify, "notify_email", "email").
+			ValidateAndAddOptionalStringToPath(customer, "customer_name", "name").
+			ValidateAndAddOptionalStringToPath(customer, "customer_email", "email").
+			ValidateAndAddOptionalStringToPath(customer, "customer_contact", "contact").
+			ValidateAndAddOptionalBoolToPath(notify, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolToPath(notify, "notify_email", "email").
 			ValidateAndAddOptionalBool(plCreateReq, "reminder_enable").
 			ValidateAndAddOptionalMap(plCreateReq, "notes").
 			ValidateAndAddOptionalString(plCreateReq, "callback_url").
@@ -237,11 +237,11 @@ func CreateUpiPaymentLink(
 			ValidateAndAddOptionalInt(upiPlCreateReq, "first_min_partial_amount").
 			ValidateAndAddOptionalInt(upiPlCreateReq, "expire_by").
 			ValidateAndAddOptionalString(upiPlCreateReq, "reference_id").
-			ValidateAndAddOptionalStringTo(customer, "customer_name", "name").
-			ValidateAndAddOptionalStringTo(customer, "customer_email", "email").
-			ValidateAndAddOptionalStringTo(customer, "customer_contact", "contact").
-			ValidateAndAddOptionalBoolTo(notify, "notify_sms", "sms").
-			ValidateAndAddOptionalBoolTo(notify, "notify_email", "email").
+			ValidateAndAddOptionalStringToPath(customer, "customer_name", "name").
+			ValidateAndAddOptionalStringToPath(customer, "customer_email", "email").
+			ValidateAndAddOptionalStringToPath(customer, "customer_contact", "contact").
+			ValidateAndAddOptionalBoolToPath(notify, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolToPath(notify, "notify_email", "email").
 			ValidateAndAddOptionalBool(upiPlCreateReq, "reminder_enable").
 			ValidateAndAddOptionalMap(upiPlCreateReq, "notes").
 			ValidateAndAddOptionalString(upiPlCreateReq, "callback_url").
