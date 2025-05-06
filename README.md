@@ -18,7 +18,8 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_refund`        | Fetch refund details with ID                    | [Refund](https://razorpay.com/docs/api/refunds/fetch-with-id/)
 | `update_refund`       | Update refund notes with ID                     | [Refund](https://razorpay.com/docs/api/refunds/update/)
 | `create_qr_code`      | Creates a QR Code                               | [QR Code](https://razorpay.com/docs/api/qr-codes/create/)
-| `fetch_all_qr_codes`  | Fetch all QR Codes                              | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-all/)
+| `fetch_all_qr_codes`  | Fetch all QR Codes                              | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-all/)
+| `fetch_qr_codes_by_customer_id`  | Fetch QR Codes with Customer ID      | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-customer-id/)
 
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
