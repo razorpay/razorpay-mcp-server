@@ -129,3 +129,75 @@ func CreateQRCode(
 		handler,
 	)
 }
+
+// FetchAllQRCodes returns a tool that fetches all QR codes
+// with pagination support
+func FetchAllQRCodes(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"from",
+			mcpgo.Description(
+				"Unix timestamp, in seconds, from when QR Codes are to be retrieved",
+			),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithNumber(
+			"to",
+			mcpgo.Description(
+				"Unix timestamp, in seconds, till when QR Codes are to be retrieved",
+			),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithNumber(
+			"count",
+			mcpgo.Description(
+				"Number of QR Codes to be retrieved (default: 10, max: 100)",
+			),
+			mcpgo.Min(1),
+			mcpgo.Max(100),
+		),
+		mcpgo.WithNumber(
+			"skip",
+			mcpgo.Description(
+				"Number of QR Codes to be skipped (default: 0)",
+			),
+			mcpgo.Min(0),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		queryParams := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddOptionalInt(queryParams, "from").
+			ValidateAndAddOptionalInt(queryParams, "to").
+			ValidateAndAddOptionalInt(queryParams, "count").
+			ValidateAndAddOptionalInt(queryParams, "skip")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		// Fetch QR codes using Razorpay SDK
+		qrCodes, err := client.QrCode.All(queryParams, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching QR codes failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(qrCodes)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_all_qr_codes",
+		"Fetch all QR codes with optional filtering and pagination",
+		parameters,
+		handler,
+	)
+}
