@@ -245,7 +245,7 @@ func CreateInstantSettlement(
 		// Validate using fluent validator
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredInt(createInstantSettlementReq, "amount").
-			ValidateAndAddOptionalBool(createInstantSettlementReq, "settle_full_balance").
+			ValidateAndAddOptionalBool(createInstantSettlementReq, "settle_full_balance"). // nolint:lll
 			ValidateAndAddOptionalString(createInstantSettlementReq, "description").
 			ValidateAndAddOptionalMap(createInstantSettlementReq, "notes")
 
@@ -254,7 +254,8 @@ func CreateInstantSettlement(
 		}
 
 		// Create the instant settlement
-		settlement, err := client.Settlement.CreateOnDemandSettlement(createInstantSettlementReq, nil)
+		settlement, err := client.Settlement.CreateOnDemandSettlement(
+			createInstantSettlementReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating instant settlement failed: %s",
@@ -266,14 +267,14 @@ func CreateInstantSettlement(
 
 	return mcpgo.NewTool(
 		"create_instant_settlement",
-		"Create an instant settlement to get funds transferred to your bank account",
+		"Create an instant settlement to get funds transferred to your bank account", // nolint:lll
 		parameters,
 		handler,
 	)
 }
 
-// FetchAllInstantSettlements returns a tool to fetch all instant settlements with
-// filtering and pagination
+// FetchAllInstantSettlements returns a tool to fetch all instant settlements
+// with filtering and pagination
 func FetchAllInstantSettlements(
 	log *slog.Logger,
 	client *rzpsdk.Client,
@@ -350,7 +351,7 @@ func FetchAllInstantSettlements(
 	)
 }
 
-// FetchInstantSettlement returns a tool that fetches an instant settlement by ID // nolint:lll
+// FetchInstantSettlement returns a tool that fetches instant settlement by ID
 func FetchInstantSettlement(
 	log *slog.Logger,
 	client *rzpsdk.Client,
