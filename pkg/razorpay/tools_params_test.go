@@ -634,3 +634,106 @@ func TestValidatorNestedObjects(t *testing.T) {
 		assert.False(t, hasEmail, "Invalid field should not be added to target map")
 	})
 }
+
+// Test for optional bool handling
+func TestOptionalBoolBehavior(t *testing.T) {
+	t.Run("explicit bool values", func(t *testing.T) {
+		// Create request with explicit bool values
+		args := map[string]interface{}{
+			"true_param":  true,
+			"false_param": false,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Create result map
+		result := make(map[string]interface{})
+
+		// Validate both parameters
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBool(result, "true_param").
+			ValidateAndAddOptionalBool(result, "false_param")
+
+		// Verify no errors occurred
+		assert.False(t, validator.HasErrors())
+
+		// Both parameters should be set in the result
+		assert.Equal(t, true, result["true_param"])
+		assert.Equal(t, false, result["false_param"])
+	})
+
+	t.Run("missing bool parameter", func(t *testing.T) {
+		// Create request without bool parameters
+		args := map[string]interface{}{
+			"other_param": "some value",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Create result map
+		result := make(map[string]interface{})
+
+		// Try to validate missing bool parameters
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBool(result, "true_param").
+			ValidateAndAddOptionalBool(result, "false_param")
+
+		// Verify no errors occurred
+		assert.False(t, validator.HasErrors())
+
+		// Result should be empty since no bool values were provided
+		assert.Empty(t, result)
+	})
+
+	t.Run("explicit bool values with 'To' functions", func(t *testing.T) {
+		// Create request with explicit bool values
+		args := map[string]interface{}{
+			"notify_sms":   true,
+			"notify_email": false,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Create target map
+		target := make(map[string]interface{})
+
+		// Validate both parameters
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBoolTo(target, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolTo(target, "notify_email", "email")
+
+		// Verify no errors occurred
+		assert.False(t, validator.HasErrors())
+
+		// Both parameters should be set in the target map
+		assert.Equal(t, true, target["sms"])
+		assert.Equal(t, false, target["email"])
+	})
+
+	t.Run("missing bool parameter with 'To' functions", func(t *testing.T) {
+		// Create request without bool parameters
+		args := map[string]interface{}{
+			"other_param": "some value",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Create target map
+		target := make(map[string]interface{})
+
+		// Try to validate missing bool parameters
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBoolTo(target, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolTo(target, "notify_email", "email")
+
+		// Verify no errors occurred
+		assert.False(t, validator.HasErrors())
+
+		// Target map should be empty since no bool values were provided
+		assert.Empty(t, target)
+	})
+}

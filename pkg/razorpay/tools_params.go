@@ -159,16 +159,34 @@ func (v *Validator) ValidateAndAddOptionalStringTo(
 	target map[string]interface{},
 	paramName, targetKey string,
 ) *Validator {
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[paramName]
+	if !paramExists {
+		return v
+	}
+
 	return validateAndAddTo[string](v, target, paramName, targetKey, isEmptyString)
 }
 
 // ValidateAndAddOptionalBoolTo validates an optional bool and writes it into target[targetKey]
+// only if it was explicitly provided in the request
 func (v *Validator) ValidateAndAddOptionalBoolTo(
 	target map[string]interface{},
 	paramName, targetKey string,
 ) *Validator {
-	// for bool, we consider both true and false as non-empty
-	return validateAndAddTo[bool](v, target, paramName, targetKey, func(_ bool) bool { return false })
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[paramName]
+	if !paramExists {
+		return v
+	}
+
+	// Now validate and add the parameter
+	value, err := extractValueGeneric[bool](v.request, paramName, false)
+	if err != nil {
+		return v.addError(err)
+	}
+	target[targetKey] = value
+	return v
 }
 
 // ValidateAndAddOptionalIntTo validates an optional integer and writes it into target[targetKey]
@@ -176,6 +194,12 @@ func (v *Validator) ValidateAndAddOptionalIntTo(
 	target map[string]interface{},
 	paramName, targetKey string,
 ) *Validator {
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[paramName]
+	if !paramExists {
+		return v
+	}
+
 	return validateAndAddTo[int64](v, target, paramName, targetKey, isZeroInt)
 }
 
@@ -194,6 +218,12 @@ func (v *Validator) ValidateAndAddOptionalString(
 	params map[string]interface{},
 	name string,
 ) *Validator {
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[name]
+	if !paramExists {
+		return v
+	}
+
 	return validateAndAddOptional[string](v, params, name, isEmptyString)
 }
 
@@ -210,6 +240,12 @@ func (v *Validator) ValidateAndAddOptionalMap(
 	params map[string]interface{},
 	name string,
 ) *Validator {
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[name]
+	if !paramExists {
+		return v
+	}
+
 	return validateAndAddOptional[map[string]interface{}](
 		v, params, name, isEmptyMap)
 }
@@ -227,6 +263,12 @@ func (v *Validator) ValidateAndAddOptionalArray(
 	params map[string]interface{},
 	name string,
 ) *Validator {
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[name]
+	if !paramExists {
+		return v
+	}
+
 	return validateAndAddOptional[[]interface{}](v, params, name, isEmptyArray)
 }
 
@@ -269,6 +311,12 @@ func (v *Validator) ValidateAndAddOptionalInt(
 	params map[string]interface{},
 	name string,
 ) *Validator {
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[name]
+	if !paramExists {
+		return v
+	}
+
 	return validateAndAddOptional[int64](v, params, name, isZeroInt)
 }
 
@@ -285,6 +333,12 @@ func (v *Validator) ValidateAndAddOptionalFloat(
 	params map[string]interface{},
 	name string,
 ) *Validator {
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[name]
+	if !paramExists {
+		return v
+	}
+
 	return validateAndAddOptional[float64](v, params, name, isZeroFloat)
 }
 
@@ -297,11 +351,18 @@ func (v *Validator) ValidateAndAddRequiredBool(
 }
 
 // ValidateAndAddOptionalBool validates and adds an optional boolean parameter
-// Note: This adds the boolean value regardless of whether it's true or false
+// Note: This adds the boolean value only if it was explicitly provided in the request
 func (v *Validator) ValidateAndAddOptionalBool(
 	params map[string]interface{},
 	name string,
 ) *Validator {
+	// First check if the parameter was explicitly provided in the request
+	_, paramExists := v.request.Arguments[name]
+	if !paramExists {
+		return v
+	}
+
+	// Now validate and add the parameter
 	value, err := extractValueGeneric[bool](v.request, name, false)
 	if err != nil {
 		return v.addError(err)

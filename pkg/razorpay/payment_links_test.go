@@ -549,6 +549,27 @@ func Test_UpdatePaymentLink(t *testing.T) {
 			ExpectedErrMsg: "updating payment link failed: update can only be made in " +
 				"created or partially paid state",
 		},
+		{
+			Name: "update with explicit false value",
+			Request: map[string]interface{}{
+				"payment_link_id": "plink_FL5HCrWEO112OW",
+				"reminder_enable": false, // Explicitly set to false
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							updatePaymentLinkPathFmt,
+							"plink_FL5HCrWEO112OW",
+						),
+						Method:   "PATCH",
+						Response: updatedPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: updatedPaymentLinkResp,
+		},
 	}
 
 	for _, tc := range tests {

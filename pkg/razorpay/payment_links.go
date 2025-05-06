@@ -379,9 +379,10 @@ func UpdatePaymentLink(
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
 		plUpdateReq := make(map[string]interface{})
+		otherFields := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(plUpdateReq, "payment_link_id").
+			ValidateAndAddRequiredString(otherFields, "payment_link_id").
 			ValidateAndAddOptionalString(plUpdateReq, "reference_id").
 			ValidateAndAddOptionalInt(plUpdateReq, "expire_by").
 			ValidateAndAddOptionalBool(plUpdateReq, "reminder_enable").
@@ -392,24 +393,16 @@ func UpdatePaymentLink(
 			return result, err
 		}
 
-		paymentLinkId := plUpdateReq["payment_link_id"].(string)
-
-		// Create update data excluding payment_link_id
-		updateData := make(map[string]interface{})
-		for k, v := range plUpdateReq {
-			if k != "payment_link_id" {
-				updateData[k] = v
-			}
-		}
+		paymentLinkId := otherFields["payment_link_id"].(string)
 
 		// Ensure we have at least one field to update
-		if len(updateData) == 0 {
+		if len(plUpdateReq) == 0 {
 			return mcpgo.NewToolResultError(
 				"at least one field to update must be provided"), nil
 		}
 
 		// Call the SDK function
-		paymentLink, err := client.PaymentLink.Update(paymentLinkId, updateData, nil)
+		paymentLink, err := client.PaymentLink.Update(paymentLinkId, plUpdateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("updating payment link failed: %s", err.Error())), nil
