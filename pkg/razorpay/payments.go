@@ -28,16 +28,16 @@ func FetchPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		paymentFetchReq := make(map[string]interface{})
+		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(paymentFetchReq, "payment_id")
+			ValidateAndAddRequiredString(params, "payment_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentId := paymentFetchReq["payment_id"].(string)
+		paymentId := params["payment_id"].(string)
 
 		payment, err := client.Payment.Fetch(paymentId, nil, nil)
 		if err != nil {
@@ -76,16 +76,16 @@ func FetchPaymentCardDetails(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		fetchCardDetailsReq := make(map[string]interface{})
+		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(fetchCardDetailsReq, "payment_id")
+			ValidateAndAddRequiredString(params, "payment_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentId := fetchCardDetailsReq["payment_id"].(string)
+		paymentId := params["payment_id"].(string)
 
 		cardDetails, err := client.Payment.FetchCardDetails(
 			paymentId, nil, nil)
