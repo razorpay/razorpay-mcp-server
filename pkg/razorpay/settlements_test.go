@@ -94,59 +94,37 @@ func Test_FetchSettlementRecon(t *testing.T) {
 		constants.SETTLEMENT_URL,
 	)
 
-	// Sample response for successful fetch
-	reconReportResp := map[string]interface{}{
+	settlementReconResp := map[string]interface{}{
 		"entity": "collection",
 		"count":  float64(1),
 		"items": []interface{}{
 			map[string]interface{}{
-				"entity_id":     "setl_FNj7g2YS5J67Rz",
-				"type":          "settlement",
-				"debit":         float64(0),
-				"credit":        float64(9973635),
-				"amount":        float64(9973635),
-				"fee":           float64(471),
-				"tax":           float64(72),
-				"settlement_id": "setl_FNj7g2YS5J67Rz",
-				"created_at":    float64(1568176198),
+				"entity":            "settlement",
+				"settlement_id":     "setl_FNj7g2YS5J67Rz",
+				"settlement_utr":    "1568176198",
+				"amount":            float64(9973635),
+				"settlement_type":   "regular",
+				"settlement_status": "processed",
+				"created_at":        float64(1568176198),
 			},
 		},
 	}
 
-	// Error response when required parameters are missing
 	invalidParamsResp := map[string]interface{}{
 		"error": map[string]interface{}{
 			"code":        "BAD_REQUEST_ERROR",
-			"description": "The year, month parameters are required",
+			"description": "missing required parameters",
 		},
 	}
 
 	tests := []RazorpayToolTestCase{
 		{
-			Name: "successful reconciliation report fetch with required params",
+			Name: "successful settlement reconciliation fetch",
 			Request: map[string]interface{}{
-				"year":  "2023",
-				"month": "09",
-			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:     fetchSettlementReconPath,
-						Method:   "GET",
-						Response: reconReportResp,
-					},
-				)
-			},
-			ExpectError:    false,
-			ExpectedResult: reconReportResp,
-		},
-		{
-			Name: "successful reconciliation report fetch with all params",
-			Request: map[string]interface{}{
-				"year":  "2023",
-				"month": "09",
+				"year":  "2022",
+				"month": "10",
 				"day":   "15",
-				"count": "20",
+				"count": "10",
 				"skip":  "0",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -154,17 +132,36 @@ func Test_FetchSettlementRecon(t *testing.T) {
 					mock.Endpoint{
 						Path:     fetchSettlementReconPath,
 						Method:   "GET",
-						Response: reconReportResp,
+						Response: settlementReconResp,
 					},
 				)
 			},
 			ExpectError:    false,
-			ExpectedResult: reconReportResp,
+			ExpectedResult: settlementReconResp,
 		},
 		{
-			Name: "missing required parameters",
+			Name: "settlement reconciliation with required params only",
 			Request: map[string]interface{}{
-				"day": "15", // Missing year and month
+				"year":  "2022",
+				"month": "10",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchSettlementReconPath,
+						Method:   "GET",
+						Response: settlementReconResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementReconResp,
+		},
+		{
+			Name: "settlement reconciliation with invalid params",
+			Request: map[string]interface{}{
+				"year": "2022",
+				// missing month parameter
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -176,38 +173,20 @@ func Test_FetchSettlementRecon(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: year",
+			ExpectedErrMsg: "missing required parameter: month",
 		},
 		{
-			Name:           "empty request",
+			Name:           "missing required parameters",
 			Request:        map[string]interface{}{},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: year",
 		},
-		{
-			Name: "invalid year format",
-			Request: map[string]interface{}{
-				"year":  "20", // Invalid year format (not 4 digits)
-				"month": "09",
-			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:     fetchSettlementReconPath,
-						Method:   "GET",
-						Response: invalidParamsResp,
-					},
-				)
-			},
-			ExpectError:    true,
-			ExpectedErrMsg: "fetching settlement reconciliation report failed",
-		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			runToolTest(t, tc, FetchSettlementRecon, "Settlement Reconciliation Report")
+			runToolTest(t, tc, FetchSettlementRecon, "Settlement Reconciliation")
 		})
 	}
 }
@@ -219,35 +198,26 @@ func Test_FetchAllSettlements(t *testing.T) {
 		constants.SETTLEMENT_URL,
 	)
 
-	// Sample response for successful fetch
-	settlementListResp := map[string]interface{}{
+	// Define the sample response for all settlements
+	settlementsResp := map[string]interface{}{
 		"entity": "collection",
 		"count":  float64(2),
 		"items": []interface{}{
 			map[string]interface{}{
-				"id":         "setl_DGlQ1Rj8os78Ec",
-				"entity":     "settlement",
-				"amount":     float64(9973635),
-				"status":     "processed",
-				"fees":       float64(0),
-				"tax":        float64(0),
-				"utr":        "1568176960vxp0rj",
-				"created_at": float64(1568176960),
+				"id":     "setl_FNj7g2YS5J67Rz",
+				"entity": "settlement",
+				"amount": float64(9973635),
+				"status": "processed",
 			},
 			map[string]interface{}{
-				"id":         "setl_4xbSwsPABDJ8oK",
-				"entity":     "settlement",
-				"amount":     float64(50000),
-				"status":     "processed",
-				"fees":       float64(0),
-				"tax":        float64(0),
-				"utr":        "RZRP173069230702",
-				"created_at": float64(1509622306),
+				"id":     "setl_FJOp0jOWlalIvt",
+				"entity": "settlement",
+				"amount": float64(299114),
+				"status": "processed",
 			},
 		},
 	}
 
-	// Error response when parameters are invalid
 	invalidParamsResp := map[string]interface{}{
 		"error": map[string]interface{}{
 			"code":        "BAD_REQUEST_ERROR",
@@ -257,11 +227,24 @@ func Test_FetchAllSettlements(t *testing.T) {
 
 	tests := []RazorpayToolTestCase{
 		{
-			Name: "successful settlements fetch with all parameters",
+			Name:    "successful settlements fetch with no parameters",
+			Request: map[string]interface{}{},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllSettlementsPath,
+						Method:   "GET",
+						Response: settlementsResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementsResp,
+		},
+		{
+			Name: "successful settlements fetch with pagination",
 			Request: map[string]interface{}{
-				"from":  float64(1500000000),
-				"to":    float64(1600000000),
-				"count": float64(20),
+				"count": float64(10),
 				"skip":  float64(0),
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -269,12 +252,30 @@ func Test_FetchAllSettlements(t *testing.T) {
 					mock.Endpoint{
 						Path:     fetchAllSettlementsPath,
 						Method:   "GET",
-						Response: settlementListResp,
+						Response: settlementsResp,
 					},
 				)
 			},
 			ExpectError:    false,
-			ExpectedResult: settlementListResp,
+			ExpectedResult: settlementsResp,
+		},
+		{
+			Name: "successful settlements fetch with date range",
+			Request: map[string]interface{}{
+				"from": float64(1609459200), // 2021-01-01
+				"to":   float64(1640995199), // 2021-12-31
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllSettlementsPath,
+						Method:   "GET",
+						Response: settlementsResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementsResp,
 		},
 		{
 			Name: "settlements fetch with invalid timestamp",
@@ -292,8 +293,8 @@ func Test_FetchAllSettlements(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "fetching settlements failed: from must be between " +
-				"946684800 and 4765046400",
+			ExpectedErrMsg: "fetching settlements failed: from must be " +
+				"between 946684800 and 4765046400",
 		},
 	}
 
@@ -365,6 +366,23 @@ func Test_CreateInstantSettlement(t *testing.T) {
 			ExpectedResult: successfulSettlementResp,
 		},
 		{
+			Name: "settlement creation with required parameters only",
+			Request: map[string]interface{}{
+				"amount": float64(200000),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createInstantSettlementPath,
+						Method:   "POST",
+						Response: successfulSettlementResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulSettlementResp,
+		},
+		{
 			Name: "settlement creation with insufficient amount",
 			Request: map[string]interface{}{
 				"amount": float64(10), // Less than minimum
@@ -405,8 +423,8 @@ func Test_FetchAllInstantSettlements(t *testing.T) {
 		constants.SETTLEMENT_URL,
 	)
 
-	// Sample response for successful fetch
-	instantSettlementListResp := map[string]interface{}{
+	// Sample response for successful fetch without expanded payouts
+	basicSettlementListResp := map[string]interface{}{
 		"entity": "collection",
 		"count":  float64(2),
 		"items": []interface{}{
@@ -451,6 +469,68 @@ func Test_FetchAllInstantSettlements(t *testing.T) {
 		},
 	}
 
+	// Sample response with expanded payouts
+	expandedSettlementListResp := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(2),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":                  "setlod_FNj7g2YS5J67Rz",
+				"entity":              "settlement.ondemand",
+				"amount_requested":    float64(200000),
+				"amount_settled":      float64(199410),
+				"amount_pending":      float64(0),
+				"amount_reversed":     float64(0),
+				"fees":                float64(590),
+				"tax":                 float64(90),
+				"currency":            "INR",
+				"settle_full_balance": false,
+				"status":              "processed",
+				"description":         "Need this to make vendor payments.",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey… decaf.",
+				},
+				"created_at": float64(1596771429),
+				"ondemand_payouts": []interface{}{
+					map[string]interface{}{
+						"id":     "pout_FNj7g2YS5J67Rz",
+						"entity": "payout",
+						"amount": float64(199410),
+						"status": "processed",
+					},
+				},
+			},
+			map[string]interface{}{
+				"id":                  "setlod_FJOp0jOWlalIvt",
+				"entity":              "settlement.ondemand",
+				"amount_requested":    float64(300000),
+				"amount_settled":      float64(299114),
+				"amount_pending":      float64(0),
+				"amount_reversed":     float64(0),
+				"fees":                float64(886),
+				"tax":                 float64(136),
+				"currency":            "INR",
+				"settle_full_balance": false,
+				"status":              "processed",
+				"description":         "Need this to buy stock.",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey… decaf.",
+				},
+				"created_at": float64(1595826576),
+				"ondemand_payouts": []interface{}{
+					map[string]interface{}{
+						"id":     "pout_FJOp0jOWlalIvt",
+						"entity": "payout",
+						"amount": float64(299114),
+						"status": "processed",
+					},
+				},
+			},
+		},
+	}
+
 	// Error response when parameters are invalid
 	invalidParamsResp := map[string]interface{}{
 		"error": map[string]interface{}{
@@ -468,12 +548,65 @@ func Test_FetchAllInstantSettlements(t *testing.T) {
 					mock.Endpoint{
 						Path:     fetchAllInstantSettlementsPath,
 						Method:   "GET",
-						Response: instantSettlementListResp,
+						Response: basicSettlementListResp,
 					},
 				)
 			},
 			ExpectError:    false,
-			ExpectedResult: instantSettlementListResp,
+			ExpectedResult: basicSettlementListResp,
+		},
+		{
+			Name: "instant settlements fetch with pagination",
+			Request: map[string]interface{}{
+				"count": float64(10),
+				"skip":  float64(0),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllInstantSettlementsPath,
+						Method:   "GET",
+						Response: basicSettlementListResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: basicSettlementListResp,
+		},
+		{
+			Name: "instant settlements fetch with expanded payouts",
+			Request: map[string]interface{}{
+				"expand": []interface{}{"ondemand_payouts"},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllInstantSettlementsPath,
+						Method:   "GET",
+						Response: expandedSettlementListResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: expandedSettlementListResp,
+		},
+		{
+			Name: "instant settlements fetch with date range",
+			Request: map[string]interface{}{
+				"from": float64(1609459200), // 2021-01-01
+				"to":   float64(1640995199), // 2021-12-31
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllInstantSettlementsPath,
+						Method:   "GET",
+						Response: basicSettlementListResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: basicSettlementListResp,
 		},
 		{
 			Name: "instant settlements fetch with invalid timestamp",

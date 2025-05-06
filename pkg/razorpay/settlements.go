@@ -28,11 +28,18 @@ func FetchSettlement(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		settlementID, err := RequiredParam[string](r, "settlement_id")
-		if result, err := HandleValidationError(err); result != nil {
+		// Create a parameters map to collect validated parameters
+		fetchSettlementOptions := make(map[string]interface{})
+
+		// Validate using fluent validator
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(fetchSettlementOptions, "settlement_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
+		settlementID := fetchSettlementOptions["settlement_id"].(string)
 		settlement, err := client.Settlement.Fetch(settlementID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
@@ -81,12 +88,10 @@ func FetchSettlementRecon(
 			"count",
 			mcpgo.Description("Optional: Number of records to fetch "+
 				"(default: 10, max: 100)"),
-			mcpgo.Pattern("^[0-9]+$"),
 		),
 		mcpgo.WithString(
 			"skip",
 			mcpgo.Description("Optional: Number of records to skip for pagination"),
-			mcpgo.Pattern("^[0-9]+$"),
 		),
 	}
 
@@ -94,50 +99,22 @@ func FetchSettlementRecon(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		year, err := RequiredParam[string](r, "year")
-		if result, err := HandleValidationError(err); result != nil {
+		// Create a parameters map to collect validated parameters
+		fetchSettlementReconOptions := make(map[string]interface{})
+
+		// Validate using fluent validator
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(fetchSettlementReconOptions, "year").
+			ValidateAndAddRequiredString(fetchSettlementReconOptions, "month").
+			ValidateAndAddOptionalString(fetchSettlementReconOptions, "day").
+			ValidateAndAddOptionalString(fetchSettlementReconOptions, "count").
+			ValidateAndAddOptionalString(fetchSettlementReconOptions, "skip")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		month, err := RequiredParam[string](r, "month")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-
-		// Create query parameters
-		queryParams := map[string]interface{}{
-			"year":  year,
-			"month": month,
-		}
-
-		// Add optional day parameter if provided
-		day, err := OptionalParam[string](r, "day")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if day != "" {
-			queryParams["day"] = day
-		}
-
-		// Add optional count parameter if provided
-		count, err := OptionalParam[string](r, "count")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if count != "" {
-			queryParams["count"] = count
-		}
-
-		// Add optional skip parameter if provided
-		skip, err := OptionalParam[string](r, "skip")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if skip != "" {
-			queryParams["skip"] = skip
-		}
-
-		report, err := client.Settlement.Reports(queryParams, nil)
+		report, err := client.Settlement.Reports(fetchSettlementReconOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching settlement reconciliation report failed: %s",
@@ -194,33 +171,21 @@ func FetchAllSettlements(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Create query parameters map
-		options := make(map[string]interface{})
+		// Create parameters map to collect validated parameters
+		fetchAllSettlementsOptions := make(map[string]interface{})
 
-		// Handle pagination parameters
-		if result := AddPaginationToQueryParams(r, options); result != nil {
-			return result, nil
-		}
+		// Validate using fluent validator
+		validator := NewValidator(&r).
+			ValidateAndAddPagination(fetchAllSettlementsOptions).
+			ValidateAndAddOptionalInt(fetchAllSettlementsOptions, "from").
+			ValidateAndAddOptionalInt(fetchAllSettlementsOptions, "to")
 
-		// Handle date range parameters
-		from, err := OptionalInt(r, "from")
-		if result, _ := HandleValidationError(err); result != nil {
-			return result, nil
-		}
-		if from > 0 {
-			options["from"] = from
-		}
-
-		to, err := OptionalInt(r, "to")
-		if result, _ := HandleValidationError(err); result != nil {
-			return result, nil
-		}
-		if to > 0 {
-			options["to"] = to
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		// Fetch all settlements using Razorpay SDK
-		settlements, err := client.Settlement.All(options, nil)
+		settlements, err := client.Settlement.All(fetchAllSettlementsOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching settlements failed: %s", err.Error())), nil
@@ -258,8 +223,7 @@ func CreateInstantSettlement(
 		),
 		mcpgo.WithString(
 			"description",
-			mcpgo.Description("Custom note for the instant settlement. "+
-				"Max 30 characters"),
+			mcpgo.Description("Custom note for the instant settlement."),
 			mcpgo.Max(30),
 			mcpgo.Pattern("^[a-zA-Z0-9 ]*$"),
 		),
@@ -275,44 +239,22 @@ func CreateInstantSettlement(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Get and validate required amount parameter
-		amount, err := RequiredInt(r, "amount")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
+		// Create parameters map to collect validated parameters
+		createInstantSettlementReq := make(map[string]interface{})
 
-		// Create request data
-		data := map[string]interface{}{
-			"amount": amount,
-		}
+		// Validate using fluent validator
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredInt(createInstantSettlementReq, "amount").
+			ValidateAndAddOptionalBool(createInstantSettlementReq, "settle_full_balance").
+			ValidateAndAddOptionalString(createInstantSettlementReq, "description").
+			ValidateAndAddOptionalMap(createInstantSettlementReq, "notes")
 
-		// Get and validate optional settle_full_balance parameter
-		settleFullBalance, err := OptionalParam[bool](r, "settle_full_balance")
-		if result, err := HandleValidationError(err); result != nil {
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
-		}
-		data["settle_full_balance"] = settleFullBalance
-
-		// Get and validate optional description parameter
-		description, err := OptionalParam[string](r, "description")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if description != "" {
-			data["description"] = description
-		}
-
-		// Get and validate optional notes parameter
-		notes, err := OptionalParam[map[string]interface{}](r, "notes")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if notes != nil {
-			data["notes"] = notes
 		}
 
 		// Create the instant settlement
-		settlement, err := client.Settlement.CreateOnDemandSettlement(data, nil)
+		settlement, err := client.Settlement.CreateOnDemandSettlement(createInstantSettlementReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating instant settlement failed: %s",
@@ -364,16 +306,11 @@ func FetchAllInstantSettlements(
 			mcpgo.Min(0),
 		),
 		// Expand parameter for payout details
-		mcpgo.WithBoolean(
-			"expand_payouts",
-			mcpgo.Description("Include payout details in the response"),
-		),
 		mcpgo.WithArray(
 			"expand",
-			mcpgo.Description("Used to retrieve additional information. "+
-				"Supported values: ondemand_payouts"+
-				"Pass ondemand_payouts if you want to fetch payout details"+
-				"for all instant settlements."),
+			mcpgo.Description("Pass this if you want to fetch payout details "+
+				"as part of the response for all instant settlements. "+
+				"Supported values: ondemand_payouts"),
 		),
 	}
 
@@ -381,34 +318,18 @@ func FetchAllInstantSettlements(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Create query parameters map
+		// Create parameters map to collect validated parameters
 		options := make(map[string]interface{})
 
-		// Handle pagination parameters
-		if result := AddPaginationToQueryParams(r, options); result != nil {
-			return result, nil
-		}
+		// Validate using fluent validator
+		validator := NewValidator(&r).
+			ValidateAndAddPagination(options).
+			ValidateAndAddExpand(options).
+			ValidateAndAddOptionalInt(options, "from").
+			ValidateAndAddOptionalInt(options, "to")
 
-		// Handle date range parameters
-		from, err := OptionalInt(r, "from")
-		if result, _ := HandleValidationError(err); result != nil {
-			return result, nil
-		}
-		if from > 0 {
-			options["from"] = from
-		}
-
-		to, err := OptionalInt(r, "to")
-		if result, _ := HandleValidationError(err); result != nil {
-			return result, nil
-		}
-		if to > 0 {
-			options["to"] = to
-		}
-
-		// Process expand parameters
-		if result := AddExpandToQueryParams(r, options); result != nil {
-			return result, nil
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
 		}
 
 		// Fetch all instant settlements using Razorpay SDK
@@ -429,9 +350,7 @@ func FetchAllInstantSettlements(
 	)
 }
 
-// FetchInstantSettlement returns a tool that fetches an instant settlement by ID
-//
-//nolint:lll
+// FetchInstantSettlement returns a tool that fetches an instant settlement by ID // nolint:lll
 func FetchInstantSettlement(
 	log *slog.Logger,
 	client *rzpsdk.Client,
@@ -449,10 +368,18 @@ func FetchInstantSettlement(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		settlementID, err := RequiredParam[string](r, "settlement_id")
-		if result, err := HandleValidationError(err); result != nil {
+		// Create parameters map to collect validated parameters
+		params := make(map[string]interface{})
+
+		// Validate using fluent validator
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(params, "settlement_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
+
+		settlementID := params["settlement_id"].(string)
 
 		// Fetch the instant settlement by ID using SDK
 		settlement, err := client.Settlement.FetchOnDemandSettlementById(
