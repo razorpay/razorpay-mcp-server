@@ -131,23 +131,21 @@ func UpdatePayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		params := make(map[string]interface{})
 		paymentUpdateReq := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(paymentUpdateReq, "payment_id").
+			ValidateAndAddRequiredString(params, "payment_id").
 			ValidateAndAddRequiredMap(paymentUpdateReq, "notes")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentId := paymentUpdateReq["payment_id"].(string)
-		data := map[string]interface{}{
-			"notes": paymentUpdateReq["notes"],
-		}
+		paymentId := params["payment_id"].(string)
 
 		// Update the payment
-		updatedPayment, err := client.Payment.Edit(paymentId, data, nil)
+		updatedPayment, err := client.Payment.Edit(paymentId, paymentUpdateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("updating payment failed: %s", err.Error())), nil
@@ -194,28 +192,26 @@ func CapturePayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		params := make(map[string]interface{})
 		paymentCaptureReq := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(paymentCaptureReq, "payment_id").
-			ValidateAndAddRequiredInt(paymentCaptureReq, "amount").
+			ValidateAndAddRequiredString(params, "payment_id").
+			ValidateAndAddRequiredInt(params, "amount").
 			ValidateAndAddRequiredString(paymentCaptureReq, "currency")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentId := paymentCaptureReq["payment_id"].(string)
-		amount := paymentCaptureReq["amount"].(int)
-		data := map[string]interface{}{
-			"currency": paymentCaptureReq["currency"].(string),
-		}
+		paymentId := params["payment_id"].(string)
+		amount := int(params["amount"].(int64))
 
 		// Capture the payment
 		payment, err := client.Payment.Capture(
 			paymentId,
 			amount,
-			data,
+			paymentCaptureReq,
 			nil,
 		)
 		if err != nil {
@@ -275,19 +271,19 @@ func FetchAllPayments(
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
 		// Create query parameters map
-		paymentListReq := make(map[string]interface{})
+		paymentListOptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddPagination(paymentListReq).
-			ValidateAndAddOptionalInt(paymentListReq, "from").
-			ValidateAndAddOptionalInt(paymentListReq, "to")
+			ValidateAndAddPagination(paymentListOptions).
+			ValidateAndAddOptionalInt(paymentListOptions, "from").
+			ValidateAndAddOptionalInt(paymentListOptions, "to")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
 		// Fetch all payments using Razorpay SDK
-		payments, err := client.Payment.All(paymentListReq, nil)
+		payments, err := client.Payment.All(paymentListOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payments failed: %s", err.Error())), nil
