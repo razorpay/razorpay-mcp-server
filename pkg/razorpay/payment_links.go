@@ -39,21 +39,48 @@ func CreatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		paymentLinkCreateReq := make(map[string]interface{})
-
+		// Create a parameters map to collect validated parameters
+		plCreateReq := make(map[string]interface{})
+		customer := make(map[string]interface{})
+		notify := make(map[string]interface{})
+		// Validate all parameters with fluent validator
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredFloat(paymentLinkCreateReq, "amount").
-			ValidateAndAddRequiredString(paymentLinkCreateReq, "currency").
-			ValidateAndAddOptionalString(paymentLinkCreateReq, "description")
+			ValidateAndAddRequiredInt(plCreateReq, "amount").
+			ValidateAndAddRequiredInt(plCreateReq, "currency").
+			ValidateAndAddOptionalString(plCreateReq, "description").
+			ValidateAndAddOptionalBool(plCreateReq, "accept_partial").
+			ValidateAndAddOptionalInt(plCreateReq, "first_min_partial_amount").
+			ValidateAndAddOptionalInt(plCreateReq, "expire_by").
+			ValidateAndAddOptionalString(plCreateReq, "reference_id").
+			ValidateAndAddOptionalStringTo(customer, "customer_name", "name").
+			ValidateAndAddOptionalStringTo(customer, "customer_email", "email").
+			ValidateAndAddOptionalStringTo(customer, "customer_contact", "contact").
+			ValidateAndAddOptionalBoolTo(notify, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolTo(notify, "notify_email", "email").
+			ValidateAndAddOptionalBool(plCreateReq, "reminder_enable").
+			ValidateAndAddOptionalMap(plCreateReq, "notes").
+			ValidateAndAddOptionalString(plCreateReq, "callback_url").
+			ValidateAndAddOptionalString(plCreateReq, "callback_method")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentLink, err := client.PaymentLink.Create(paymentLinkCreateReq, nil)
+		// Handle customer details
+		if len(customer) > 0 {
+			plCreateReq["customer"] = customer
+		}
+
+		// Handle notification settings
+		if len(notify) > 0 {
+			plCreateReq["notify"] = notify
+		}
+
+		// Create the payment link
+		paymentLink, err := client.PaymentLink.Create(plCreateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("creating payment link failed: %s", err.Error())), nil // nolint:lll
+				fmt.Sprintf("upi pl create failed: %s", err.Error())), nil
 		}
 
 		return mcpgo.NewToolResultJSON(paymentLink)
