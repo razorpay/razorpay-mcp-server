@@ -29,8 +29,60 @@ func CreatePaymentLink(
 		),
 		mcpgo.WithString(
 			"description",
-			mcpgo.Description("A brief description of the Payment Link "+
-				"explaining the intent of the payment."),
+			mcpgo.Description("A brief description of the Payment Link explaining the intent of the payment."), // nolint:lll
+		),
+		mcpgo.WithBoolean(
+			"accept_partial",
+			mcpgo.Description("Indicates whether customers can make partial payments using the Payment Link. Default: false"), // nolint:lll
+		),
+		mcpgo.WithNumber(
+			"first_min_partial_amount",
+			mcpgo.Description("Minimum amount that must be paid by the customer as the first partial payment. Default value is 100."), // nolint:lll
+		),
+		mcpgo.WithNumber(
+			"expire_by",
+			mcpgo.Description("Timestamp, in Unix, when the Payment Link will expire. By default, a Payment Link will be valid for six months."), // nolint:lll
+		),
+		mcpgo.WithString(
+			"reference_id",
+			mcpgo.Description("Reference number tagged to a Payment Link. Must be unique for each Payment Link. Max 40 characters."), // nolint:lll
+		),
+		mcpgo.WithString(
+			"customer_name",
+			mcpgo.Description("Name of the customer."),
+		),
+		mcpgo.WithString(
+			"customer_email",
+			mcpgo.Description("Email address of the customer."),
+		),
+		mcpgo.WithString(
+			"customer_contact",
+			mcpgo.Description("Contact number of the customer."),
+		),
+		mcpgo.WithBoolean(
+			"notify_sms",
+			mcpgo.Description("Send SMS notifications for the Payment Link."),
+		),
+		mcpgo.WithBoolean(
+			"notify_email",
+			mcpgo.Description("Send email notifications for the Payment Link."),
+		),
+		mcpgo.WithBoolean(
+			"reminder_enable",
+			mcpgo.Description("Enable payment reminders for the Payment Link."),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs that can be used to store additional information. Maximum 15 pairs, each value limited to 256 characters."), // nolint:lll
+		),
+		mcpgo.WithString(
+			"callback_url",
+			mcpgo.Description("If specified, adds a redirect URL to the Payment Link. Customer will be redirected here after payment."), // nolint:lll
+		),
+		mcpgo.WithString(
+			"callback_method",
+			mcpgo.Description("HTTP method for callback redirection. "+
+				"Must be 'get' if callback_url is set."),
 		),
 	}
 
@@ -105,6 +157,11 @@ func CreateUpiPaymentLink(
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
+			"currency",
+			mcpgo.Description("Three-letter ISO code for the currency (e.g., INR). UPI links are only supported in INR"), // nolint:lll
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
 			"description",
 			mcpgo.Description("A brief description of the Payment Link explaining the intent of the payment."), // nolint:lll
 		),
@@ -174,6 +231,7 @@ func CreateUpiPaymentLink(
 		// Validate all parameters with fluent validator
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredInt(upiPlCreateReq, "amount").
+			ValidateAndAddRequiredString(upiPlCreateReq, "currency").
 			ValidateAndAddOptionalString(upiPlCreateReq, "description").
 			ValidateAndAddOptionalBool(upiPlCreateReq, "accept_partial").
 			ValidateAndAddOptionalInt(upiPlCreateReq, "first_min_partial_amount").
@@ -194,7 +252,6 @@ func CreateUpiPaymentLink(
 		}
 
 		// Add the required UPI payment link parameters
-		upiPlCreateReq["currency"] = "INR" // UPI links only support INR
 		upiPlCreateReq["upi_link"] = "true"
 
 		// Handle customer details
