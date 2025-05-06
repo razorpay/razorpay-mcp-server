@@ -51,11 +51,18 @@ func NewToolSets(
 			UpdateRefund(log, client),
 		)
 
+	payouts := toolsets.NewToolset("payouts", "Razorpay Payouts related tools").
+		AddReadTools(
+			FetchPayoutByID(log, client),
+			FetchAllPayouts(log, client),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
 	toolsetGroup.AddToolset(refunds)
+	toolsetGroup.AddToolset(payouts)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {

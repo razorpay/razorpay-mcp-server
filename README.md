@@ -17,6 +17,9 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `create_refund`       | Creates a refund                                | [Refund](https://razorpay.com/docs/api/refunds/create-instant/)
 | `fetch_refund`        | Fetch refund details with ID                    | [Refund](https://razorpay.com/docs/api/refunds/fetch-with-id/)
 | `update_refund`       | Update refund notes with ID                     | [Refund](https://razorpay.com/docs/api/refunds/update/)
+| `fetch_all_payouts`   | Fetch all the payouts details with bank account number                    | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/)
+| `fetch_payout_by_id`   | Fetch the payout details with payout ID                   | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id)
+
 
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
