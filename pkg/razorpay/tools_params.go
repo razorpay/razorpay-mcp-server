@@ -154,7 +154,8 @@ func validateAndAddToPath[T any](
 	return v
 }
 
-// ValidateAndAddOptionalStringToPath validates an optional string and writes it into target[targetKey]
+// ValidateAndAddOptionalStringToPath validates an optional string
+// and writes it into target[targetKey]
 func (v *Validator) ValidateAndAddOptionalStringToPath(
 	target map[string]interface{},
 	paramName, targetKey string,
@@ -165,10 +166,11 @@ func (v *Validator) ValidateAndAddOptionalStringToPath(
 		return v
 	}
 
-	return validateAndAddToPath[string](v, target, paramName, targetKey, isEmptyString)
+	return validateAndAddToPath[string](v, target, paramName, targetKey, isEmptyString) // nolint:lll
 }
 
-// ValidateAndAddOptionalBoolToPath validates an optional bool and writes it into target[targetKey]
+// ValidateAndAddOptionalBoolToPath validates an optional bool
+// and writes it into target[targetKey]
 // only if it was explicitly provided in the request
 func (v *Validator) ValidateAndAddOptionalBoolToPath(
 	target map[string]interface{},
@@ -189,7 +191,8 @@ func (v *Validator) ValidateAndAddOptionalBoolToPath(
 	return v
 }
 
-// ValidateAndAddOptionalIntToPath validates an optional integer and writes it into target[targetKey]
+// ValidateAndAddOptionalIntToPath validates an optional integer
+// and writes it into target[targetKey]
 func (v *Validator) ValidateAndAddOptionalIntToPath(
 	target map[string]interface{},
 	paramName, targetKey string,
@@ -351,7 +354,8 @@ func (v *Validator) ValidateAndAddRequiredBool(
 }
 
 // ValidateAndAddOptionalBool validates and adds an optional boolean parameter
-// Note: This adds the boolean value only if it was explicitly provided in the request
+// Note: This adds the boolean value only
+// if it was explicitly provided in the request
 func (v *Validator) ValidateAndAddOptionalBool(
 	params map[string]interface{},
 	name string,

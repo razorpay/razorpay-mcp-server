@@ -639,7 +639,7 @@ func Test_FetchAllPaymentLinks(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "fetching payment links failed: The api key/secret provided is invalid",
+			ExpectedErrMsg: "fetching payment links failed: The api key/secret provided is invalid", // nolint:lll
 		},
 	}
 

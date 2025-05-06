@@ -471,7 +471,8 @@ func UpdatePaymentLink(
 	)
 }
 
-// FetchAllPaymentLinks returns a tool that fetches all payment links with optional filtering
+// FetchAllPaymentLinks returns a tool that fetches all payment links
+// with optional filtering
 func FetchAllPaymentLinks(
 	log *slog.Logger,
 	client *rzpsdk.Client,
@@ -479,11 +480,11 @@ func FetchAllPaymentLinks(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"payment_id",
-			mcpgo.Description("Optional: Filter by payment ID associated with payment links"),
+			mcpgo.Description("Optional: Filter by payment ID associated with payment links"), // nolint:lll
 		),
 		mcpgo.WithString(
 			"reference_id",
-			mcpgo.Description("Optional: Filter by reference ID used when creating payment links"),
+			mcpgo.Description("Optional: Filter by reference ID used when creating payment links"), // nolint:lll
 		),
 		mcpgo.WithNumber(
 			"upi_link",

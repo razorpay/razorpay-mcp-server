@@ -399,11 +399,13 @@ func TestValidatorExpand(t *testing.T) {
 // Test validator "To" functions which write to target maps
 func TestValidatorToFunctions(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        map[string]interface{}
-		paramName   string
-		targetKey   string
-		testFunc    func(*Validator, map[string]interface{}, string, string) *Validator
+		name      string
+		args      map[string]interface{}
+		paramName string
+		targetKey string
+		testFunc  func(
+			*Validator, map[string]interface{}, string, string,
+		) *Validator
 		expectValue interface{}
 		expectError bool
 	}{
