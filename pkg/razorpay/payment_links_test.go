@@ -265,6 +265,7 @@ func Test_CreateUpiPaymentLink(t *testing.T) {
 			Name: "UPI payment link with all parameters",
 			Request: map[string]interface{}{
 				"amount":                   float64(50000),
+				"currency":                 "INR",
 				"description":              "Test UPI payment with all params",
 				"reference_id":             "REF12345",
 				"accept_partial":           true,
