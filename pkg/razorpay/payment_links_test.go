@@ -318,7 +318,7 @@ func Test_CreateUpiPaymentLink(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "upi pl create failed: API error: Something went wrong",
+			ExpectedErrMsg: "missing required parameter: currency",
 		},
 	}
 
