@@ -142,74 +142,42 @@ func CreateUpiPaymentLink(
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
 		// Create a parameters map to collect validated parameters
-		params := make(map[string]interface{})
-
+		upiPlCreateReq := make(map[string]interface{})
+		customer := make(map[string]interface{})
+		notify := make(map[string]interface{})
 		// Validate all parameters with fluent validator
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredInt(params, "amount").
-			ValidateAndAddOptionalString(params, "description").
-			ValidateAndAddOptionalBool(params, "accept_partial").
-			ValidateAndAddOptionalInt(params, "first_min_partial_amount").
-			ValidateAndAddOptionalInt(params, "expire_by").
-			ValidateAndAddOptionalString(params, "reference_id").
-			ValidateAndAddOptionalString(params, "customer_name").
-			ValidateAndAddOptionalString(params, "customer_email").
-			ValidateAndAddOptionalString(params, "customer_contact").
-			ValidateAndAddOptionalBool(params, "notify_sms").
-			ValidateAndAddOptionalBool(params, "notify_email").
-			ValidateAndAddOptionalBool(params, "reminder_enable").
-			ValidateAndAddOptionalMap(params, "notes").
-			ValidateAndAddOptionalString(params, "callback_url").
-			ValidateAndAddOptionalString(params, "callback_method")
+			ValidateAndAddRequiredInt(upiPlCreateReq, "amount").
+			ValidateAndAddOptionalString(upiPlCreateReq, "description").
+			ValidateAndAddOptionalBool(upiPlCreateReq, "accept_partial").
+			ValidateAndAddOptionalInt(upiPlCreateReq, "first_min_partial_amount").
+			ValidateAndAddOptionalInt(upiPlCreateReq, "expire_by").
+			ValidateAndAddOptionalString(upiPlCreateReq, "reference_id").
+			ValidateAndAddOptionalStringTo(customer, "customer_name", "name").
+			ValidateAndAddOptionalStringTo(customer, "customer_email", "email").
+			ValidateAndAddOptionalStringTo(customer, "customer_contact", "contact").
+			ValidateAndAddOptionalBoolTo(notify, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolTo(notify, "notify_email", "email").
+			ValidateAndAddOptionalBool(upiPlCreateReq, "reminder_enable").
+			ValidateAndAddOptionalMap(upiPlCreateReq, "notes").
+			ValidateAndAddOptionalString(upiPlCreateReq, "callback_url").
+			ValidateAndAddOptionalString(upiPlCreateReq, "callback_method")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		// Prepare the request data for the API call
-		upiPlCreateReq := make(map[string]interface{})
-
 		// Add the required UPI payment link parameters
-		upiPlCreateReq["amount"] = params["amount"]
 		upiPlCreateReq["currency"] = "INR" // UPI links only support INR
 		upiPlCreateReq["upi_link"] = "true"
 
 		// Handle customer details
-		hasCustomerName := hasParam(params, "customer_name")
-		hasCustomerEmail := hasParam(params, "customer_email")
-		hasCustomerContact := hasParam(params, "customer_contact")
-
-		if hasCustomerName || hasCustomerEmail || hasCustomerContact {
-			customer := make(map[string]interface{})
-
-			if hasCustomerName {
-				customer["name"] = params["customer_name"]
-			}
-			if hasCustomerEmail {
-				customer["email"] = params["customer_email"]
-			}
-			if hasCustomerContact {
-				customer["contact"] = params["customer_contact"]
-			}
-
+		if len(customer) > 0 {
 			upiPlCreateReq["customer"] = customer
 		}
 
 		// Handle notification settings
-		hasNotifySms := hasParam(params, "notify_sms")
-		hasNotifyEmail := hasParam(params, "notify_email")
-
-		if (hasNotifySms && params["notify_sms"].(bool)) ||
-			(hasNotifyEmail && params["notify_email"].(bool)) {
-			notify := make(map[string]interface{})
-
-			if hasNotifySms && params["notify_sms"].(bool) {
-				notify["sms"] = true
-			}
-			if hasNotifyEmail && params["notify_email"].(bool) {
-				notify["email"] = true
-			}
-
+		if len(notify) > 0 {
 			upiPlCreateReq["notify"] = notify
 		}
 
@@ -229,14 +197,6 @@ func CreateUpiPaymentLink(
 		parameters,
 		handler,
 	)
-}
-
-// Helper functions for parameter handling
-
-// hasParam checks if a parameter exists and is not empty
-func hasParam(params map[string]interface{}, key string) bool {
-	val, exists := params[key]
-	return exists && val != nil
 }
 
 // FetchPaymentLink returns a tool that fetches payment link details using

@@ -135,6 +135,50 @@ func validateAndAddOptional[T any](
 	return v
 }
 
+// validateAndAddTo is a generic helper to extract a value and write it into
+// `target[targetKey]` if non-empty
+func validateAndAddTo[T any](
+	v *Validator,
+	target map[string]interface{},
+	paramName string,
+	targetKey string,
+	emptyFn func(T) bool,
+) *Validator {
+	value, err := extractValueGeneric[T](v.request, paramName, false)
+	if err != nil {
+		return v.addError(err)
+	}
+	if !emptyFn(value) {
+		target[targetKey] = value
+	}
+	return v
+}
+
+// ValidateAndAddOptionalStringTo validates an optional string and writes it into target[targetKey]
+func (v *Validator) ValidateAndAddOptionalStringTo(
+	target map[string]interface{},
+	paramName, targetKey string,
+) *Validator {
+	return validateAndAddTo[string](v, target, paramName, targetKey, isEmptyString)
+}
+
+// ValidateAndAddOptionalBoolTo validates an optional bool and writes it into target[targetKey]
+func (v *Validator) ValidateAndAddOptionalBoolTo(
+	target map[string]interface{},
+	paramName, targetKey string,
+) *Validator {
+	// for bool, we consider both true and false as non-empty
+	return validateAndAddTo[bool](v, target, paramName, targetKey, func(_ bool) bool { return false })
+}
+
+// ValidateAndAddOptionalIntTo validates an optional integer and writes it into target[targetKey]
+func (v *Validator) ValidateAndAddOptionalIntTo(
+	target map[string]interface{},
+	paramName, targetKey string,
+) *Validator {
+	return validateAndAddTo[int64](v, target, paramName, targetKey, isZeroInt)
+}
+
 // Type-specific validator methods
 
 // ValidateAndAddRequiredString validates and adds a required string parameter
