@@ -53,7 +53,7 @@ func NewToolSets(
 
 	payouts := toolsets.NewToolset("payouts", "Razorpay Payouts related tools").
 		AddReadTools(
-			FetchPayoutByID(log, client),
+			FetchPayout(log, client),
 			FetchAllPayouts(log, client),
 		)
 

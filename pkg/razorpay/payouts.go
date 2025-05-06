@@ -6,18 +6,22 @@ import (
 	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
+
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
 
 // FetchPayoutByID returns a tool that fetches a payout by its ID
-func FetchPayoutByID(
-	_ *slog.Logger,
+func FetchPayout(
+	log *slog.Logger,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"payout_id",
-			mcpgo.Description("The unique identifier of the payout to fetch"),
+			mcpgo.Description(
+				"The unique identifier of the payout to fetch. Format: pout_ "+
+					"followed by alphanumeric characters (e.g., pout_qr2726363738)",
+			),
 			mcpgo.Required(),
 		),
 	}
@@ -26,34 +30,30 @@ func FetchPayoutByID(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validator := NewValidator(&r)
-		params := make(map[string]interface{})
+		payload := make(map[string]interface{})
 
-		// Validate required parameters
-		validator.ValidateAndAddRequiredString(params, "payout_id")
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "payout_id")
+
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		// Fetch the payout using Razorpay SDK
-		result, err := client.Payout.Fetch(params["payout_id"].(string), nil, nil)
+		payout, err := client.Payout.Fetch(
+			payload["payout_id"].(string),
+			nil,
+			nil,
+		)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payout failed: %s", err.Error()),
-			), nil
+				fmt.Sprintf("fetching payout failed: %s", err.Error())), nil
 		}
 
-		toolResult, err := mcpgo.NewToolResultJSON(result)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to marshal result: %s", err.Error()),
-			), nil
-		}
-		return toolResult, nil
+		return mcpgo.NewToolResultJSON(payout)
 	}
 
 	return mcpgo.NewTool(
-		"fetch_payout_by_id",
+		"fetch_payout_with_id",
 		"Fetch a payout's details using its ID",
 		parameters,
 		handler,
@@ -62,7 +62,7 @@ func FetchPayoutByID(
 
 // FetchAllPayouts returns a tool that fetches all payouts
 func FetchAllPayouts(
-	_ *slog.Logger,
+	log *slog.Logger,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -87,36 +87,28 @@ func FetchAllPayouts(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		validator := NewValidator(&r)
-		params := make(map[string]interface{})
+		payload := make(map[string]interface{})
 
-		// Validate required and optional parameters
-		validator.ValidateAndAddRequiredString(params, "account_number")
-		validator.ValidateAndAddPagination(params)
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "account_number").
+			ValidateAndAddPagination(payload)
+
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		// Fetch payouts using Razorpay SDK
-		result, err := client.Payout.All(params, nil)
+		payout, err := client.Payout.All(payload, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payouts failed: %s", err.Error()),
-			), nil
+				fmt.Sprintf("fetching payouts failed: %s", err.Error())), nil
 		}
 
-		toolResult, err := mcpgo.NewToolResultJSON(result)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to marshal result: %s", err.Error()),
-			), nil
-		}
-		return toolResult, nil
+		return mcpgo.NewToolResultJSON(payout)
 	}
 
 	return mcpgo.NewTool(
 		"fetch_all_payouts",
-		"Fetch all payouts for an account",
+		"Fetch all payouts for a bank account number",
 		parameters,
 		handler,
 	)
