@@ -193,7 +193,7 @@ func FetchMultipleRefundsForPayment(
 		mcpgo.WithString(
 			"payment_id",
 			mcpgo.Description("Unique identifier of the payment for which "+
-				"refunds are to be retrieved."),
+				"refunds are to be retrieved. ID should have a pay_ prefix."),
 			mcpgo.Required(),
 		),
 		mcpgo.WithNumber(
@@ -218,21 +218,21 @@ func FetchMultipleRefundsForPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		payload := make(map[string]interface{})
-		queryParams := make(map[string]interface{})
+		fetchReq := make(map[string]interface{})
+		fetchOptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(payload, "payment_id").
-			ValidateAndAddOptionalInt(queryParams, "from").
-			ValidateAndAddOptionalInt(queryParams, "to").
-			ValidateAndAddPagination(queryParams)
+			ValidateAndAddRequiredString(fetchReq, "payment_id").
+			ValidateAndAddOptionalInt(fetchOptions, "from").
+			ValidateAndAddOptionalInt(fetchOptions, "to").
+			ValidateAndAddPagination(fetchOptions)
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
 		refunds, err := client.Payment.FetchMultipleRefund(
-			payload["payment_id"].(string), queryParams, nil)
+			fetchReq["payment_id"].(string), fetchOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching multiple refunds failed: %s",
@@ -261,12 +261,13 @@ func FetchSpecificRefundForPayment(
 		mcpgo.WithString(
 			"payment_id",
 			mcpgo.Description("Unique identifier of the payment for which "+
-				"the refund has been made."),
+				"the refund has been made. ID should have a pay_ prefix."),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
 			"refund_id",
-			mcpgo.Description("Unique identifier of the refund to be retrieved."),
+			mcpgo.Description("Unique identifier of the refund to be retrieved. "+
+				"ID should have a rfnd_ prefix."),
 			mcpgo.Required(),
 		),
 	}
@@ -275,19 +276,19 @@ func FetchSpecificRefundForPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		payload := make(map[string]interface{})
+		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(payload, "payment_id").
-			ValidateAndAddRequiredString(payload, "refund_id")
+			ValidateAndAddRequiredString(params, "payment_id").
+			ValidateAndAddRequiredString(params, "refund_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
 		refund, err := client.Payment.FetchRefund(
-			payload["payment_id"].(string),
-			payload["refund_id"].(string),
+			params["payment_id"].(string),
+			params["refund_id"].(string),
 			nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
