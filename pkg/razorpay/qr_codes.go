@@ -340,3 +340,85 @@ func FetchQRCodesByPaymentID(
 		handler,
 	)
 }
+
+// FetchPaymentsForQRCode returns a tool that fetches payments made on a QR code
+func FetchPaymentsForQRCode(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"qr_code_id",
+			mcpgo.Description(
+				"The unique identifier of the QR Code to fetch payments for",
+			),
+			mcpgo.Required(),
+		),
+		mcpgo.WithNumber(
+			"from",
+			mcpgo.Description(
+				"Unix timestamp, in seconds, from when payments are to be retrieved",
+			),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithNumber(
+			"to",
+			mcpgo.Description(
+				"Unix timestamp, in seconds, till when payments are to be fetched",
+			),
+			mcpgo.Min(0),
+		),
+		mcpgo.WithNumber(
+			"count",
+			mcpgo.Description(
+				"Number of payments to be fetched (default: 10, max: 100)",
+			),
+			mcpgo.Min(1),
+			mcpgo.Max(100),
+		),
+		mcpgo.WithNumber(
+			"skip",
+			mcpgo.Description(
+				"Number of records to be skipped while fetching the payments",
+			),
+			mcpgo.Min(0),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		payload := make(map[string]interface{})
+		queryParams := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "qr_code_id").
+			ValidateAndAddOptionalInt(queryParams, "from").
+			ValidateAndAddOptionalInt(queryParams, "to").
+			ValidateAndAddOptionalInt(queryParams, "count").
+			ValidateAndAddOptionalInt(queryParams, "skip")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		qrCodeID := payload["qr_code_id"].(string)
+
+		// Fetch payments for QR code using Razorpay SDK
+		payments, err := client.QrCode.FetchPayments(qrCodeID, queryParams, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching payments for QR code failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(payments)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_payments_for_qr_code",
+		"Fetch all payments made on a QR code",
+		parameters,
+		handler,
+	)
+}

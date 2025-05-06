@@ -683,3 +683,112 @@ func TestFetchQRCode(t *testing.T) {
 		})
 	}
 }
+
+func TestFetchPaymentsForQRCode(t *testing.T) {
+	apiPath := "/" + constants.VERSION_V1 + constants.QRCODE_URL + "/qr_test123/payments"
+
+	successResponse := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(2),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":              "pay_test123",
+				"entity":          "payment",
+				"amount":          float64(500),
+				"currency":        "INR",
+				"status":          "captured",
+				"method":          "upi",
+				"amount_refunded": float64(0),
+				"refund_status":   nil,
+				"captured":        true,
+				"description":     "QRv2 Payment",
+				"customer_id":     "cust_test123",
+				"created_at":      float64(1623662800),
+			},
+			map[string]interface{}{
+				"id":              "pay_test456",
+				"entity":          "payment",
+				"amount":          float64(1000),
+				"currency":        "INR",
+				"status":          "refunded",
+				"method":          "upi",
+				"amount_refunded": float64(1000),
+				"refund_status":   "full",
+				"captured":        true,
+				"description":     "QRv2 Payment",
+				"customer_id":     "cust_test123",
+				"created_at":      float64(1623661533),
+			},
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful fetch payments for QR code",
+			Request: map[string]interface{}{
+				"qr_code_id": "qr_test123",
+				"count":      10,
+				"from":       1623661000,
+				"to":         1623663000,
+				"skip":       0,
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     apiPath,
+						Method:   "GET",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successResponse,
+		},
+		{
+			Name: "missing required parameter",
+			Request: map[string]interface{}{
+				"count": 10,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: qr_code_id",
+		},
+		{
+			Name: "invalid parameter type",
+			Request: map[string]interface{}{
+				"qr_code_id": 123,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: qr_code_id",
+		},
+		{
+			Name: "API error",
+			Request: map[string]interface{}{
+				"qr_code_id": "qr_test123",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   apiPath,
+						Method: "GET",
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "mock error",
+							},
+						},
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching payments for QR code failed: mock error",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchPaymentsForQRCode, "QR Code Payments")
+		})
+	}
+}
