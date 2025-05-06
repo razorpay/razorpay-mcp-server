@@ -39,18 +39,18 @@ func CreatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		payload := make(map[string]interface{})
+		paymentLinkCreateReq := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredFloat(payload, "amount").
-			ValidateAndAddRequiredString(payload, "currency").
-			ValidateAndAddOptionalString(payload, "description")
+			ValidateAndAddRequiredFloat(paymentLinkCreateReq, "amount").
+			ValidateAndAddRequiredString(paymentLinkCreateReq, "currency").
+			ValidateAndAddOptionalString(paymentLinkCreateReq, "description")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentLink, err := client.PaymentLink.Create(payload, nil)
+		paymentLink, err := client.PaymentLink.Create(paymentLinkCreateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("creating payment link failed: %s", err.Error())), nil // nolint:lll
@@ -68,7 +68,7 @@ func CreatePaymentLink(
 }
 
 // CreateUpiPaymentLink returns a tool that creates payment links in Razorpay
-func CreateUpiPaymentLink( // nolint:gocyclo
+func CreateUpiPaymentLink(
 	log *slog.Logger,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
@@ -141,151 +141,80 @@ func CreateUpiPaymentLink( // nolint:gocyclo
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// validate required parameters
-		amount, err := RequiredInt(r, "amount")
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
-		}
+		// Create a parameters map to collect validated parameters
+		params := make(map[string]interface{})
 
-		currency := "INR"
+		// Validate all parameters with fluent validator
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredInt(params, "amount").
+			ValidateAndAddOptionalString(params, "description").
+			ValidateAndAddOptionalBool(params, "accept_partial").
+			ValidateAndAddOptionalInt(params, "first_min_partial_amount").
+			ValidateAndAddOptionalInt(params, "expire_by").
+			ValidateAndAddOptionalString(params, "reference_id").
+			ValidateAndAddOptionalString(params, "customer_name").
+			ValidateAndAddOptionalString(params, "customer_email").
+			ValidateAndAddOptionalString(params, "customer_contact").
+			ValidateAndAddOptionalBool(params, "notify_sms").
+			ValidateAndAddOptionalBool(params, "notify_email").
+			ValidateAndAddOptionalBool(params, "reminder_enable").
+			ValidateAndAddOptionalMap(params, "notes").
+			ValidateAndAddOptionalString(params, "callback_url").
+			ValidateAndAddOptionalString(params, "callback_method")
 
-		// Create request payload
-		paymentLinkData := map[string]interface{}{
-			"amount":   amount,
-			"currency": currency,
-			"upi_link": "true",
-		}
-
-		// Add optional description if provided
-		desc, err := OptionalParam[string](r, "description")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if desc != "" {
-			paymentLinkData["description"] = desc
-		}
-
-		// Add optional accept_partial if provided
-		acceptPartial, err := OptionalParam[bool](r, "accept_partial")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if acceptPartial {
-			paymentLinkData["accept_partial"] = acceptPartial
-		}
-
-		// Add optional first_min_partial_amount if provided
-		firstMinPartialAmount, err := OptionalInt(r, "first_min_partial_amount")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if firstMinPartialAmount > 0 {
-			paymentLinkData["first_min_partial_amount"] = firstMinPartialAmount
-		}
-
-		// Add optional expire_by if provided
-		expireBy, err := OptionalInt(r, "expire_by")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if expireBy > 0 {
-			paymentLinkData["expire_by"] = expireBy
-		}
-
-		// Add optional reference_id if provided
-		referenceID, err := OptionalParam[string](r, "reference_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if referenceID != "" {
-			paymentLinkData["reference_id"] = referenceID
-		}
-
-		// Handle customer details if any are provided
-		customerName, err := OptionalParam[string](r, "customer_name")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		customerEmail, err := OptionalParam[string](r, "customer_email")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		customerContact, err := OptionalParam[string](r, "customer_contact")
-		if result, err := HandleValidationError(err); result != nil {
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		if customerName != "" || customerEmail != "" || customerContact != "" {
+		// Prepare the request data for the API call
+		upiPlCreateReq := make(map[string]interface{})
+
+		// Add the required UPI payment link parameters
+		upiPlCreateReq["amount"] = params["amount"]
+		upiPlCreateReq["currency"] = "INR" // UPI links only support INR
+		upiPlCreateReq["upi_link"] = "true"
+
+		// Handle customer details
+		hasCustomerName := hasParam(params, "customer_name")
+		hasCustomerEmail := hasParam(params, "customer_email")
+		hasCustomerContact := hasParam(params, "customer_contact")
+
+		if hasCustomerName || hasCustomerEmail || hasCustomerContact {
 			customer := make(map[string]interface{})
-			if customerName != "" {
-				customer["name"] = customerName
+
+			if hasCustomerName {
+				customer["name"] = params["customer_name"]
 			}
-			if customerEmail != "" {
-				customer["email"] = customerEmail
+			if hasCustomerEmail {
+				customer["email"] = params["customer_email"]
 			}
-			if customerContact != "" {
-				customer["contact"] = customerContact
+			if hasCustomerContact {
+				customer["contact"] = params["customer_contact"]
 			}
-			paymentLinkData["customer"] = customer
+
+			upiPlCreateReq["customer"] = customer
 		}
 
-		// Handle notification settings if any are provided
-		notify := make(map[string]interface{})
+		// Handle notification settings
+		hasNotifySms := hasParam(params, "notify_sms")
+		hasNotifyEmail := hasParam(params, "notify_email")
 
-		notifySMS, err := OptionalParam[bool](r, "notify_sms")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		notifyEmail, err := OptionalParam[bool](r, "notify_email")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if notifySMS {
-			notify["sms"] = notifySMS
-		}
-		if notifyEmail {
-			notify["email"] = notifyEmail
-		}
-		paymentLinkData["notify"] = notify
+		if (hasNotifySms && params["notify_sms"].(bool)) ||
+			(hasNotifyEmail && params["notify_email"].(bool)) {
+			notify := make(map[string]interface{})
 
-		// Add optional reminder_enable if provided
-		reminderEnable, err := OptionalParam[bool](r, "reminder_enable")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		paymentLinkData["reminder_enable"] = reminderEnable
-
-		// Add optional notes if provided
-		notes, err := OptionalParam[map[string]interface{}](r, "notes")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if len(notes) > 0 {
-			paymentLinkData["notes"] = notes
-		}
-
-		// Add optional callback_url if provided
-		callbackURL, err := OptionalParam[string](r, "callback_url")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if callbackURL != "" {
-			paymentLinkData["callback_url"] = callbackURL
-
-			// If callback_url is set, callback_method should be set to 'get'
-			callbackMethod, err := OptionalParam[string](r, "callback_method")
-			if result, err := HandleValidationError(err); result != nil {
-				return result, err
+			if hasNotifySms && params["notify_sms"].(bool) {
+				notify["sms"] = true
 			}
-			if callbackMethod != "" {
-				paymentLinkData["callback_method"] = callbackMethod
-			} else {
-				// Default to 'get' if not specified
-				paymentLinkData["callback_method"] = "get"
+			if hasNotifyEmail && params["notify_email"].(bool) {
+				notify["email"] = true
 			}
+
+			upiPlCreateReq["notify"] = notify
 		}
 
-		paymentLink, err := client.PaymentLink.Create(paymentLinkData, nil)
+		// Create the payment link
+		paymentLink, err := client.PaymentLink.Create(upiPlCreateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("upi pl create failed: %s", err.Error())), nil
@@ -300,6 +229,14 @@ func CreateUpiPaymentLink( // nolint:gocyclo
 		parameters,
 		handler,
 	)
+}
+
+// Helper functions for parameter handling
+
+// hasParam checks if a parameter exists and is not empty
+func hasParam(params map[string]interface{}, key string) bool {
+	val, exists := params[key]
+	return exists && val != nil
 }
 
 // FetchPaymentLink returns a tool that fetches payment link details using
@@ -321,17 +258,18 @@ func FetchPaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		payload := make(map[string]interface{})
+		plFetchReq := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(payload, "payment_link_id")
+			ValidateAndAddRequiredString(plFetchReq, "payment_link_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentLink, err := client.PaymentLink.Fetch(
-			payload["payment_link_id"].(string), nil, nil)
+		paymentLinkId := plFetchReq["payment_link_id"].(string)
+
+		paymentLink, err := client.PaymentLink.Fetch(paymentLinkId, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment link failed: %s", err.Error())), nil
@@ -375,16 +313,18 @@ func ResendPaymentLinkNotification(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Validate required parameters
-		paymentLinkID, err := RequiredParam[string](r, "payment_link_id")
-		if result, err := HandleValidationError(err); result != nil {
+		plNotifyReq := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(plNotifyReq, "payment_link_id").
+			ValidateAndAddRequiredString(plNotifyReq, "medium")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		medium, err := RequiredParam[string](r, "medium")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
+		paymentLinkId := plNotifyReq["payment_link_id"].(string)
+		medium := plNotifyReq["medium"].(string)
 
 		// Validate medium is either "sms" or "email"
 		if medium != "sms" && medium != "email" {
@@ -393,7 +333,7 @@ func ResendPaymentLinkNotification(
 		}
 
 		// Call the SDK function
-		response, err := client.PaymentLink.NotifyBy(paymentLinkID, medium, nil, nil)
+		response, err := client.PaymentLink.NotifyBy(paymentLinkId, medium, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("sending notification failed: %s", err.Error())), nil
@@ -451,58 +391,28 @@ func UpdatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Validate required parameters
-		paymentLinkID, err := RequiredParam[string](r, "payment_link_id")
-		if result, err := HandleValidationError(err); result != nil {
+		plUpdateReq := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(plUpdateReq, "payment_link_id").
+			ValidateAndAddOptionalString(plUpdateReq, "reference_id").
+			ValidateAndAddOptionalInt(plUpdateReq, "expire_by").
+			ValidateAndAddOptionalBool(plUpdateReq, "reminder_enable").
+			ValidateAndAddOptionalBool(plUpdateReq, "accept_partial").
+			ValidateAndAddOptionalMap(plUpdateReq, "notes")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		// Create update payload
+		paymentLinkId := plUpdateReq["payment_link_id"].(string)
+
+		// Create update data excluding payment_link_id
 		updateData := make(map[string]interface{})
-
-		// Add optional reference_id if provided
-		referenceID, err := OptionalParam[string](r, "reference_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if referenceID != "" {
-			updateData["reference_id"] = referenceID
-		}
-
-		// Add optional expire_by if provided
-		expireBy, err := OptionalInt(r, "expire_by")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if expireBy > 0 {
-			updateData["expire_by"] = expireBy
-		}
-
-		// Add optional reminder_enable if provided
-		reminderEnable, err := OptionalParam[bool](r, "reminder_enable")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if reminderEnable {
-			updateData["reminder_enable"] = reminderEnable
-		}
-
-		// Add optional accept_partial if provided
-		acceptPartial, err := OptionalParam[bool](r, "accept_partial")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if acceptPartial {
-			updateData["accept_partial"] = acceptPartial
-		}
-
-		// Add optional notes if provided
-		notes, err := OptionalParam[map[string]interface{}](r, "notes")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if len(notes) > 0 {
-			updateData["notes"] = notes
+		for k, v := range plUpdateReq {
+			if k != "payment_link_id" {
+				updateData[k] = v
+			}
 		}
 
 		// Ensure we have at least one field to update
@@ -512,7 +422,7 @@ func UpdatePaymentLink(
 		}
 
 		// Call the SDK function
-		paymentLink, err := client.PaymentLink.Update(paymentLinkID, updateData, nil)
+		paymentLink, err := client.PaymentLink.Update(paymentLinkId, updateData, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("updating payment link failed: %s", err.Error())), nil
@@ -550,32 +460,21 @@ func FetchAllPaymentLinks(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Create query parameters map
-		queryParams := make(map[string]interface{})
+		plListReq := make(map[string]interface{})
 
-		// Add optional payment_id if provided
-		paymentID, err := OptionalParam[string](r, "payment_id")
-		if result, err := HandleValidationError(err); result != nil {
-			return result, err
-		}
-		if paymentID != "" {
-			queryParams["payment_id"] = paymentID
-		}
+		validator := NewValidator(&r).
+			ValidateAndAddOptionalString(plListReq, "payment_id").
+			ValidateAndAddOptionalString(plListReq, "reference_id")
 
-		// Add optional reference_id if provided
-		referenceID, err := OptionalParam[string](r, "reference_id")
-		if result, err := HandleValidationError(err); result != nil {
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
-		}
-		if referenceID != "" {
-			queryParams["reference_id"] = referenceID
 		}
 
 		// To fetch all payment links, we'll use the API endpoint without a specific payment link ID
 		url := fmt.Sprintf("/%s%s", constants.VERSION_V1, constants.PaymentLink_URL)
 
 		// Call the API directly using the Request object
-		response, err := client.PaymentLink.Request.Get(url, queryParams, nil)
+		response, err := client.PaymentLink.Request.Get(url, plListReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment links failed: %s", err.Error())), nil
