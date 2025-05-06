@@ -545,7 +545,7 @@ func TestValidatorToFunctions(t *testing.T) {
 				} else {
 					// Target key should not exist
 					_, exists := target[tt.targetKey]
-					assert.False(t, exists, "Key should not be in target map when value is empty")
+					assert.False(t, exists, "Key should not be in target map when value is empty") // nolint:lll
 				}
 			}
 		})
