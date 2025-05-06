@@ -55,6 +55,7 @@ func NewToolSets(
 		AddReadTools(
 			FetchAllQRCodes(log, client),
 			FetchQRCodesByCustomerID(log, client),
+			FetchQRCodesByPaymentID(log, client),
 		).
 		AddWriteTools(
 			CreateQRCode(log, client),

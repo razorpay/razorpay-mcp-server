@@ -210,7 +210,7 @@ func FetchQRCodesByCustomerID(
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
-			"id",
+			"customer_id",
 			mcpgo.Description(
 				"The unique identifier of the customer",
 			),
@@ -225,7 +225,7 @@ func FetchQRCodesByCustomerID(
 		queryParams := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(queryParams, "id")
+			ValidateAndAddRequiredString(queryParams, "customer_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
@@ -244,6 +244,53 @@ func FetchQRCodesByCustomerID(
 	return mcpgo.NewTool(
 		"fetch_qr_codes_by_customer_id",
 		"Fetch all QR codes for a specific customer",
+		parameters,
+		handler,
+	)
+}
+
+// FetchQRCodesByPaymentID returns a tool that fetches QR codes
+// for a specific payment ID
+func FetchQRCodesByPaymentID(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_id",
+			mcpgo.Description(
+				"The unique identifier of the payment",
+			),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		queryParams := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(queryParams, "payment_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		// Fetch QR codes by payment ID using Razorpay SDK
+		qrCodes, err := client.QrCode.All(queryParams, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching QR codes failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(qrCodes)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_qr_codes_by_payment_id",
+		"Fetch all QR codes for a specific payment",
 		parameters,
 		handler,
 	)

@@ -430,7 +430,7 @@ func Test_FetchQRCodesByCustomerID(t *testing.T) {
 		{
 			Name: "successful fetch QR codes by customer ID",
 			Request: map[string]interface{}{
-				"id": "cust_HKsR5se84c5LTO",
+				"customer_id": "cust_HKsR5se84c5LTO",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -445,25 +445,25 @@ func Test_FetchQRCodesByCustomerID(t *testing.T) {
 			ExpectedResult: customerQRCodesResp,
 		},
 		{
-			Name:           "missing required id parameter",
+			Name:           "missing required customer_id parameter",
 			Request:        map[string]interface{}{},
 			MockHttpClient: nil,
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: id",
+			ExpectedErrMsg: "missing required parameter: customer_id",
 		},
 		{
-			Name: "validator error - invalid id parameter type",
+			Name: "validator error - invalid customer_id parameter type",
 			Request: map[string]interface{}{
-				"id": 12345,
+				"customer_id": 12345,
 			},
 			MockHttpClient: nil,
 			ExpectError:    true,
-			ExpectedErrMsg: "invalid parameter type: id",
+			ExpectedErrMsg: "invalid parameter type: customer_id",
 		},
 		{
 			Name: "API error - invalid customer ID",
 			Request: map[string]interface{}{
-				"id": "invalid_customer_id",
+				"customer_id": "invalid_customer_id",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -483,6 +483,107 @@ func Test_FetchQRCodesByCustomerID(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			runToolTest(t, tc, FetchQRCodesByCustomerID, "QR Codes by Customer ID")
+		})
+	}
+}
+
+func Test_FetchQRCodesByPaymentID(t *testing.T) {
+	qrCodesPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.QRCODE_URL,
+	)
+
+	paymentQRCodesResp := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(1),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":                       "qr_HMsqRoeVwKbwAF",
+				"entity":                   "qr_code",
+				"created_at":               float64(1623661499),
+				"name":                     "Fresh Groceries",
+				"usage":                    "multiple_use",
+				"type":                     "upi_qr",
+				"image_url":                "https://rzp.io/i/eI9XD54Q",
+				"payment_amount":           nil,
+				"status":                   "active",
+				"description":              "Buy fresh groceries",
+				"fixed_amount":             false,
+				"payments_amount_received": float64(1000),
+				"payments_count_received":  float64(1),
+				"notes":                    []interface{}{},
+				"customer_id":              "cust_HKsR5se84c5LTO",
+				"close_by":                 float64(1624472999),
+				"close_reason":             nil,
+			},
+		},
+	}
+
+	errorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "The id provided is not a valid id",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful fetch QR codes by payment ID",
+			Request: map[string]interface{}{
+				"payment_id": "pay_Di5iqCqA1WEHq6",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     qrCodesPath,
+						Method:   "GET",
+						Response: paymentQRCodesResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: paymentQRCodesResp,
+		},
+		{
+			Name:           "missing required payment_id parameter",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
+		},
+		{
+			Name: "validator error - invalid payment_id parameter type",
+			Request: map[string]interface{}{
+				"payment_id": 12345,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: payment_id",
+		},
+		{
+			Name: "API error - invalid payment ID",
+			Request: map[string]interface{}{
+				"payment_id": "invalid_payment_id",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     qrCodesPath,
+						Method:   "GET",
+						Response: errorResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "fetching QR codes failed: " +
+				"The id provided is not a valid id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchQRCodesByPaymentID, "QR Codes by Payment ID")
 		})
 	}
 }
