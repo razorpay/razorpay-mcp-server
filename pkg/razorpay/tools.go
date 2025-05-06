@@ -53,6 +53,7 @@ func NewToolSets(
 
 	qrCodes := toolsets.NewToolset("qr_codes", "Razorpay QR Codes related tools").
 		AddReadTools(
+			FetchQRCode(log, client),
 			FetchAllQRCodes(log, client),
 			FetchQRCodesByCustomerID(log, client),
 			FetchQRCodesByPaymentID(log, client),

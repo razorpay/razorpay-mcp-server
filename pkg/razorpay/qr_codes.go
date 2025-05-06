@@ -130,6 +130,51 @@ func CreateQRCode(
 	)
 }
 
+// FetchQRCode returns a tool that fetches a specific QR code by ID
+func FetchQRCode(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"qr_code_id",
+			mcpgo.Description(
+				"Unique identifier of the QR Code to be retrieved",
+			),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		payload := make(map[string]interface{})
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "qr_code_id")
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+		qrCodeID := payload["qr_code_id"].(string)
+
+		// Fetch QR code by ID using Razorpay SDK
+		qrCode, err := client.QrCode.Fetch(qrCodeID, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching QR code failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(qrCode)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_qr_code",
+		"Fetch a QR code's details using it's ID",
+		parameters,
+		handler,
+	)
+}
+
 // FetchAllQRCodes returns a tool that fetches all QR codes
 // with pagination support
 func FetchAllQRCodes(

@@ -587,3 +587,99 @@ func Test_FetchQRCodesByPaymentID(t *testing.T) {
 		})
 	}
 }
+
+func TestFetchQRCode(t *testing.T) {
+	// Initialize necessary variables
+	qrID := "qr_FuZIYx6rMbP6gs"
+	apiPath := fmt.Sprintf("/%s%s/%s", constants.VERSION_V1, constants.QRCODE_URL, qrID)
+
+	// Successful response based on Razorpay docs
+	successResponse := map[string]interface{}{
+		"id":                       qrID,
+		"entity":                   "qr_code",
+		"created_at":               float64(1623915088),
+		"name":                     "Store_1",
+		"usage":                    "single_use",
+		"type":                     "upi_qr",
+		"image_url":                "https://rzp.io/i/oCswTOcCo",
+		"payment_amount":           float64(300),
+		"status":                   "active",
+		"description":              "For Store 1",
+		"fixed_amount":             true,
+		"payments_amount_received": float64(0),
+		"payments_count_received":  float64(0),
+		"notes": map[string]interface{}{
+			"purpose": "Test UPI QR Code notes",
+		},
+		"customer_id":  "cust_HKsR5se84c5LTO",
+		"close_by":     float64(1681615838),
+		"closed_at":    nil,
+		"close_reason": nil,
+	}
+
+	errorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "The QR code ID provided is invalid",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful fetch QR code by ID",
+			Request: map[string]interface{}{
+				"qr_code_id": qrID,
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     apiPath,
+						Method:   "GET",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successResponse,
+		},
+		{
+			Name:           "missing required qr_code_id parameter",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: qr_code_id",
+		},
+		{
+			Name: "validator error - invalid qr_code_id parameter type",
+			Request: map[string]interface{}{
+				"qr_code_id": 12345,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: qr_code_id",
+		},
+		{
+			Name: "API error - invalid QR code ID",
+			Request: map[string]interface{}{
+				"qr_code_id": qrID,
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     apiPath,
+						Method:   "GET",
+						Response: errorResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching QR code failed: The QR code ID provided is invalid",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchQRCode, "QR Code")
+		})
+	}
+}
