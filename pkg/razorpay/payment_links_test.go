@@ -370,16 +370,6 @@ func Test_ResendPaymentLinkNotification(t *testing.T) {
 			ExpectedResult: successResponse,
 		},
 		{
-			Name: "invalid medium",
-			Request: map[string]interface{}{
-				"payment_link_id": "plink_ExjpAUN3gVHrPJ",
-				"medium":          "invalid",
-			},
-			MockHttpClient: nil, // No HTTP client needed for validation error
-			ExpectError:    true,
-			ExpectedErrMsg: "medium must be either 'sms' or 'email'",
-		},
-		{
 			Name: "missing payment_link_id parameter",
 			Request: map[string]interface{}{
 				"medium": "sms",

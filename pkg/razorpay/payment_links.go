@@ -3,7 +3,6 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"github.com/razorpay/razorpay-go/constants"
 	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
@@ -245,16 +244,16 @@ func FetchPaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		plFetchReq := make(map[string]interface{})
+		fields := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(plFetchReq, "payment_link_id")
+			ValidateAndAddRequiredString(fields, "payment_link_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentLinkId := plFetchReq["payment_link_id"].(string)
+		paymentLinkId := fields["payment_link_id"].(string)
 
 		paymentLink, err := client.PaymentLink.Fetch(paymentLinkId, nil, nil)
 		if err != nil {
@@ -267,8 +266,9 @@ func FetchPaymentLink(
 
 	return mcpgo.NewTool(
 		"fetch_payment_link",
-		"Fetch payment link details using it's ID."+
-			"Response contains the basic details like amount, status etc",
+		"Fetch payment link details using it's ID. "+
+			"Response contains the basic details like amount, status etc. "+
+			"The link could be of any type(standard or UPI)",
 		parameters,
 		handler,
 	)
@@ -300,24 +300,18 @@ func ResendPaymentLinkNotification(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		plNotifyReq := make(map[string]interface{})
+		fields := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(plNotifyReq, "payment_link_id").
-			ValidateAndAddRequiredString(plNotifyReq, "medium")
+			ValidateAndAddRequiredString(fields, "payment_link_id").
+			ValidateAndAddRequiredString(fields, "medium")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		paymentLinkId := plNotifyReq["payment_link_id"].(string)
-		medium := plNotifyReq["medium"].(string)
-
-		// Validate medium is either "sms" or "email"
-		if medium != "sms" && medium != "email" {
-			return mcpgo.NewToolResultError(
-				"medium must be either 'sms' or 'email'"), nil
-		}
+		paymentLinkId := fields["payment_link_id"].(string)
+		medium := fields["medium"].(string)
 
 		// Call the SDK function
 		response, err := client.PaymentLink.NotifyBy(paymentLinkId, medium, nil, nil)
@@ -413,7 +407,7 @@ func UpdatePaymentLink(
 
 	return mcpgo.NewTool(
 		"update_payment_link",
-		"Update an existing standard payment link with new details such as reference ID, "+
+		"Update any existing standard or UPI payment link with new details such as reference ID, "+ // nolint:lll
 			"expiry date, or notes.",
 		parameters,
 		handler,
@@ -434,6 +428,12 @@ func FetchAllPaymentLinks(
 			"reference_id",
 			mcpgo.Description("Optional: Filter by reference ID used when creating payment links"),
 		),
+		mcpgo.WithNumber(
+			"upi_link",
+			mcpgo.Description("Optional: Filter only upi links. "+
+				"Value should be 1 if you want only upi links, 0 for only standard links"+
+				"If not provided, all types of links will be returned"),
+		),
 	}
 
 	handler := func(
@@ -444,17 +444,15 @@ func FetchAllPaymentLinks(
 
 		validator := NewValidator(&r).
 			ValidateAndAddOptionalString(plListReq, "payment_id").
-			ValidateAndAddOptionalString(plListReq, "reference_id")
+			ValidateAndAddOptionalString(plListReq, "reference_id").
+			ValidateAndAddOptionalInt(plListReq, "upi_link")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		// To fetch all payment links, we'll use the API endpoint without a specific payment link ID
-		url := fmt.Sprintf("/%s%s", constants.VERSION_V1, constants.PaymentLink_URL)
-
 		// Call the API directly using the Request object
-		response, err := client.PaymentLink.Request.Get(url, plListReq, nil)
+		response, err := client.PaymentLink.All(plListReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payment links failed: %s", err.Error())), nil
@@ -465,7 +463,8 @@ func FetchAllPaymentLinks(
 
 	return mcpgo.NewTool(
 		"fetch_all_payment_links",
-		"Fetch all payment links with optional filtering by payment ID or reference ID",
+		"Fetch all payment links with optional filtering by payment ID or reference ID."+ // nolint:lll
+			"You can specify the upi_link parameter to filter by link type.",
 		parameters,
 		handler,
 	)
