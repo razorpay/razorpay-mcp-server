@@ -51,10 +51,21 @@ func NewToolSets(
 			UpdateRefund(log, client),
 		)
 
-	settlements := toolsets.NewToolset(
-		"settlements",
-		"Razorpay Settlements related tools").
+	qrCodes := toolsets.NewToolset("qr_codes", "Razorpay QR Codes related tools").
 		AddReadTools(
+			FetchQRCode(log, client),
+			FetchAllQRCodes(log, client),
+			FetchQRCodesByCustomerID(log, client),
+			FetchQRCodesByPaymentID(log, client),
+			FetchPaymentsForQRCode(log, client),
+		).
+		AddWriteTools(
+			CreateQRCode(log, client),
+			CloseQRCode(log, client),
+		)
+
+	settlements := toolsets.NewToolset("settlements", "Razorpay Settlements related tools"). // nolint:lll
+													AddReadTools(
 			FetchSettlement(log, client),
 			FetchSettlementRecon(log, client),
 			FetchAllSettlements(log, client),
@@ -70,6 +81,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
 	toolsetGroup.AddToolset(refunds)
+	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
 
 	// Enable the requested features
