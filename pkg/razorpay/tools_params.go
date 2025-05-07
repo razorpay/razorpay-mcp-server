@@ -49,27 +49,6 @@ func (v *Validator) HandleErrorsIfAny() (*mcpgo.ToolResult, error) {
 	return nil, nil
 }
 
-// Common isEmpty functions for different types
-func isEmptyString(s string) bool {
-	return s == ""
-}
-
-func isEmptyMap(m map[string]interface{}) bool {
-	return len(m) == 0
-}
-
-func isEmptyArray(a []interface{}) bool {
-	return len(a) == 0
-}
-
-func isZeroInt(i int64) bool {
-	return i == 0
-}
-
-func isZeroFloat(f float64) bool {
-	return f == 0
-}
-
 // extractValueGeneric is a standalone generic function to extract a parameter
 // of type T
 func extractValueGeneric[T any](
