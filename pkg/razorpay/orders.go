@@ -201,7 +201,6 @@ func FetchAllOrders(
 			ValidateAndAddOptionalInt(queryParams, "to").
 			ValidateAndAddOptionalInt(queryParams, "authorized").
 			ValidateAndAddOptionalString(queryParams, "receipt").
-			ValidateAndAddOptionalArray(queryParams, "expand").
 			ValidateAndAddExpand(queryParams)
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
