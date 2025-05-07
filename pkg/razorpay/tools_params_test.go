@@ -52,7 +52,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalString,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    "",
 			expectKey:      "test_param",
 		},
 
@@ -81,7 +81,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalInt,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    int64(0), // we expect the zero values as is
 			expectKey:      "test_param",
 		},
 
@@ -110,7 +110,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalFloat,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    float64(0),
 			expectKey:      "test_param",
 		},
 
@@ -183,7 +183,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalMap,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    map[string]interface{}{},
 			expectKey:      "test_param",
 		},
 
@@ -216,7 +216,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalArray,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    []interface{}{},
 			expectKey:      "test_param",
 		},
 
@@ -255,16 +255,11 @@ func TestValidator(t *testing.T) {
 				assert.True(t, validator.HasErrors(), "Expected validation error")
 			} else {
 				assert.False(t, validator.HasErrors(), "Did not expect validation error")
-				if tt.expectValue != nil {
-					assert.Equal(t,
-						tt.expectValue,
-						result[tt.expectKey],
-						"Parameter value mismatch",
-					)
-				} else {
-					_, exists := result[tt.expectKey]
-					assert.False(t, exists, "Parameter should not be added when empty")
-				}
+				assert.Equal(t,
+					tt.expectValue,
+					result[tt.expectKey],
+					"Parameter value mismatch",
+				)
 			}
 		})
 	}
@@ -291,8 +286,8 @@ func TestValidatorPagination(t *testing.T) {
 		{
 			name:        "zero pagination params",
 			args:        map[string]interface{}{"count": float64(0), "skip": float64(0)},
-			expectCount: nil,
-			expectSkip:  nil,
+			expectCount: int64(0),
+			expectSkip:  int64(0),
 			expectError: false,
 		},
 		{
@@ -425,7 +420,7 @@ func TestValidatorToFunctions(t *testing.T) {
 			paramName:   "customer_name",
 			targetKey:   "name",
 			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
-			expectValue: nil,
+			expectValue: "",
 			expectError: false,
 		},
 		{
@@ -492,7 +487,7 @@ func TestValidatorToFunctions(t *testing.T) {
 			paramName:   "age",
 			targetKey:   "customer_age",
 			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
-			expectValue: nil,
+			expectValue: int64(0),
 			expectError: false,
 		},
 		{
