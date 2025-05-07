@@ -49,55 +49,33 @@ func (v *Validator) HandleErrorsIfAny() (*mcpgo.ToolResult, error) {
 	return nil, nil
 }
 
-// Common isEmpty functions for different types
-func isEmptyString(s string) bool {
-	return s == ""
-}
-
-func isEmptyMap(m map[string]interface{}) bool {
-	return len(m) == 0
-}
-
-func isEmptyArray(a []interface{}) bool {
-	return len(a) == 0
-}
-
-func isZeroInt(i int64) bool {
-	return i == 0
-}
-
-func isZeroFloat(f float64) bool {
-	return f == 0
-}
-
 // extractValueGeneric is a standalone generic function to extract a parameter
 // of type T
 func extractValueGeneric[T any](
 	request *mcpgo.CallToolRequest,
 	name string,
 	required bool,
-) (T, error) {
-	var zero T
+) (*T, error) {
 	val, ok := request.Arguments[name]
 	if !ok || val == nil {
 		if required {
-			return zero, errors.New("missing required parameter: " + name)
+			return nil, errors.New("missing required parameter: " + name)
 		}
-		return zero, nil // Not an error for optional params
+		return nil, nil // Not an error for optional params
 	}
 
 	var result T
 	data, err := json.Marshal(val)
 	if err != nil {
-		return zero, errors.New("invalid parameter type: " + name)
+		return nil, errors.New("invalid parameter type: " + name)
 	}
 
 	err = json.Unmarshal(data, &result)
 	if err != nil {
-		return zero, errors.New("invalid parameter type: " + name)
+		return nil, errors.New("invalid parameter type: " + name)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 // Generic validation functions
@@ -112,7 +90,12 @@ func validateAndAddRequired[T any](
 	if err != nil {
 		return v.addError(err)
 	}
-	params[name] = value
+
+	if value == nil {
+		return v
+	}
+
+	params[name] = *value
 	return v
 }
 
@@ -122,17 +105,80 @@ func validateAndAddOptional[T any](
 	v *Validator,
 	params map[string]interface{},
 	name string,
-	isEmpty func(T) bool,
 ) *Validator {
 	value, err := extractValueGeneric[T](v.request, name, false)
 	if err != nil {
 		return v.addError(err)
 	}
 
-	if !isEmpty(value) {
-		params[name] = value
+	if value == nil {
+		return v
 	}
+
+	params[name] = *value
+
 	return v
+}
+
+// validateAndAddToPath is a generic helper to extract a value and write it into
+// `target[targetKey]` if non-empty
+func validateAndAddToPath[T any](
+	v *Validator,
+	target map[string]interface{},
+	paramName string,
+	targetKey string,
+) *Validator {
+	value, err := extractValueGeneric[T](v.request, paramName, false)
+	if err != nil {
+		return v.addError(err)
+	}
+
+	if value == nil {
+		return v
+	}
+
+	target[targetKey] = *value
+
+	return v
+}
+
+// ValidateAndAddOptionalStringToPath validates an optional string
+// and writes it into target[targetKey]
+func (v *Validator) ValidateAndAddOptionalStringToPath(
+	target map[string]interface{},
+	paramName, targetKey string,
+) *Validator {
+	return validateAndAddToPath[string](v, target, paramName, targetKey) // nolint:lll
+}
+
+// ValidateAndAddOptionalBoolToPath validates an optional bool
+// and writes it into target[targetKey]
+// only if it was explicitly provided in the request
+func (v *Validator) ValidateAndAddOptionalBoolToPath(
+	target map[string]interface{},
+	paramName, targetKey string,
+) *Validator {
+	// Now validate and add the parameter
+	value, err := extractValueGeneric[bool](v.request, paramName, false)
+	if err != nil {
+		return v.addError(err)
+	}
+
+	if value == nil {
+		return v
+	}
+
+	target[targetKey] = *value
+	return v
+}
+
+// ValidateAndAddOptionalIntToPath validates an optional integer
+// and writes it into target[targetKey]
+func (v *Validator) ValidateAndAddOptionalIntToPath(
+	target map[string]interface{},
+	paramName, targetKey string,
+) *Validator {
+	return validateAndAddToPath[int64](v, target, paramName, targetKey)
 }
 
 // Type-specific validator methods
@@ -150,7 +196,7 @@ func (v *Validator) ValidateAndAddOptionalString(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional(v, params, name, isEmptyString)
+	return validateAndAddOptional[string](v, params, name)
 }
 
 // ValidateAndAddRequiredMap validates and adds a required map parameter
@@ -166,9 +212,7 @@ func (v *Validator) ValidateAndAddOptionalMap(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional(
-		v, params, name, isEmptyMap,
-	)
+	return validateAndAddOptional[map[string]interface{}](v, params, name)
 }
 
 // ValidateAndAddRequiredArray validates and adds a required array parameter
@@ -184,7 +228,7 @@ func (v *Validator) ValidateAndAddOptionalArray(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional(v, params, name, isEmptyArray)
+	return validateAndAddOptional[[]interface{}](v, params, name)
 }
 
 // ValidateAndAddPagination validates and adds pagination parameters
@@ -205,8 +249,12 @@ func (v *Validator) ValidateAndAddExpand(
 		return v.addError(err)
 	}
 
-	if len(expand) > 0 {
-		for _, val := range expand {
+	if expand == nil {
+		return v
+	}
+
+	if len(*expand) > 0 {
+		for _, val := range *expand {
 			params["expand[]"] = val
 		}
 	}
@@ -226,7 +274,7 @@ func (v *Validator) ValidateAndAddOptionalInt(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional(v, params, name, isZeroInt)
+	return validateAndAddOptional[int64](v, params, name)
 }
 
 // ValidateAndAddRequiredFloat validates and adds a required float parameter
@@ -242,7 +290,7 @@ func (v *Validator) ValidateAndAddOptionalFloat(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional(v, params, name, isZeroFloat)
+	return validateAndAddOptional[float64](v, params, name)
 }
 
 // ValidateAndAddRequiredBool validates and adds a required boolean parameter
@@ -254,15 +302,22 @@ func (v *Validator) ValidateAndAddRequiredBool(
 }
 
 // ValidateAndAddOptionalBool validates and adds an optional boolean parameter
-// Note: This adds the boolean value regardless of whether it's true or false
+// Note: This adds the boolean value only
+// if it was explicitly provided in the request
 func (v *Validator) ValidateAndAddOptionalBool(
 	params map[string]interface{},
 	name string,
 ) *Validator {
+	// Now validate and add the parameter
 	value, err := extractValueGeneric[bool](v.request, name, false)
 	if err != nil {
 		return v.addError(err)
 	}
-	params[name] = value
+
+	if value == nil {
+		return v
+	}
+
+	params[name] = *value
 	return v
 }
