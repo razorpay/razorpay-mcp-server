@@ -21,6 +21,12 @@ func NewToolSets(
 	payments := toolsets.NewToolset("payments", "Razorpay Payments related tools").
 		AddReadTools(
 			FetchPayment(log, client),
+			FetchPaymentCardDetails(log, client),
+			FetchAllPayments(log, client),
+		).
+		AddWriteTools(
+			CapturePayment(log, client),
+			UpdatePayment(log, client),
 		)
 
 	paymentLinks := toolsets.NewToolset(
