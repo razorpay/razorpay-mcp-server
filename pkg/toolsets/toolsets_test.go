@@ -34,13 +34,11 @@ func TestEnableToolset(t *testing.T) {
 
 	// Test enabling existing toolset
 	err := tg.EnableToolset("test")
-
 	assert.NoError(t, err)
 	assert.True(t, ts.Enabled)
 
 	// Test enabling non-existent toolset
 	err = tg.EnableToolset("nonexistent")
-
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "does not exist")
 }
