@@ -64,32 +64,29 @@ func FetchSettlementRecon(
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
-		mcpgo.WithString(
+		mcpgo.WithNumber(
 			"year",
 			mcpgo.Description("Year for which the settlement report is "+
 				"requested (YYYY format)"),
 			mcpgo.Required(),
-			mcpgo.Pattern("^[0-9]{4}$"),
 		),
-		mcpgo.WithString(
+		mcpgo.WithNumber(
 			"month",
 			mcpgo.Description("Month for which the settlement report is "+
 				"requested (MM format)"),
 			mcpgo.Required(),
-			mcpgo.Pattern("^[0-9]{1,2}$"),
 		),
-		mcpgo.WithString(
+		mcpgo.WithNumber(
 			"day",
 			mcpgo.Description("Optional: Day for which the settlement report is "+
 				"requested (DD format)"),
-			mcpgo.Pattern("^[0-9]{1,2}$"),
 		),
-		mcpgo.WithString(
+		mcpgo.WithNumber(
 			"count",
 			mcpgo.Description("Optional: Number of records to fetch "+
 				"(default: 10, max: 100)"),
 		),
-		mcpgo.WithString(
+		mcpgo.WithNumber(
 			"skip",
 			mcpgo.Description("Optional: Number of records to skip for pagination"),
 		),
@@ -100,21 +97,20 @@ func FetchSettlementRecon(
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
 		// Create a parameters map to collect validated parameters
-		fetchSettlementReconOptions := make(map[string]interface{})
+		fetchReconOptions := make(map[string]interface{})
 
 		// Validate using fluent validator
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(fetchSettlementReconOptions, "year").
-			ValidateAndAddRequiredString(fetchSettlementReconOptions, "month").
-			ValidateAndAddOptionalString(fetchSettlementReconOptions, "day").
-			ValidateAndAddOptionalString(fetchSettlementReconOptions, "count").
-			ValidateAndAddOptionalString(fetchSettlementReconOptions, "skip")
+			ValidateAndAddRequiredInt(fetchReconOptions, "year").
+			ValidateAndAddRequiredInt(fetchReconOptions, "month").
+			ValidateAndAddOptionalInt(fetchReconOptions, "day").
+			ValidateAndAddPagination(fetchReconOptions)
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		report, err := client.Settlement.Reports(fetchSettlementReconOptions, nil)
+		report, err := client.Settlement.Reports(fetchReconOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching settlement reconciliation report failed: %s",

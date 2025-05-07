@@ -121,11 +121,11 @@ func Test_FetchSettlementRecon(t *testing.T) {
 		{
 			Name: "successful settlement reconciliation fetch",
 			Request: map[string]interface{}{
-				"year":  "2022",
-				"month": "10",
-				"day":   "15",
-				"count": "10",
-				"skip":  "0",
+				"year":  float64(2022),
+				"month": float64(10),
+				"day":   float64(15),
+				"count": float64(10),
+				"skip":  float64(0),
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -142,8 +142,8 @@ func Test_FetchSettlementRecon(t *testing.T) {
 		{
 			Name: "settlement reconciliation with required params only",
 			Request: map[string]interface{}{
-				"year":  "2022",
-				"month": "10",
+				"year":  float64(2022),
+				"month": float64(10),
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -160,7 +160,7 @@ func Test_FetchSettlementRecon(t *testing.T) {
 		{
 			Name: "settlement reconciliation with invalid params",
 			Request: map[string]interface{}{
-				"year": "2022",
+				"year": float64(2022),
 				// missing month parameter
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
