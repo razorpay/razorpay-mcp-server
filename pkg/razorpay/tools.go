@@ -45,6 +45,9 @@ func NewToolSets(
 	refunds := toolsets.NewToolset("refunds", "Razorpay Refunds related tools").
 		AddReadTools(
 			FetchRefund(log, client),
+			FetchMultipleRefundsForPayment(log, client),
+			FetchSpecificRefundForPayment(log, client),
+			FetchAllRefunds(log, client),
 		).
 		AddWriteTools(
 			CreateRefund(log, client),
