@@ -38,8 +38,6 @@ Currently, the Razorpay MCP Server provides the following tools:
 
 
 
-
-
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
 - Agentic Applications: Building AI powered tools that interact with Razorpay's payment ecosystem using this Razorpay MCP server.
