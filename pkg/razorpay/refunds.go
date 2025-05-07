@@ -26,6 +26,8 @@ func CreateRefund(
 			"amount",
 			mcpgo.Description("Payment amount in the smallest currency unit "+
 				"(e.g., for ₹295, use 29500)"),
+			mcpgo.Required(),
+			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
 		mcpgo.WithString(
 			"speed",
