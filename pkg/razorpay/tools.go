@@ -51,10 +51,38 @@ func NewToolSets(
 	refunds := toolsets.NewToolset("refunds", "Razorpay Refunds related tools").
 		AddReadTools(
 			FetchRefund(log, client),
+			FetchMultipleRefundsForPayment(log, client),
+			FetchSpecificRefundForPayment(log, client),
+			FetchAllRefunds(log, client),
 		).
 		AddWriteTools(
 			CreateRefund(log, client),
 			UpdateRefund(log, client),
+		)
+
+	qrCodes := toolsets.NewToolset("qr_codes", "Razorpay QR Codes related tools").
+		AddReadTools(
+			FetchQRCode(log, client),
+			FetchAllQRCodes(log, client),
+			FetchQRCodesByCustomerID(log, client),
+			FetchQRCodesByPaymentID(log, client),
+			FetchPaymentsForQRCode(log, client),
+		).
+		AddWriteTools(
+			CreateQRCode(log, client),
+			CloseQRCode(log, client),
+		)
+
+	settlements := toolsets.NewToolset("settlements", "Razorpay Settlements related tools"). // nolint:lll
+													AddReadTools(
+			FetchSettlement(log, client),
+			FetchSettlementRecon(log, client),
+			FetchAllSettlements(log, client),
+			FetchAllInstantSettlements(log, client),
+			FetchInstantSettlement(log, client),
+		).
+		AddWriteTools(
+			CreateInstantSettlement(log, client),
 		)
 
 	// Add toolsets to the group
@@ -62,6 +90,8 @@ func NewToolSets(
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
 	toolsetGroup.AddToolset(refunds)
+	toolsetGroup.AddToolset(qrCodes)
+	toolsetGroup.AddToolset(settlements)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
