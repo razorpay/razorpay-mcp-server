@@ -235,7 +235,7 @@ func FetchOrderPayments(
 			"order_id",
 			mcpgo.Description(
 				"Unique identifier of the order for which payments should"+
-					" be retrieved"),
+					" be retrieved. Order id should start with `order_`"),
 			mcpgo.Required(),
 		),
 	}
