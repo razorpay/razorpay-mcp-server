@@ -400,3 +400,266 @@ func Test_FetchAllOrders(t *testing.T) {
 		})
 	}
 }
+
+func Test_FetchOrderPayments(t *testing.T) {
+	fetchOrderPaymentsPathFmt := fmt.Sprintf(
+		"/%s%s/%%s/payments",
+		constants.VERSION_V1,
+		constants.ORDER_URL,
+	)
+
+	// Define the sample response for order payments
+	paymentsResp := map[string]interface{}{
+		"entity": "collection",
+		"count":  float64(2),
+		"items": []interface{}{
+			map[string]interface{}{
+				"id":              "pay_N8FUmetkCE2hZP",
+				"entity":          "payment",
+				"amount":          float64(100),
+				"currency":        "INR",
+				"status":          "failed",
+				"order_id":        "order_N8FRN5zTm5S3wx",
+				"invoice_id":      nil,
+				"international":   false,
+				"method":          "upi",
+				"amount_refunded": float64(0),
+				"refund_status":   nil,
+				"captured":        false,
+				"description":     nil,
+				"card_id":         nil,
+				"bank":            nil,
+				"wallet":          nil,
+				"vpa":             "failure@razorpay",
+				"email":           "void@razorpay.com",
+				"contact":         "+919999999999",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey… decaf.",
+				},
+				"fee":               nil,
+				"tax":               nil,
+				"error_code":        "BAD_REQUEST_ERROR",
+				"error_description": "Payment was unsuccessful due to a temporary issue.",
+				"error_source":      "gateway",
+				"error_step":        "payment_response",
+				"error_reason":      "payment_failed",
+				"acquirer_data": map[string]interface{}{
+					"rrn": nil,
+				},
+				"created_at": float64(1701688684),
+				"upi": map[string]interface{}{
+					"vpa": "failure@razorpay",
+				},
+			},
+			map[string]interface{}{
+				"id":              "pay_N8FVRD1DzYzBh1",
+				"entity":          "payment",
+				"amount":          float64(100),
+				"currency":        "INR",
+				"status":          "captured",
+				"order_id":        "order_N8FRN5zTm5S3wx",
+				"invoice_id":      nil,
+				"international":   false,
+				"method":          "upi",
+				"amount_refunded": float64(0),
+				"refund_status":   nil,
+				"captured":        true,
+				"description":     nil,
+				"card_id":         nil,
+				"bank":            nil,
+				"wallet":          nil,
+				"vpa":             "success@razorpay",
+				"email":           "void@razorpay.com",
+				"contact":         "+919999999999",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey… decaf.",
+				},
+				"fee":               float64(2),
+				"tax":               float64(0),
+				"error_code":        nil,
+				"error_description": nil,
+				"error_source":      nil,
+				"error_step":        nil,
+				"error_reason":      nil,
+				"acquirer_data": map[string]interface{}{
+					"rrn":                "267567962619",
+					"upi_transaction_id": "F5B66C7C07CA6FEAD77E956DC2FC7ABE",
+				},
+				"created_at": float64(1701688721),
+				"upi": map[string]interface{}{
+					"vpa": "success@razorpay",
+				},
+			},
+		},
+	}
+
+	orderNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "order not found",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful fetch of order payments",
+			Request: map[string]interface{}{
+				"order_id": "order_N8FRN5zTm5S3wx",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchOrderPaymentsPathFmt,
+							"order_N8FRN5zTm5S3wx",
+						),
+						Method:   "GET",
+						Response: paymentsResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: paymentsResp,
+		},
+		{
+			Name: "order not found",
+			Request: map[string]interface{}{
+				"order_id": "order_invalid",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchOrderPaymentsPathFmt,
+							"order_invalid",
+						),
+						Method:   "GET",
+						Response: orderNotFoundResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching payments for order failed: order not found",
+		},
+		{
+			Name:           "missing order_id parameter",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: order_id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, FetchOrderPayments, "Order")
+		})
+	}
+}
+
+func Test_UpdateOrder(t *testing.T) {
+	updateOrderPathFmt := fmt.Sprintf(
+		"/%s%s/%%s",
+		constants.VERSION_V1,
+		constants.ORDER_URL,
+	)
+
+	updatedOrderResp := map[string]interface{}{
+		"id":         "order_EKwxwAgItmmXdp",
+		"entity":     "order",
+		"amount":     float64(10000),
+		"currency":   "INR",
+		"receipt":    "receipt-123",
+		"status":     "created",
+		"attempts":   float64(0),
+		"created_at": float64(1572505143),
+		"notes": map[string]interface{}{
+			"customer_name": "updated-customer",
+			"product_name":  "updated-product",
+		},
+	}
+
+	orderNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "order not found",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful order update",
+			Request: map[string]interface{}{
+				"order_id": "order_EKwxwAgItmmXdp",
+				"notes": map[string]interface{}{
+					"customer_name": "updated-customer",
+					"product_name":  "updated-product",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							updateOrderPathFmt, "order_EKwxwAgItmmXdp"),
+						Method:   "PATCH",
+						Response: updatedOrderResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: updatedOrderResp,
+		},
+		{
+			Name: "missing required parameters - order_id",
+			Request: map[string]interface{}{
+				// Missing order_id
+				"notes": map[string]interface{}{
+					"customer_name": "updated-customer",
+					"product_name":  "updated-product",
+				},
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: order_id",
+		},
+		{
+			Name: "missing required parameters - notes",
+			Request: map[string]interface{}{
+				"order_id": "order_EKwxwAgItmmXdp",
+				// Missing notes
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: notes",
+		},
+		{
+			Name: "order not found",
+			Request: map[string]interface{}{
+				"order_id": "order_invalid_id",
+				"notes": map[string]interface{}{
+					"customer_name": "updated-customer",
+					"product_name":  "updated-product",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(updateOrderPathFmt, "order_invalid_id"),
+						Method:   "PATCH",
+						Response: orderNotFoundResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "updating order failed: order not found",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, UpdateOrder, "Order")
+		})
+	}
+}
