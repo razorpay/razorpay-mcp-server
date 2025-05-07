@@ -224,3 +224,114 @@ func FetchAllOrders(
 		handler,
 	)
 }
+
+// FetchOrderPayments returns a tool to fetch all payments for a specific order
+func FetchOrderPayments(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"order_id",
+			mcpgo.Description(
+				"Unique identifier of the order for which payments should"+
+					" be retrieved. Order id should start with `order_`"),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		orderPaymentsReq := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(orderPaymentsReq, "order_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		// Fetch payments for the order using Razorpay SDK
+		// Note: Using the Order.Payments method from SDK
+		orderID := orderPaymentsReq["order_id"].(string)
+		payments, err := client.Order.Payments(orderID, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf(
+					"fetching payments for order failed: %s",
+					err.Error(),
+				),
+			), nil
+		}
+
+		// Return the result as JSON
+		return mcpgo.NewToolResultJSON(payments)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_order_payments",
+		"Fetch all payments made for a specific order in Razorpay",
+		parameters,
+		handler,
+	)
+}
+
+// UpdateOrder returns a tool to update an order
+// only the order's notes can be updated
+func UpdateOrder(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"order_id",
+			mcpgo.Description("Unique identifier of the order which "+
+				"needs to be updated. ID should have an order_ prefix."),
+			mcpgo.Required(),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs used to store additional "+
+				"information about the order. A maximum of 15 key-value pairs "+
+				"can be included, with each value not exceeding 256 characters."),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		orderUpdateReq := make(map[string]interface{})
+		data := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(orderUpdateReq, "order_id").
+			ValidateAndAddRequiredMap(orderUpdateReq, "notes")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		data["notes"] = orderUpdateReq["notes"]
+		orderID := orderUpdateReq["order_id"].(string)
+
+		order, err := client.Order.Update(orderID, data, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("updating order failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(order)
+	}
+
+	return mcpgo.NewTool(
+		"update_order",
+		"Use this tool to update the notes for a specific order. "+
+			"Only the notes field can be modified.",
+		parameters,
+		handler,
+	)
+}
