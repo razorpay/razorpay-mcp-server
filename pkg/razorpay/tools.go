@@ -66,6 +66,12 @@ func NewToolSets(
 			UpdateRefund(log, client),
 		)
 
+	payouts := toolsets.NewToolset("payouts", "Razorpay Payouts related tools").
+		AddReadTools(
+			FetchPayout(log, client),
+			FetchAllPayouts(log, client),
+		)
+
 	qrCodes := toolsets.NewToolset("qr_codes", "Razorpay QR Codes related tools").
 		AddReadTools(
 			FetchQRCode(log, client),
@@ -96,6 +102,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
 	toolsetGroup.AddToolset(refunds)
+	toolsetGroup.AddToolset(payouts)
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
 
