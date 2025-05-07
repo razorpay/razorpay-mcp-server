@@ -51,11 +51,25 @@ func NewToolSets(
 			UpdateRefund(log, client),
 		)
 
+	qrCodes := toolsets.NewToolset("qr_codes", "Razorpay QR Codes related tools").
+		AddReadTools(
+			FetchQRCode(log, client),
+			FetchAllQRCodes(log, client),
+			FetchQRCodesByCustomerID(log, client),
+			FetchQRCodesByPaymentID(log, client),
+			FetchPaymentsForQRCode(log, client),
+		).
+		AddWriteTools(
+			CreateQRCode(log, client),
+			CloseQRCode(log, client),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
 	toolsetGroup.AddToolset(refunds)
+	toolsetGroup.AddToolset(qrCodes)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
