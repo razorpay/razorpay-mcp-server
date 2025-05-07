@@ -34,9 +34,13 @@ func NewToolSets(
 		"Razorpay Payment Links related tools").
 		AddReadTools(
 			FetchPaymentLink(log, client),
+			FetchAllPaymentLinks(log, client),
 		).
 		AddWriteTools(
 			CreatePaymentLink(log, client),
+			CreateUpiPaymentLink(log, client),
+			ResendPaymentLinkNotification(log, client),
+			UpdatePaymentLink(log, client),
 		)
 
 	orders := toolsets.NewToolset("orders", "Razorpay Orders related tools").
