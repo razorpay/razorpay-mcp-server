@@ -422,3 +422,48 @@ func FetchPaymentsForQRCode(
 		handler,
 	)
 }
+
+// CloseQRCode returns a tool that closes a specific QR code
+func CloseQRCode(
+	log *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"qr_code_id",
+			mcpgo.Description(
+				"Unique identifier of the QR Code to be closed",
+			),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		payload := make(map[string]interface{})
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "qr_code_id")
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+		qrCodeID := payload["qr_code_id"].(string)
+
+		// Close QR code by ID using Razorpay SDK
+		qrCode, err := client.QrCode.Close(qrCodeID, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("closing QR code failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(qrCode)
+	}
+
+	return mcpgo.NewTool(
+		"close_qr_code",
+		"Close a QR Code that's no longer needed",
+		parameters,
+		handler,
+	)
+}

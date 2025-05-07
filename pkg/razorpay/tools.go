@@ -61,6 +61,7 @@ func NewToolSets(
 		).
 		AddWriteTools(
 			CreateQRCode(log, client),
+			CloseQRCode(log, client),
 		)
 
 	// Add toolsets to the group

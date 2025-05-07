@@ -591,7 +591,12 @@ func Test_FetchQRCodesByPaymentID(t *testing.T) {
 func TestFetchQRCode(t *testing.T) {
 	// Initialize necessary variables
 	qrID := "qr_FuZIYx6rMbP6gs"
-	apiPath := fmt.Sprintf("/%s%s/%s", constants.VERSION_V1, constants.QRCODE_URL, qrID)
+	apiPath := fmt.Sprintf(
+		"/%s%s/%s",
+		constants.VERSION_V1,
+		constants.QRCODE_URL,
+		qrID,
+	)
 
 	// Successful response based on Razorpay docs
 	successResponse := map[string]interface{}{
@@ -672,8 +677,9 @@ func TestFetchQRCode(t *testing.T) {
 					},
 				)
 			},
-			ExpectError:    true,
-			ExpectedErrMsg: "fetching QR code failed: The QR code ID provided is invalid",
+			ExpectError: true,
+			ExpectedErrMsg: "fetching QR code failed: " +
+				"The QR code ID provided is invalid",
 		},
 	}
 
@@ -685,7 +691,8 @@ func TestFetchQRCode(t *testing.T) {
 }
 
 func TestFetchPaymentsForQRCode(t *testing.T) {
-	apiPath := "/" + constants.VERSION_V1 + constants.QRCODE_URL + "/qr_test123/payments"
+	apiPath := "/" + constants.VERSION_V1 +
+		constants.QRCODE_URL + "/qr_test123/payments"
 
 	successResponse := map[string]interface{}{
 		"entity": "collection",
@@ -789,6 +796,68 @@ func TestFetchPaymentsForQRCode(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			runToolTest(t, tc, FetchPaymentsForQRCode, "QR Code Payments")
+		})
+	}
+}
+
+func TestCloseQRCode(t *testing.T) {
+	successResponse := map[string]interface{}{
+		"id":                       "qr_HMsVL8HOpbMcjU",
+		"entity":                   "qr_code",
+		"created_at":               float64(1623660301),
+		"name":                     "Store_1",
+		"usage":                    "single_use",
+		"type":                     "upi_qr",
+		"image_url":                "https://rzp.io/i/BWcUVrLp",
+		"payment_amount":           float64(300),
+		"status":                   "closed",
+		"description":              "For Store 1",
+		"fixed_amount":             true,
+		"payments_amount_received": float64(0),
+		"payments_count_received":  float64(0),
+		"notes": map[string]interface{}{
+			"purpose": "Test UPI QR Code notes",
+		},
+		"customer_id":  "cust_HKsR5se84c5LTO",
+		"close_by":     float64(1681615838),
+		"closed_at":    float64(1623660445),
+		"close_reason": "on_demand",
+	}
+
+	baseAPIPath := fmt.Sprintf("/%s%s", constants.VERSION_V1, constants.QRCODE_URL)
+	qrCodeID := "qr_HMsVL8HOpbMcjU"
+	apiPath := fmt.Sprintf("%s/%s/close", baseAPIPath, qrCodeID)
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful close QR code",
+			Request: map[string]interface{}{
+				"qr_code_id": qrCodeID,
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     apiPath,
+						Method:   "POST",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successResponse,
+		},
+		{
+			Name:           "missing required qr_code_id parameter",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: qr_code_id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, CloseQRCode, "QR Code")
 		})
 	}
 }

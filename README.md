@@ -23,6 +23,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_qr_codes_by_customer_id` | Fetch QR Codes with Customer ID       | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-customer-id/)
 | `fetch_qr_codes_by_payment_id`  | Fetch QR Codes with Payment ID        | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-payment-id/)
 | `fetch_payments_for_qr_code`    | Fetch Payments for a QR Code          | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-payments/)
+| `close_qr_code`       | Closes a QR Code                                | [qr code](https://razorpay.com/docs/api/qr-codes/close/)
 
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
