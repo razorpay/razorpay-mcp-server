@@ -150,7 +150,7 @@ func (v *Validator) ValidateAndAddOptionalString(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional[string](v, params, name, isEmptyString)
+	return validateAndAddOptional(v, params, name, isEmptyString)
 }
 
 // ValidateAndAddRequiredMap validates and adds a required map parameter
@@ -166,8 +166,9 @@ func (v *Validator) ValidateAndAddOptionalMap(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional[map[string]interface{}](
-		v, params, name, isEmptyMap)
+	return validateAndAddOptional(
+		v, params, name, isEmptyMap,
+	)
 }
 
 // ValidateAndAddRequiredArray validates and adds a required array parameter
@@ -183,7 +184,7 @@ func (v *Validator) ValidateAndAddOptionalArray(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional[[]interface{}](v, params, name, isEmptyArray)
+	return validateAndAddOptional(v, params, name, isEmptyArray)
 }
 
 // ValidateAndAddPagination validates and adds pagination parameters
@@ -225,7 +226,7 @@ func (v *Validator) ValidateAndAddOptionalInt(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional[int64](v, params, name, isZeroInt)
+	return validateAndAddOptional(v, params, name, isZeroInt)
 }
 
 // ValidateAndAddRequiredFloat validates and adds a required float parameter
@@ -241,7 +242,7 @@ func (v *Validator) ValidateAndAddOptionalFloat(
 	params map[string]interface{},
 	name string,
 ) *Validator {
-	return validateAndAddOptional[float64](v, params, name, isZeroFloat)
+	return validateAndAddOptional(v, params, name, isZeroFloat)
 }
 
 // ValidateAndAddRequiredBool validates and adds a required boolean parameter

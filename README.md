@@ -20,6 +20,13 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_all_payouts`   | Fetch all payout details with account number    | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/)
 | `fetch_payout_by_id`   | Fetch the payout details with payout ID        | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id)
 
+| `create_qr_code`      | Creates a QR Code                               | [QR Code](https://razorpay.com/docs/api/qr-codes/create/)
+| `fetch_qr_code`       | Fetch QR Code with ID                           | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-with-id/)
+| `fetch_all_qr_codes`  | Fetch all QR Codes                              | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-all/)
+| `fetch_qr_codes_by_customer_id` | Fetch QR Codes with Customer ID       | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-customer-id/)
+| `fetch_qr_codes_by_payment_id`  | Fetch QR Codes with Payment ID        | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-payment-id/)
+| `fetch_payments_for_qr_code`    | Fetch Payments for a QR Code          | [qr code](https://razorpay.com/docs/api/qr-codes/fetch-payments/)
+| `close_qr_code`       | Closes a QR Code                                | [qr code](https://razorpay.com/docs/api/qr-codes/close/)
 
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
