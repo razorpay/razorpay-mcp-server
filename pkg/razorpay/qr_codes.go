@@ -139,7 +139,8 @@ func FetchQRCode(
 		mcpgo.WithString(
 			"qr_code_id",
 			mcpgo.Description(
-				"Unique identifier of the QR Code to be retrieved",
+				"Unique identifier of the QR Code to be retrieved"+
+					"The QR code id should start with 'qr_'",
 			),
 			mcpgo.Required(),
 		),
@@ -149,13 +150,13 @@ func FetchQRCode(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		payload := make(map[string]interface{})
+		params := make(map[string]interface{})
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(payload, "qr_code_id")
+			ValidateAndAddRequiredString(params, "qr_code_id")
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
-		qrCodeID := payload["qr_code_id"].(string)
+		qrCodeID := params["qr_code_id"].(string)
 
 		// Fetch QR code by ID using Razorpay SDK
 		qrCode, err := client.QrCode.Fetch(qrCodeID, nil, nil)
@@ -217,20 +218,19 @@ func FetchAllQRCodes(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		queryParams := make(map[string]interface{})
+		fetchQROptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddOptionalInt(queryParams, "from").
-			ValidateAndAddOptionalInt(queryParams, "to").
-			ValidateAndAddOptionalInt(queryParams, "count").
-			ValidateAndAddOptionalInt(queryParams, "skip")
+			ValidateAndAddOptionalInt(fetchQROptions, "from").
+			ValidateAndAddOptionalInt(fetchQROptions, "to").
+			ValidateAndAddPagination(fetchQROptions)
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
 		// Fetch QR codes using Razorpay SDK
-		qrCodes, err := client.QrCode.All(queryParams, nil)
+		qrCodes, err := client.QrCode.All(fetchQROptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching QR codes failed: %s", err.Error())), nil
@@ -267,17 +267,17 @@ func FetchQRCodesByCustomerID(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		queryParams := make(map[string]interface{})
+		fetchQROptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(queryParams, "customer_id")
+			ValidateAndAddRequiredString(fetchQROptions, "customer_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
 		// Fetch QR codes by customer ID using Razorpay SDK
-		qrCodes, err := client.QrCode.All(queryParams, nil)
+		qrCodes, err := client.QrCode.All(fetchQROptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching QR codes failed: %s", err.Error())), nil
@@ -304,7 +304,8 @@ func FetchQRCodesByPaymentID(
 		mcpgo.WithString(
 			"payment_id",
 			mcpgo.Description(
-				"The unique identifier of the payment",
+				"The unique identifier of the payment"+
+					"The payment id always should start with 'pay_'",
 			),
 			mcpgo.Required(),
 		),
@@ -314,17 +315,17 @@ func FetchQRCodesByPaymentID(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		queryParams := make(map[string]interface{})
+		fetchQROptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(queryParams, "payment_id")
+			ValidateAndAddRequiredString(fetchQROptions, "payment_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
 		// Fetch QR codes by payment ID using Razorpay SDK
-		qrCodes, err := client.QrCode.All(queryParams, nil)
+		qrCodes, err := client.QrCode.All(fetchQROptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching QR codes failed: %s", err.Error())), nil
@@ -350,7 +351,8 @@ func FetchPaymentsForQRCode(
 		mcpgo.WithString(
 			"qr_code_id",
 			mcpgo.Description(
-				"The unique identifier of the QR Code to fetch payments for",
+				"The unique identifier of the QR Code to fetch payments for"+
+					"The QR code id should start with 'qr_'",
 			),
 			mcpgo.Required(),
 		),
@@ -389,24 +391,24 @@ func FetchPaymentsForQRCode(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		payload := make(map[string]interface{})
-		queryParams := make(map[string]interface{})
+		params := make(map[string]interface{})
+		fetchQROptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(payload, "qr_code_id").
-			ValidateAndAddOptionalInt(queryParams, "from").
-			ValidateAndAddOptionalInt(queryParams, "to").
-			ValidateAndAddOptionalInt(queryParams, "count").
-			ValidateAndAddOptionalInt(queryParams, "skip")
+			ValidateAndAddRequiredString(params, "qr_code_id").
+			ValidateAndAddOptionalInt(fetchQROptions, "from").
+			ValidateAndAddOptionalInt(fetchQROptions, "to").
+			ValidateAndAddOptionalInt(fetchQROptions, "count").
+			ValidateAndAddOptionalInt(fetchQROptions, "skip")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		qrCodeID := payload["qr_code_id"].(string)
+		qrCodeID := params["qr_code_id"].(string)
 
 		// Fetch payments for QR code using Razorpay SDK
-		payments, err := client.QrCode.FetchPayments(qrCodeID, queryParams, nil)
+		payments, err := client.QrCode.FetchPayments(qrCodeID, fetchQROptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("fetching payments for QR code failed: %s", err.Error())), nil
@@ -432,7 +434,8 @@ func CloseQRCode(
 		mcpgo.WithString(
 			"qr_code_id",
 			mcpgo.Description(
-				"Unique identifier of the QR Code to be closed",
+				"Unique identifier of the QR Code to be closed"+
+					"The QR code id should start with 'qr_'",
 			),
 			mcpgo.Required(),
 		),
@@ -442,13 +445,13 @@ func CloseQRCode(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		payload := make(map[string]interface{})
+		params := make(map[string]interface{})
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(payload, "qr_code_id")
+			ValidateAndAddRequiredString(params, "qr_code_id")
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
-		qrCodeID := payload["qr_code_id"].(string)
+		qrCodeID := params["qr_code_id"].(string)
 
 		// Close QR code by ID using Razorpay SDK
 		qrCode, err := client.QrCode.Close(qrCodeID, nil, nil)
