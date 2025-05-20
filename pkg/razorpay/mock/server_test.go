@@ -25,7 +25,9 @@ func TestNewHTTPClient(t *testing.T) {
 
 	resp, err := client.Get(server.URL + "/test")
 	assert.NoError(t, err)
-	defer resp.Body.Close() // nolint:errcheck
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
@@ -143,7 +145,9 @@ func TestNewServer(t *testing.T) {
 			client := server.Client()
 			resp, err := client.Do(req)
 			assert.NoError(t, err)
-			defer resp.Body.Close() // nolint:errcheck
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
 
@@ -212,7 +216,9 @@ func TestMultipleEndpoints(t *testing.T) {
 					"application/json", nil)
 			}
 			assert.NoError(t, err)
-			defer resp.Body.Close() // nolint:errcheck
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
