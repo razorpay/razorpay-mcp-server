@@ -3,10 +3,7 @@ package mcpgo
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
-	"runtime/debug"
 	"strings"
 
 	"github.com/mark3labs/mcp-go/server"
@@ -91,36 +88,17 @@ type mark3labsSseImpl struct {
 
 // Start implements the TransportServer interface
 func (s *mark3labsSseImpl) Start() error {
-	// Add panic recovery to the start method
-	defer func() {
-		if r := recover(); r != nil {
-			// Log the panic, but don't crash the server
-			log.Printf("Panic recovered in SSE server: %v\n\n", r)
-			debug.PrintStack()
-		}
-	}()
-
 	return s.mcpSseServer.Start(fmt.Sprintf(":%d", s.SSEConfig.port))
 }
 
 // authFromRequest extracts the auth token from the request headers.
 func authFromRequest(ctx context.Context, r *http.Request) context.Context {
-	auth := r.Header.Get("Authorization")
+	authHeader := r.Header.Get("Authorization")
 
-	// Split by space and take the second part (token)
-	parts := strings.Split(auth, " ")
-	if len(parts) > 1 {
-		auth = parts[1]
+	parts := strings.SplitN(authHeader, " ", 2) 
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" { 
+		return ctx
 	}
 
-	if auth == "" {
-		auth = authFromEnv()
-	}
-
-	return WithAuthToken(ctx, auth)
-}
-
-// authFromEnv extracts the auth token from the environment variable
-func authFromEnv() string {
-	return os.Getenv("AUTH_TOKEN")
+	return WithAuthToken(ctx, authHeader)
 }

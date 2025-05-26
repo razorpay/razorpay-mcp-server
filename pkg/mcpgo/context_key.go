@@ -10,6 +10,7 @@ type contextKey string
 // Context keys for storing various values.
 const (
 	authTokenKey contextKey = "auth_token"
+	clientKey    contextKey = "client"
 )
 
 // WithAuthToken returns a new context with the authentication token attached.
@@ -31,4 +32,15 @@ func AuthTokenFromContext(ctx context.Context) string {
 	}
 
 	return token
+}
+
+// WithClient returns a new context with the client instance attached.
+func WithClient(ctx context.Context, client interface{}) context.Context {
+	return context.WithValue(ctx, clientKey, client)
+}
+
+// ClientFromContext extracts the client instance from the context.
+// Returns nil if no client is found.
+func ClientFromContext(ctx context.Context) interface{} {
+	return ctx.Value(clientKey)
 }

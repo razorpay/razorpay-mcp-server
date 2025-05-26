@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	stdlog "log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -14,7 +13,6 @@ import (
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
-	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay"
 )
@@ -24,13 +22,10 @@ var sseCmd = &cobra.Command{
 	Use:   "sse",
 	Short: "start the sse server",
 	Run: func(cmd *cobra.Command, args []string) {
-		logPath := viper.GetString("log_file")
-		log, close, err := log.New(logPath)
-		if err != nil {
-			stdlog.Fatalf("create logger: %v", err)
-		}
-		defer close()
-		client := rzpsdk.NewClient("", "")
+		// Create stdout logger
+		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelError,
+		}))
 
 		// Get toolsets to enable from config
 		enabledToolsets := viper.GetStringSlice("toolsets")
@@ -38,10 +33,10 @@ var sseCmd = &cobra.Command{
 		// Get read-only mode from config
 		readOnly := viper.GetBool("read_only")
 
-		err = runSseServer(log, client, enabledToolsets, readOnly)
+		err := runSseServer(logger, nil, enabledToolsets, readOnly)
 		if err != nil {
-			log.Error("error running sse server", "error", err)
-			stdlog.Fatalf("failed to run sse server: %v", err)
+			logger.Error("error running sse server", "error", err)
+			os.Exit(1)
 		}
 	},
 }

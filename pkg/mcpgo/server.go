@@ -10,7 +10,6 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
-	"github.com/razorpay/razorpay-go/requests"
 )
 
 // Server defines the minimal MCP server interface needed by the application
@@ -104,6 +103,8 @@ func WithToolCapabilities(enabled bool) ServerOption {
 	}
 }
 
+// WithAuthenticationMiddleware returns a server option that adds an authentication 
+// middleware to the server.
 func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 	return func(s OptionSetter) error {
 		return s.SetOption(server.WithToolHandlerMiddleware(
@@ -112,10 +113,8 @@ func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 					ctx context.Context,
 					request mcp.CallToolRequest,
 				) (result *mcp.CallToolResult, err error) {
-					// If Auth credentials are already set, assuming this is
-					// the stdio mcp server
-					clientAuth := client.Order.Request.Auth
-					if clientAuth.Key != "" || clientAuth.Secret != "" {
+					// If client is provided, this is the stdio mcp server
+					if client != nil {
 						return next(ctx, request)
 					}
 
@@ -137,14 +136,11 @@ func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 						return nil, fmt.Errorf("unauthorized: invalid auth token")
 					}
 
-					// Set the key and secret
-					client.Order.Request.Auth.Key = parts[0]
-					client.Order.Request.Auth.Secret = parts[1]
+					// Create a new client with the auth credentials
+					client := rzpsdk.NewClient(parts[0], parts[1])
 
-					defer func() {
-						// Reset the auth credentials
-						client.Order.Request.Auth = requests.Auth{}
-					}()
+					// Store the client in context
+					ctx = WithClient(ctx, client)
 
 					return next(ctx, request)
 				}

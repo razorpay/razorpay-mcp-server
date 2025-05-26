@@ -140,38 +140,17 @@ The Razorpay MCP Server also supports the Server-Sent Events (SSE) transport pro
 
 ### Running the SSE Server with Docker
 
-Build the SSE server Docker image:
+To run the server in SSE mode using the same Docker image:
 
 ```bash
-# Build the SSE server image
-docker build -f Dockerfile.sse -t razorpay-mcp-sse-server:latest .
+# Run the SSE server on port 8090 (default)
+docker run -p 8090:8090 \
+  -e MODE=sse \
+  -e PORT=8090 \
+  razorpay-mcp-server:latest
 ```
 
-Run the SSE server:
-
-```bash
-# Run the SSE server on port 8090
-docker run -p 8090:8080 \
-  -e AUTH_TOKEN="your_auth_token" \
-  -e PORT="your_sse_port" \
-  razorpay-mcp-sse-server:latest
-```
-
-### Connecting to the SSE Server
-
-You can connect to the SSE server by adding the following to your MCP configuration:
-
-```json
-{
-  "rzp-mcp-sse-server": {
-    "type": "sse",
-    "url": "http://localhost:8090/sse",
-    "description": "Razorpay MCP SSE server running"
-  }
-}
-```
-
-For Cursor, add this to your `~/.cursor/mcp.json` file.
+You can customize the port by setting the `PORT` environment variable.
 
 ### Testing with MCP Inspector
 
@@ -191,21 +170,30 @@ This will open a browser interface where you can inspect and test the available 
 
 The server requires the following configuration:
 
-- `RAZORPAY_KEY_ID`: Your Razorpay API key ID
-- `RAZORPAY_KEY_SECRET`: Your Razorpay API key secret
-- `LOG_FILE` (optional): Path to log file for server logs
+- `RAZORPAY_KEY_ID`: Your Razorpay API key ID (required for stdio mode)
+- `RAZORPAY_KEY_SECRET`: Your Razorpay API key secret (required for stdio mode)
+- `MODE`: Server mode ("stdio" or "sse", default: "stdio")
+- `PORT`: Port for SSE server (default: "8090", used in SSE mode)
+- `LOG_FILE` (optional): Path to log file for stdio mode logs (SSE mode always logs to stdout)
 - `TOOLSETS` (optional): Comma-separated list of toolsets to enable (default: "all")
 - `READ_ONLY` (optional): Run server in read-only mode (default: false)
 
 ### Command Line Flags
 
-The server supports the following command line flags:
+The server supports different flags based on the mode:
 
+For stdio mode:
 - `--key` or `-k`: Your Razorpay API key ID
 - `--secret` or `-s`: Your Razorpay API key secret
 - `--log-file` or `-l`: Path to log file
 - `--toolsets` or `-t`: Comma-separated list of toolsets to enable
 - `--read-only`: Run server in read-only mode
+
+For SSE mode:
+- `--port`: Port to run the SSE server on (default: 8090)
+- `--toolsets` or `-t`: Comma-separated list of toolsets to enable
+- `--read-only`: Run server in read-only mode
+Note: SSE mode logs are always written to stdout for better container integration
 
 ## Debugging the Server
 
