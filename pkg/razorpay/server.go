@@ -1,6 +1,8 @@
 package razorpay
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
@@ -70,4 +72,27 @@ func (s *Server) RegisterTools() {
 // GetMCPServer returns the underlying MCP server instance
 func (s *Server) GetMCPServer() mcpgo.Server {
 	return s.server
+}
+
+// getClientFromContextOrDefault returns either the provided default
+// client or gets one from context.
+func getClientFromContextOrDefault(
+	ctx context.Context,
+	defaultClient *rzpsdk.Client,
+) (*rzpsdk.Client, error) {
+	if defaultClient != nil {
+		return defaultClient, nil
+	}
+
+	clientInterface := mcpgo.ClientFromContext(ctx)
+	if clientInterface == nil {
+		return nil, fmt.Errorf("no client found in context")
+	}
+
+	client, ok := clientInterface.(*rzpsdk.Client)
+	if !ok {
+		return nil, fmt.Errorf("invalid client type in context")
+	}
+
+	return client, nil
 }

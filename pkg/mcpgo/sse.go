@@ -95,10 +95,10 @@ func (s *mark3labsSseImpl) Start() error {
 func authFromRequest(ctx context.Context, r *http.Request) context.Context {
 	authHeader := r.Header.Get("Authorization")
 
-	parts := strings.SplitN(authHeader, " ", 2) 
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" { 
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 		return ctx
 	}
 
-	return WithAuthToken(ctx, authHeader)
+	return WithAuthToken(ctx, parts[1])
 }
