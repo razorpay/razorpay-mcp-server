@@ -26,6 +26,8 @@ func CreateRefund(
 			"amount",
 			mcpgo.Description("Payment amount in the smallest currency unit "+
 				"(e.g., for ₹295, use 29500)"),
+			mcpgo.Required(),
+			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
 		mcpgo.WithString(
 			"speed",
@@ -83,7 +85,8 @@ func CreateRefund(
 	return mcpgo.NewTool(
 		"create_refund",
 		"Use this tool to create a normal refund for a payment. "+
-			"Amount should be in the smallest currency unit (e.g., for ₹295, use 29500)",
+			"Amount should be in the smallest currency unit "+
+			"(e.g., for ₹295, use 29500)",
 		parameters,
 		handler,
 	)
@@ -195,6 +198,189 @@ func UpdateRefund(
 		"update_refund",
 		"Use this tool to update the notes for a specific refund. "+
 			"Only the notes field can be modified.",
+		parameters,
+		handler,
+	)
+}
+
+// FetchMultipleRefundsForPayment returns a tool that fetches multiple refunds
+// for a payment
+func FetchMultipleRefundsForPayment(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_id",
+			mcpgo.Description("Unique identifier of the payment for which "+
+				"refunds are to be retrieved. ID should have a pay_ prefix."),
+			mcpgo.Required(),
+		),
+		mcpgo.WithNumber(
+			"from",
+			mcpgo.Description("Unix timestamp at which the refunds were created."),
+		),
+		mcpgo.WithNumber(
+			"to",
+			mcpgo.Description("Unix timestamp till which the refunds were created."),
+		),
+		mcpgo.WithNumber(
+			"count",
+			mcpgo.Description("The number of refunds to fetch for the payment."),
+		),
+		mcpgo.WithNumber(
+			"skip",
+			mcpgo.Description("The number of refunds to be skipped for the payment."),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		fetchReq := make(map[string]interface{})
+		fetchOptions := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(fetchReq, "payment_id").
+			ValidateAndAddOptionalInt(fetchOptions, "from").
+			ValidateAndAddOptionalInt(fetchOptions, "to").
+			ValidateAndAddPagination(fetchOptions)
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		refunds, err := client.Payment.FetchMultipleRefund(
+			fetchReq["payment_id"].(string), fetchOptions, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching multiple refunds failed: %s",
+					err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(refunds)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_multiple_refunds_for_payment",
+		"Use this tool to retrieve multiple refunds for a payment. "+
+			"By default, only the last 10 refunds are returned.",
+		parameters,
+		handler,
+	)
+}
+
+// FetchSpecificRefundForPayment returns a tool that fetches a specific refund
+// for a payment
+func FetchSpecificRefundForPayment(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_id",
+			mcpgo.Description("Unique identifier of the payment for which "+
+				"the refund has been made. ID should have a pay_ prefix."),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"refund_id",
+			mcpgo.Description("Unique identifier of the refund to be retrieved. "+
+				"ID should have a rfnd_ prefix."),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		params := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(params, "payment_id").
+			ValidateAndAddRequiredString(params, "refund_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		refund, err := client.Payment.FetchRefund(
+			params["payment_id"].(string),
+			params["refund_id"].(string),
+			nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching specific refund for payment failed: %s",
+					err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(refund)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_specific_refund_for_payment",
+		"Use this tool to retrieve details of a specific refund made for a payment.",
+		parameters,
+		handler,
+	)
+}
+
+// FetchAllRefunds returns a tool that fetches all refunds with pagination
+// support
+func FetchAllRefunds(
+	_ *slog.Logger,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"from",
+			mcpgo.Description("Unix timestamp at which the refunds were created"),
+		),
+		mcpgo.WithNumber(
+			"to",
+			mcpgo.Description("Unix timestamp till which the refunds were created"),
+		),
+		mcpgo.WithNumber(
+			"count",
+			mcpgo.Description("The number of refunds to fetch. "+
+				"You can fetch a maximum of 100 refunds"),
+		),
+		mcpgo.WithNumber(
+			"skip",
+			mcpgo.Description("The number of refunds to be skipped"),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		queryParams := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddOptionalInt(queryParams, "from").
+			ValidateAndAddOptionalInt(queryParams, "to").
+			ValidateAndAddPagination(queryParams)
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		refunds, err := client.Refund.All(queryParams, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("fetching refunds failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(refunds)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_all_refunds",
+		"Use this tool to retrieve details of all refunds. "+
+			"By default, only the last 10 refunds are returned.",
 		parameters,
 		handler,
 	)

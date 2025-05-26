@@ -6,17 +6,46 @@ The Razorpay MCP Server is a [Model Context Protocol (MCP)](https://modelcontext
 
 Currently, the Razorpay MCP Server provides the following tools:
 
-| Tool                  | Description                                     | API
-|:----------------------|:------------------------------------------------|:-----------------------------------
-| `fetch_payment`       | Fetch payment details with ID                   | [Payment](https://razorpay.com/docs/api/payments/fetch-with-id)
-| `create_payment_link` | Creates a new payment link (standard)           | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard)
-| `fetch_payment_link`  | Fetch details of a payment link (standard)      | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-id-standard/)
-| `create_order`        | Creates an order                                | [Order](https://razorpay.com/docs/api/orders/create/)
-| `fetch_order`         | Fetch order with ID                             | [Order](https://razorpay.com/docs/api/orders/fetch-with-id)
-| `fetch_all_orders`    | Fetch all orders                                | [Order](https://razorpay.com/docs/api/orders/fetch-all)
-| `create_refund`       | Creates a refund                                | [Refund](https://razorpay.com/docs/api/refunds/create-instant/)
-| `fetch_refund`        | Fetch refund details with ID                    | [Refund](https://razorpay.com/docs/api/refunds/fetch-with-id/)
-| `update_refund`       | Update refund notes with ID                     | [Refund](https://razorpay.com/docs/api/refunds/update/)
+| Tool                                 | Description                                            | API
+|:-------------------------------------|:-------------------------------------------------------|:-----------------------------------
+| `capture_payment`                    | Change the payment status from authorized to captured. | [Payment](https://razorpay.com/docs/api/payments/capture)
+| `fetch_payment`                      | Fetch payment details with ID                          | [Payment](https://razorpay.com/docs/api/payments/fetch-with-id)
+| `fetch_payment_card_details`         | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card)
+| `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments)
+| `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update)|
+| `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard)
+| `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi)
+| `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard)
+| `fetch_payment_link`                 | Fetch details of a payment link                        | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-id-standard/)
+| `send_payment_link`                  | Send a payment link via SMS or email.                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/resend)
+| `update_payment_link`                | Updates a new standard payment link                    | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/update-standard)
+| `create_order`                       | Creates an order                                       | [Order](https://razorpay.com/docs/api/orders/create/)
+| `fetch_order`                        | Fetch order with ID                                    | [Order](https://razorpay.com/docs/api/orders/fetch-with-id)
+| `fetch_all_orders`                   | Fetch all orders                                       | [Order](https://razorpay.com/docs/api/orders/fetch-all)
+| `update_order`                       | Update an order                                        | [Order](https://razorpay.com/docs/api/orders/update) 
+| `fetch_order_payments`               | Fetch all payments for an order                        | [Order](https://razorpay.com/docs/api/orders/fetch-payments/)
+| `create_refund`                      | Creates a refund                                       | [Refund](https://razorpay.com/docs/api/refunds/create-instant/)
+| `fetch_refund`                       | Fetch refund details with ID                           | [Refund](https://razorpay.com/docs/api/refunds/fetch-with-id/)
+| `fetch_all_refunds`                  | Fetch all refunds                                      | [Refund](https://razorpay.com/docs/api/refunds/fetch-all)
+| `update_refund`                      | Update refund notes with ID                            | [Refund](https://razorpay.com/docs/api/refunds/update/)
+| `fetch_multiple_refunds_for_payment` | Fetch multiple refunds for a payment                   | [Refund](https://razorpay.com/docs/api/refunds/fetch-multiple-refund-payment/)
+| `fetch_specific_refund_for_payment`  | Fetch a specific refund for a payment                  | [Refund](https://razorpay.com/docs/api/refunds/fetch-specific-refund-payment/)
+| `create_qr_code`                     | Creates a QR Code                                      | [QR Code](https://razorpay.com/docs/api/qr-codes/create/)
+| `fetch_qr_code`                      | Fetch QR Code with ID                                  | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-with-id/)
+| `fetch_all_qr_codes`                 | Fetch all QR Codes                                     | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-all/)
+| `fetch_qr_codes_by_customer_id`      | Fetch QR Codes with Customer ID                        | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-customer-id/)
+| `fetch_qr_codes_by_payment_id`       | Fetch QR Codes with Payment ID                         | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-payment-id/)
+| `fetch_payments_for_qr_code`         | Fetch Payments for a QR Code                           | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-payments/)
+| `close_qr_code`                      | Closes a QR Code                                       | [QR Code](https://razorpay.com/docs/api/qr-codes/close/)
+| `fetch_all_settlements`              | Fetch all settlements                                  | [Settlement](https://razorpay.com/docs/api/settlements/fetch-all)
+| `fetch_settlement_with_id`           | Fetch settlement details                               | [Settlement](https://razorpay.com/docs/api/settlements/fetch-with-id)
+| `fetch_settlement_recon_details`     | Fetch settlement reconciliation report                 | [Settlement](https://razorpay.com/docs/api/settlements/fetch-recon)
+| `create_instant_settlement`          | Create an instant settlement                           | [Settlement](https://razorpay.com/docs/api/settlements/instant/create)
+| `fetch_all_instant_settlements`      | Fetch all instant settlements                          | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-all)
+| `fetch_instant_settlement_with_id`   | Fetch instant settlement with ID                       | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-with-id)
+| `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/)
+| `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id)
+
 
 ## Use Cases 
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.

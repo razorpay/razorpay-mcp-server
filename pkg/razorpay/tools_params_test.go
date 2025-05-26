@@ -52,7 +52,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalString,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    "",
 			expectKey:      "test_param",
 		},
 
@@ -81,7 +81,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalInt,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    int64(0), // we expect the zero values as is
 			expectKey:      "test_param",
 		},
 
@@ -110,7 +110,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalFloat,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    float64(0),
 			expectKey:      "test_param",
 		},
 
@@ -183,7 +183,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalMap,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    map[string]interface{}{},
 			expectKey:      "test_param",
 		},
 
@@ -216,7 +216,7 @@ func TestValidator(t *testing.T) {
 			paramName:      "test_param",
 			validationFunc: (*Validator).ValidateAndAddOptionalArray,
 			expectError:    false,
-			expectValue:    nil,
+			expectValue:    []interface{}{},
 			expectKey:      "test_param",
 		},
 
@@ -255,16 +255,11 @@ func TestValidator(t *testing.T) {
 				assert.True(t, validator.HasErrors(), "Expected validation error")
 			} else {
 				assert.False(t, validator.HasErrors(), "Did not expect validation error")
-				if tt.expectValue != nil {
-					assert.Equal(t,
-						tt.expectValue,
-						result[tt.expectKey],
-						"Parameter value mismatch",
-					)
-				} else {
-					_, exists := result[tt.expectKey]
-					assert.False(t, exists, "Parameter should not be added when empty")
-				}
+				assert.Equal(t,
+					tt.expectValue,
+					result[tt.expectKey],
+					"Parameter value mismatch",
+				)
 			}
 		})
 	}
@@ -291,8 +286,8 @@ func TestValidatorPagination(t *testing.T) {
 		{
 			name:        "zero pagination params",
 			args:        map[string]interface{}{"count": float64(0), "skip": float64(0)},
-			expectCount: nil,
-			expectSkip:  nil,
+			expectCount: int64(0),
+			expectSkip:  int64(0),
 			expectError: false,
 		},
 		{
@@ -394,4 +389,348 @@ func TestValidatorExpand(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test validator "To" functions which write to target maps
+func TestValidatorToFunctions(t *testing.T) {
+	tests := []struct {
+		name      string
+		args      map[string]interface{}
+		paramName string
+		targetKey string
+		testFunc  func(
+			*Validator, map[string]interface{}, string, string,
+		) *Validator
+		expectValue interface{}
+		expectError bool
+	}{
+		// ValidateAndAddOptionalStringToPath tests
+		{
+			name:        "optional string to target - valid",
+			args:        map[string]interface{}{"customer_name": "Test User"},
+			paramName:   "customer_name",
+			targetKey:   "name",
+			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
+			expectValue: "Test User",
+			expectError: false,
+		},
+		{
+			name:        "optional string to target - empty",
+			args:        map[string]interface{}{"customer_name": ""},
+			paramName:   "customer_name",
+			targetKey:   "name",
+			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
+			expectValue: "",
+			expectError: false,
+		},
+		{
+			name:        "optional string to target - missing",
+			args:        map[string]interface{}{},
+			paramName:   "customer_name",
+			targetKey:   "name",
+			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
+			expectValue: nil,
+			expectError: false,
+		},
+		{
+			name:        "optional string to target - wrong type",
+			args:        map[string]interface{}{"customer_name": 123},
+			paramName:   "customer_name",
+			targetKey:   "name",
+			testFunc:    (*Validator).ValidateAndAddOptionalStringToPath,
+			expectValue: nil,
+			expectError: true,
+		},
+
+		// ValidateAndAddOptionalBoolToPath tests
+		{
+			name:        "optional bool to target - true",
+			args:        map[string]interface{}{"notify_sms": true},
+			paramName:   "notify_sms",
+			targetKey:   "sms",
+			testFunc:    (*Validator).ValidateAndAddOptionalBoolToPath,
+			expectValue: true,
+			expectError: false,
+		},
+		{
+			name:        "optional bool to target - false",
+			args:        map[string]interface{}{"notify_sms": false},
+			paramName:   "notify_sms",
+			targetKey:   "sms",
+			testFunc:    (*Validator).ValidateAndAddOptionalBoolToPath,
+			expectValue: false,
+			expectError: false,
+		},
+		{
+			name:        "optional bool to target - wrong type",
+			args:        map[string]interface{}{"notify_sms": "not a bool"},
+			paramName:   "notify_sms",
+			targetKey:   "sms",
+			testFunc:    (*Validator).ValidateAndAddOptionalBoolToPath,
+			expectValue: nil,
+			expectError: true,
+		},
+
+		// ValidateAndAddOptionalIntToPath tests
+		{
+			name:        "optional int to target - valid",
+			args:        map[string]interface{}{"age": float64(25)},
+			paramName:   "age",
+			targetKey:   "customer_age",
+			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
+			expectValue: int64(25),
+			expectError: false,
+		},
+		{
+			name:        "optional int to target - zero",
+			args:        map[string]interface{}{"age": float64(0)},
+			paramName:   "age",
+			targetKey:   "customer_age",
+			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
+			expectValue: int64(0),
+			expectError: false,
+		},
+		{
+			name:        "optional int to target - missing",
+			args:        map[string]interface{}{},
+			paramName:   "age",
+			targetKey:   "customer_age",
+			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
+			expectValue: nil,
+			expectError: false,
+		},
+		{
+			name:        "optional int to target - wrong type",
+			args:        map[string]interface{}{"age": "not a number"},
+			paramName:   "age",
+			targetKey:   "customer_age",
+			testFunc:    (*Validator).ValidateAndAddOptionalIntToPath,
+			expectValue: nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a target map for this specific test
+			target := make(map[string]interface{})
+
+			// Create the request and validator
+			request := &mcpgo.CallToolRequest{
+				Arguments: tt.args,
+			}
+			validator := NewValidator(request)
+
+			// Call the test function with target and verify its return value
+			tt.testFunc(validator, target, tt.paramName, tt.targetKey)
+
+			// Check if we got the expected errors
+			if tt.expectError {
+				assert.True(t, validator.HasErrors(), "Expected validation error")
+			} else {
+				assert.False(t, validator.HasErrors(), "Did not expect validation error")
+
+				// For non-error cases, check target map value
+				if tt.expectValue != nil {
+					// Should have the value with the target key
+					assert.Equal(t,
+						tt.expectValue,
+						target[tt.targetKey],
+						"Target map value mismatch")
+				} else {
+					// Target key should not exist
+					_, exists := target[tt.targetKey]
+					assert.False(t, exists, "Key should not be in target map when value is empty") // nolint:lll
+				}
+			}
+		})
+	}
+}
+
+// Test for nested validation with multiple fields into target maps
+func TestValidatorNestedObjects(t *testing.T) {
+	t.Run("customer object validation", func(t *testing.T) {
+		// Create request with customer details
+		args := map[string]interface{}{
+			"customer_name":    "John Doe",
+			"customer_email":   "john@example.com",
+			"customer_contact": "+1234567890",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Customer target map
+		customer := make(map[string]interface{})
+
+		// Create validator and validate customer fields
+		validator := NewValidator(request).
+			ValidateAndAddOptionalStringToPath(customer, "customer_name", "name").
+			ValidateAndAddOptionalStringToPath(customer, "customer_email", "email").
+			ValidateAndAddOptionalStringToPath(customer, "customer_contact", "contact")
+
+		// Should not have errors
+		assert.False(t, validator.HasErrors())
+
+		// Customer map should have all three fields
+		assert.Equal(t, "John Doe", customer["name"])
+		assert.Equal(t, "john@example.com", customer["email"])
+		assert.Equal(t, "+1234567890", customer["contact"])
+	})
+
+	t.Run("notification object validation", func(t *testing.T) {
+		// Create request with notification settings
+		args := map[string]interface{}{
+			"notify_sms":   true,
+			"notify_email": false,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Notify target map
+		notify := make(map[string]interface{})
+
+		// Create validator and validate notification fields
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBoolToPath(notify, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolToPath(notify, "notify_email", "email")
+
+		// Should not have errors
+		assert.False(t, validator.HasErrors())
+
+		// Notify map should have both fields
+		assert.Equal(t, true, notify["sms"])
+		assert.Equal(t, false, notify["email"])
+	})
+
+	t.Run("mixed object with error", func(t *testing.T) {
+		// Create request with mixed valid and invalid data
+		args := map[string]interface{}{
+			"customer_name":  "Jane Doe",
+			"customer_email": 12345, // Wrong type
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Target map
+		customer := make(map[string]interface{})
+
+		// Create validator and validate fields
+		validator := NewValidator(request).
+			ValidateAndAddOptionalStringToPath(customer, "customer_name", "name").
+			ValidateAndAddOptionalStringToPath(customer, "customer_email", "email")
+
+		// Should have errors
+		assert.True(t, validator.HasErrors())
+
+		// Customer map should have only the valid field
+		assert.Equal(t, "Jane Doe", customer["name"])
+		_, hasEmail := customer["email"]
+		assert.False(t, hasEmail, "Invalid field should not be added to target map")
+	})
+}
+
+// Test for optional bool handling
+func TestOptionalBoolBehavior(t *testing.T) {
+	t.Run("explicit bool values", func(t *testing.T) {
+		// Create request with explicit bool values
+		args := map[string]interface{}{
+			"true_param":  true,
+			"false_param": false,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Create result map
+		result := make(map[string]interface{})
+
+		// Validate both parameters
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBool(result, "true_param").
+			ValidateAndAddOptionalBool(result, "false_param")
+
+		// Verify no errors occurred
+		assert.False(t, validator.HasErrors())
+
+		// Both parameters should be set in the result
+		assert.Equal(t, true, result["true_param"])
+		assert.Equal(t, false, result["false_param"])
+	})
+
+	t.Run("missing bool parameter", func(t *testing.T) {
+		// Create request without bool parameters
+		args := map[string]interface{}{
+			"other_param": "some value",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Create result map
+		result := make(map[string]interface{})
+
+		// Try to validate missing bool parameters
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBool(result, "true_param").
+			ValidateAndAddOptionalBool(result, "false_param")
+
+		// Verify no errors occurred
+		assert.False(t, validator.HasErrors())
+
+		// Result should be empty since no bool values were provided
+		assert.Empty(t, result)
+	})
+
+	t.Run("explicit bool values with 'To' functions", func(t *testing.T) {
+		// Create request with explicit bool values
+		args := map[string]interface{}{
+			"notify_sms":   true,
+			"notify_email": false,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Create target map
+		target := make(map[string]interface{})
+
+		// Validate both parameters
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBoolToPath(target, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolToPath(target, "notify_email", "email")
+
+		// Verify no errors occurred
+		assert.False(t, validator.HasErrors())
+
+		// Both parameters should be set in the target map
+		assert.Equal(t, true, target["sms"])
+		assert.Equal(t, false, target["email"])
+	})
+
+	t.Run("missing bool parameter with 'To' functions", func(t *testing.T) {
+		// Create request without bool parameters
+		args := map[string]interface{}{
+			"other_param": "some value",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		// Create target map
+		target := make(map[string]interface{})
+
+		// Try to validate missing bool parameters
+		validator := NewValidator(request).
+			ValidateAndAddOptionalBoolToPath(target, "notify_sms", "sms").
+			ValidateAndAddOptionalBoolToPath(target, "notify_email", "email")
+
+		// Verify no errors occurred
+		assert.False(t, validator.HasErrors())
+
+		// Target map should be empty since no bool values were provided
+		assert.Empty(t, target)
+	})
 }
