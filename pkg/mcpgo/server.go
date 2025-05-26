@@ -2,9 +2,6 @@ package mcpgo
 
 import (
 	"context"
-	"encoding/base64"
-	"fmt"
-	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -103,8 +100,8 @@ func WithToolCapabilities(enabled bool) ServerOption {
 	}
 }
 
-// WithAuthenticationMiddleware returns a server option that adds an authentication 
-// middleware to the server.
+// WithAuthenticationMiddleware returns a server option that adds an
+// authentication middleware to the server.
 func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 	return func(s OptionSetter) error {
 		return s.SetOption(server.WithToolHandlerMiddleware(
@@ -113,36 +110,12 @@ func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 					ctx context.Context,
 					request mcp.CallToolRequest,
 				) (result *mcp.CallToolResult, err error) {
-					// If client is provided, this is the stdio mcp server
-					if client != nil {
-						return next(ctx, request)
-					}
-
-					// Check if auth token is provided
-					auth := AuthTokenFromContext(ctx)
-					if auth == "" {
-						return nil, fmt.Errorf("unauthorized: no auth token provided")
-					}
-
-					// Base64 decode the auth token
-					token, err := base64.StdEncoding.DecodeString(auth)
+					authenticatedCtx, err := AuthenticateRequest(ctx, client)
 					if err != nil {
-						return nil, fmt.Errorf("unauthorized: invalid auth token")
+						return nil, err
 					}
 
-					// Split token into key:secret
-					parts := strings.Split(string(token), ":")
-					if len(parts) != 2 {
-						return nil, fmt.Errorf("unauthorized: invalid auth token")
-					}
-
-					// Create a new client with the auth credentials
-					client := rzpsdk.NewClient(parts[0], parts[1])
-
-					// Store the client in context
-					ctx = WithClient(ctx, client)
-
-					return next(ctx, request)
+					return next(authenticatedCtx, request)
 				}
 			}),
 		)
