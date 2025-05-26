@@ -97,7 +97,7 @@ func CreatePaymentLink(
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
 
-			// Create a parameters map to collect validated parameters
+		// Create a parameters map to collect validated parameters
 		plCreateReq := make(map[string]interface{})
 		customer := make(map[string]interface{})
 		notify := make(map[string]interface{})
