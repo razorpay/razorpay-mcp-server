@@ -28,6 +28,12 @@ func FetchPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 
 		validator := NewValidator(&r).
