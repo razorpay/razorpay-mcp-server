@@ -97,6 +97,12 @@ func NewToolSets(
 			CreateInstantSettlement(log, client),
 		)
 
+	docs := toolsets.NewToolset("docs", "Razorpay Documentation related tools").
+		AddReadTools(
+			SearchDocs(log, client),
+			GetDocument(log, client),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
@@ -105,6 +111,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(payouts)
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
+	toolsetGroup.AddToolset(docs)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
