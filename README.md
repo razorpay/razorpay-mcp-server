@@ -60,33 +60,15 @@ Currently, the Razorpay MCP Server provides the following tools:
 
 To run the Razorpay MCP server, use one of the following methods:
 
-### Using Docker (Recommended)
+### Using Public Docker Image (Recommended)
 
-You need to clone the Github repo and build the image for Razorpay MCP Server using `docker`. Do make sure `docker` is installed and running in your system. 
+You can use the public Razorpay image directly. No need to build anything yourself - just copy-paste the configurations below and make sure Docker is already installed.
 
-```bash
-# Run the server
-git clone https://github.com/razorpay/razorpay-mcp-server.git
-cd razorpay-mcp-server
-docker build -t razorpay-mcp-server:latest .
-```
+> **Note:** To use a specific version instead of the latest, replace `razorpay/mcp` with `razorpay/mcp:v1.0.0` (or your desired version tag) in the configurations below. Available tags can be found on [Docker Hub](https://hub.docker.com/r/razorpay/mcp/tags).
 
-Post this razorpay-mcp-server:latest docker image would be ready in your system.
+#### Usage with Claude Desktop (Recommended)
 
-### Build from source
-
-```bash
-# Clone the repository
-git clone https://github.com/razorpay/razorpay-mcp-server.git
-cd razorpay-mcp-server
-
-# Build the binary
-go build -o razorpay-mcp-server ./cmd/razorpay-mcp-server
-```
-
-Binary `razorpay-mcp-server` would be present in your system post this.
-
-## Usage with Claude Desktop
+This will use the public razorpay image
 
 Add the following to your `claude_desktop_config.json`:
 
@@ -103,7 +85,7 @@ Add the following to your `claude_desktop_config.json`:
                 "RAZORPAY_KEY_ID",
                 "-e",
                 "RAZORPAY_KEY_SECRET",
-                "razorpay-mcp-server:latest"
+                "razorpay/mcp"
             ],
             "env": {
                 "RAZORPAY_KEY_ID": "your_razorpay_key_id",
@@ -118,7 +100,7 @@ Please replace the `your_razorpay_key_id` and `your_razorpay_key_secret` with yo
 - Learn about how to configure MCP servers in Claude desktop: [Link](https://modelcontextprotocol.io/quickstart/user)
 - How to install Claude Desktop: [Link](https://claude.ai/download)
 
-## Usage with VS Code
+#### Usage with VS Code (Recommended)
 
 Add the following to your VS Code settings (JSON):
 
@@ -150,7 +132,7 @@ Add the following to your VS Code settings (JSON):
           "RAZORPAY_KEY_ID",
           "-e",
           "RAZORPAY_KEY_SECRET",
-          "razorpay-mcp-server:latest"
+          "razorpay/mcp"
         ],
         "env": {
           "RAZORPAY_KEY_ID": "${input:razorpay_key_id}",
@@ -163,6 +145,46 @@ Add the following to your VS Code settings (JSON):
 ```
 
 Learn more about MCP servers in VS Code's [agent mode documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
+
+### Build from Docker (Alternative)
+
+You need to clone the Github repo and build the image for Razorpay MCP Server using `docker`. Do make sure `docker` is installed and running in your system. 
+
+```bash
+# Run the server
+git clone https://github.com/razorpay/razorpay-mcp-server.git
+cd razorpay-mcp-server
+docker build -t razorpay-mcp-server:latest .
+```
+
+Once the razorpay-mcp-server:latest docker image is built, you can replace the public image(`razorpay/mcp`) with it in the above configurations.
+
+### Build from source
+
+You can directly build from the source instead of using docker by following these steps:
+
+```bash
+# Clone the repository
+git clone https://github.com/razorpay/razorpay-mcp-server.git
+cd razorpay-mcp-server
+
+# Build the binary
+go build -o razorpay-mcp-server ./cmd/razorpay-mcp-server
+```
+Once the build is ready, you need to specify the path to the binary executable in the `command` option. Here's an example:
+
+```json
+{
+  "razorpay": {
+    "command": "/path/to/razorpay-mcp-server",
+    "args": ["stdio","--log-file=/path/to/rzp-mcp.log"],
+    "env": {
+      "RAZORPAY_KEY_ID": "<YOUR_ID>",
+      "RAZORPAY_KEY_SECRET" : "<YOUR_SECRET>"
+    }
+  }
+}
+```
 
 ## Configuration
 
