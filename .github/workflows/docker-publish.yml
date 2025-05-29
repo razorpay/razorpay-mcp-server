@@ -1,7 +1,7 @@
 name: Docker Image Build & Push
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "sojinss4u/dockerimagebuild"]
     tags: ['v*.*.*']
   pull_request:
     branches: ["main"]
@@ -30,10 +30,11 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             IMAGE_TAG="${GITHUB_REF#refs/tags/}"
+            echo "tags=razorpay/mcp:${IMAGE_TAG},razorpay/mcp:latest" >> $GITHUB_OUTPUT
           else
             IMAGE_TAG="${GITHUB_SHA::7}"  # short commit ID
+            echo "tags=razorpay/mcp:${IMAGE_TAG}" >> $GITHUB_OUTPUT
           fi
-          echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
       
       - name: Build & Push
         uses: docker/build-push-action@v6
@@ -41,4 +42,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: razorpay/mcp:${{ steps.vars.outputs.tag }}
+          tags: ${{ steps.vars.outputs.tags }}
