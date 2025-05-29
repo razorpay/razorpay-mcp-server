@@ -6,7 +6,7 @@ require (
 	github.com/go-test/deep v1.1.1
 	github.com/gorilla/mux v1.8.1
 	github.com/mark3labs/mcp-go v0.23.1
-	github.com/razorpay/razorpay-go v1.3.3
+	github.com/razorpay/razorpay-go v1.3.4
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0

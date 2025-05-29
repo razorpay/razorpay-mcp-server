@@ -2,7 +2,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty --match="v*" 2> /dev/null || echo "dev")
 BUILD_DATE = $(shell date -u '+%Y-%m-%d')
 COMMIT = $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.buildDate=$(BUILD_DATE)"
+LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(BUILD_DATE)"
 
 # Go variables
 GO = go
@@ -17,7 +17,10 @@ all: verify fmt test lint build
 
 # Build docker image
 build:
-	docker build -t $(IMAGE):$(TAG) .
+	docker build \
+		--build-arg VERSION="$(VERSION)" \
+		-t $(IMAGE):$(TAG) \
+		.
 
 # Run docker container
 run:
@@ -31,7 +34,7 @@ local-run:
 	$(GO) run ./cmd/razorpay-mcp-server
 
 local-build:
-	$(GO) build -v ./cmd/razorpay-mcp-server
+	$(GO) build $(LDFLAGS) -v -o razorpay-mcp-server ./cmd/razorpay-mcp-server
 
 # Verify dependencies
 verify:
