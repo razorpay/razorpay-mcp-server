@@ -1,9 +1,8 @@
 name: Docker Image Build & Push
 on:
   push:
-    branches: ["main", "sojinss4u/dockerimagebuild"]
+    branches: ["main"]
     tags: ['v*.*.*']
-  workflow_dispatch:
 
 jobs:
   build:
