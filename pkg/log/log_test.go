@@ -41,10 +41,10 @@ func TestNew(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			defer func() {
 				if tt.path != "" {
-					os.Remove(tt.path)
+					_ = os.Remove(tt.path)
 				}
 				if tt.path == "" {
-					os.Remove(getDefaultLogPath())
+					_ = os.Remove(getDefaultLogPath())
 				}
 			}()
 

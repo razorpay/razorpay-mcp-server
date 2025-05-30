@@ -32,7 +32,7 @@ func New(path string) (*slog.Logger, func(), error) {
 		path = getDefaultLogPath()
 	}
 
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666) // nolint:gosec
 	if err != nil {
 		// Fall back to stderr if we can't open the log file
 		fmt.Fprintf(

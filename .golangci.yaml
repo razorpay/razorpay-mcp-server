@@ -1,3 +1,6 @@
+# https://golangci-lint.run/usage/configuration
+version: "2"
+
 run:
   timeout: 5m
   tests: true
@@ -7,17 +10,13 @@ linters:
   disable-all: true
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
     - gocyclo
     - gosec
     - misspell
-    - gofmt
-    - goimports
     - revive
     - interfacebloat
     - iface
@@ -26,31 +25,35 @@ linters:
     - makezero
     - lll
 
-linters-settings:
-  gocyclo:
-    min-complexity: 15
-  dupl:
-    threshold: 100
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  goimports:
-    local-prefixes: github.com/razorpay/razorpay-mcp-server
-  interfacebloat:
-    max: 5
-  iface:
-    enable:
-      - opaque
-      - identical
-  revive:
-    rules:
-      - name: blank-imports
-        disabled: true
-  lll:
-    line-length: 80
-    tab-width: 1
+  settings:
+    dupl:
+      threshold: 100
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocyclo:
+      min-complexity: 15
+    interfacebloat:
+      max: 5
+    iface:
+      enable:
+        - opaque
+        - identical
+    lll:
+      line-length: 120
+      tab-width: 1
+    revive:
+      rules:
+        - name: blank-imports
+          disabled: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
 
 output:
-  formats: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
+  formats:
+    text:
+      print-linter-name: true
+      print-issued-lines: true
