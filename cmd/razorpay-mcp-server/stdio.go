@@ -36,6 +36,8 @@ var stdioCmd = &cobra.Command{
 		secret := viper.GetString("secret")
 		client := rzpsdk.NewClient(key, secret)
 
+		client.SetUserAgent("razorpay-mcp/" + version + "/stdio")
+
 		// Get toolsets to enable from config
 		enabledToolsets := viper.GetStringSlice("toolsets")
 

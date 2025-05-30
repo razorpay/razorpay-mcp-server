@@ -8,7 +8,9 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o razorpay-mcp-server ./cmd/razorpay-mcp-server
+ARG VERSION="dev"
+
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION} -X main.commit=$(git rev-parse HEAD) -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o razorpay-mcp-server ./cmd/razorpay-mcp-server
 
 FROM alpine:latest
 
