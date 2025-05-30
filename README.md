@@ -66,7 +66,7 @@ You can use the public Razorpay image directly. No need to build anything yourse
 
 > **Note:** To use a specific version instead of the latest, replace `razorpay/mcp` with `razorpay/mcp:v1.0.0` (or your desired version tag) in the configurations below. Available tags can be found on [Docker Hub](https://hub.docker.com/r/razorpay/mcp/tags).
 
-#### Usage with Claude Desktop (Recommended)
+#### Usage with Claude Desktop
 
 This will use the public razorpay image
 
@@ -100,7 +100,7 @@ Please replace the `your_razorpay_key_id` and `your_razorpay_key_secret` with yo
 - Learn about how to configure MCP servers in Claude desktop: [Link](https://modelcontextprotocol.io/quickstart/user)
 - How to install Claude Desktop: [Link](https://claude.ai/download)
 
-#### Usage with VS Code (Recommended)
+#### Usage with VS Code
 
 Add the following to your VS Code settings (JSON):
 
@@ -171,7 +171,7 @@ cd razorpay-mcp-server
 # Build the binary
 go build -o razorpay-mcp-server ./cmd/razorpay-mcp-server
 ```
-Once the build is ready, you need to specify the path to the binary executable in the `command` option. Here's an example:
+Once the build is ready, you need to specify the path to the binary executable in the `command` option. Here's an example for VS Code settings:
 
 ```json
 {
