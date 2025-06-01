@@ -1,7 +1,7 @@
 name: Docker Image Build & Push
 on:
   push:
-    branches: ["main", "sojinss4u/dockerimagebuild"]
+    branches: ["main"]
     tags: ['v*.*.*']
   pull_request:
     branches: ["main"]
