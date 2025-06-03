@@ -121,3 +121,18 @@ func (tg *ToolsetGroup) RegisterTools(s mcpgo.Server) {
 		toolset.RegisterTools(s)
 	}
 }
+
+// ReadOnly returns whether the toolset group is in read-only mode
+func (tg *ToolsetGroup) ReadOnly() bool {
+	return tg.readOnly
+}
+
+// ReadTools returns the read tools in this toolset
+func (t *Toolset) ReadTools() []mcpgo.Tool {
+	return t.readTools
+}
+
+// WriteTools returns the write tools in this toolset
+func (t *Toolset) WriteTools() []mcpgo.Tool {
+	return t.writeTools
+}

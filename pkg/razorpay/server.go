@@ -74,6 +74,55 @@ func (s *Server) GetMCPServer() mcpgo.Server {
 	return s.server
 }
 
+// GetAllTools returns all registered tools
+func (s *Server) GetAllTools() []mcpgo.Tool {
+	var allTools []mcpgo.Tool
+
+	// Iterate through all toolsets and collect their tools
+	for _, toolset := range s.toolsets.Toolsets {
+		if toolset.Enabled {
+			allTools = append(allTools, toolset.ReadTools()...)
+			if !s.toolsets.ReadOnly() {
+				allTools = append(allTools, toolset.WriteTools()...)
+			}
+		}
+	}
+
+	return allTools
+}
+
+// CallTool calls a specific tool by name with the provided arguments
+func (s *Server) CallTool(ctx context.Context, name string, arguments map[string]interface{}) (interface{}, error) {
+	// Find the tool by name
+	tools := s.GetAllTools()
+	var targetTool mcpgo.Tool
+
+	for _, tool := range tools {
+		if tool.GetName() == name {
+			targetTool = tool
+			break
+		}
+	}
+
+	if targetTool == nil {
+		return nil, fmt.Errorf("tool '%s' not found", name)
+	}
+
+	// Create a call tool request
+	request := mcpgo.CallToolRequest{
+		Name:      name,
+		Arguments: arguments,
+	}
+
+	// Call the tool
+	result, err := targetTool.Call(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // getClientFromContextOrDefault returns either the provided default
 // client or gets one from context.
 func getClientFromContextOrDefault(

@@ -224,28 +224,46 @@ The server requires the following configuration:
 
 - `RAZORPAY_KEY_ID`: Your Razorpay API key ID (required for stdio mode)
 - `RAZORPAY_KEY_SECRET`: Your Razorpay API key secret (required for stdio mode)
-- `MODE`: Server mode ("stdio" or "sse", default: "stdio")
-- `PORT`: Port for SSE server (default: "8090", used in SSE mode)
-- `LOG_FILE` (optional): Path to log file for stdio mode logs (SSE mode always logs to stdout)
+- `MODE`: Server mode ("stdio", "sse", or "http", default: "stdio")
+- `PORT`: Port for SSE/HTTP server (default: "8090" for SSE, "8080" for HTTP)
+- `ADDRESS`: Address to bind the server to (default: "localhost", used in SSE/HTTP mode)
+- `LOG_FILE` (optional): Path to log file for stdio mode logs (SSE/HTTP modes always log to stdout)
 - `TOOLSETS` (optional): Comma-separated list of toolsets to enable (default: "all")
 - `READ_ONLY` (optional): Run server in read-only mode (default: false)
 
 ### Command Line Flags
 
-The server supports different flags based on the mode:
+The server supports different commands and flags:
 
-For stdio mode:
+#### stdio mode:
+```bash
+./razorpay-mcp-server stdio [flags]
+```
 - `--key` or `-k`: Your Razorpay API key ID
 - `--secret` or `-s`: Your Razorpay API key secret
 - `--log-file` or `-l`: Path to log file
 - `--toolsets` or `-t`: Comma-separated list of toolsets to enable
 - `--read-only`: Run server in read-only mode
 
-For SSE mode:
-- `--port`: Port to run the SSE server on (default: 8090)
+#### SSE mode:
+```bash
+./razorpay-mcp-server sse [flags]
+```
+- `--address` or `-a`: Address to bind the server to (default: "localhost")
+- `--port` or `-p`: Port to run the SSE server on (default: 8080)
 - `--toolsets` or `-t`: Comma-separated list of toolsets to enable
 - `--read-only`: Run server in read-only mode
-Note: SSE mode logs are always written to stdout for better container integration
+
+#### HTTP mode:
+```bash
+./razorpay-mcp-server http [flags]
+```
+- `--address` or `-a`: Address to bind the server to (default: "localhost")
+- `--port` or `-p`: Port to run the HTTP server on (default: 8080)
+- `--toolsets` or `-t`: Comma-separated list of toolsets to enable
+- `--read-only`: Run server in read-only mode
+
+Note: SSE and HTTP modes log to stdout for better container integration. Authentication is handled via Bearer tokens in HTTP mode and SSE context in SSE mode.
 
 ## Debugging the Server
 

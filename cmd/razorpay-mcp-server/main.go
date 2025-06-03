@@ -62,6 +62,7 @@ func init() {
 	// subcommands
 	rootCmd.AddCommand(stdioCmd)
 	rootCmd.AddCommand(sseCmd)
+	rootCmd.AddCommand(httpCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
