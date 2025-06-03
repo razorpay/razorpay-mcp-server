@@ -1,0 +1,47 @@
+name: Docker Image Build & Push
+on:
+  push:
+    branches: ["main", "sojinss4u/dockerimagebuild"]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.PUBLIC_DOCKER_USERNAME }}
+          password: ${{ secrets.PUBLIC_DOCKER_PASSWORD }}
+
+      - name: Determine Docker Tag
+        id: vars
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            IMAGE_TAG="${GITHUB_REF#refs/tags/}"
+            echo "tags=razorpay/mcp:${IMAGE_TAG},razorpay/mcp:latest" >> $GITHUB_OUTPUT
+          else
+            IMAGE_TAG="${GITHUB_SHA::7}"  # short commit ID
+            echo "tags=razorpay/mcp:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build & Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.vars.outputs.tags }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
