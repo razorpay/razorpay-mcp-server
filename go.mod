@@ -5,8 +5,8 @@ go 1.24.2
 require (
 	github.com/go-test/deep v1.1.1
 	github.com/gorilla/mux v1.8.1
-	github.com/mark3labs/mcp-go v0.23.1
-	github.com/razorpay/razorpay-go v1.3.4-0.20250526185238-7e8bf06685a8
+	github.com/mark3labs/mcp-go v0.31.0
+	github.com/razorpay/razorpay-go/v2 v2.0.0-20250603191311-f233476cd336
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
