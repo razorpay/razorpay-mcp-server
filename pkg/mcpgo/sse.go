@@ -110,13 +110,19 @@ func (s *mark3labsSseImpl) Start() error {
 }
 
 // handleLiveness returns 200 OK for liveness probe
-func (s *mark3labsSseImpl) handleLiveness(w http.ResponseWriter, r *http.Request) {
+func (s *mark3labsSseImpl) handleLiveness(
+	w http.ResponseWriter,
+	_ *http.Request,
+) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
 
 // handleReadiness returns 200 OK for readiness probe
-func (s *mark3labsSseImpl) handleReadiness(w http.ResponseWriter, r *http.Request) {
+func (s *mark3labsSseImpl) handleReadiness(
+	w http.ResponseWriter,
+	_ *http.Request,
+) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
