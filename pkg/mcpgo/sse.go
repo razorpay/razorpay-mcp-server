@@ -84,11 +84,41 @@ func NewSSEServer(
 type mark3labsSseImpl struct {
 	mcpSseServer *server.SSEServer
 	SSEConfig    *SSEConfig
+	httpServer   *http.Server
+	mux          *http.ServeMux
 }
 
 // Start implements the TransportServer interface
 func (s *mark3labsSseImpl) Start() error {
-	return s.mcpSseServer.Start(fmt.Sprintf(":%d", s.SSEConfig.port))
+	s.mux = http.NewServeMux()
+
+	// Register health check endpoints
+	s.mux.HandleFunc("/live", s.handleLiveness)
+	s.mux.HandleFunc("/ready", s.handleReadiness)
+
+	// Register SSE server as default handler for all other routes
+	s.mux.Handle("/", s.mcpSseServer)
+
+	// Create HTTP server with our custom mux
+	s.httpServer = &http.Server{
+		Addr:    fmt.Sprintf(":%d", s.SSEConfig.port),
+		Handler: s.mux,
+	}
+
+	// Start the HTTP server
+	return s.httpServer.ListenAndServe()
+}
+
+// handleLiveness returns 200 OK for liveness probe
+func (s *mark3labsSseImpl) handleLiveness(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
+
+// handleReadiness returns 200 OK for readiness probe
+func (s *mark3labsSseImpl) handleReadiness(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
 
 // authFromRequest extracts the auth token from the request headers.
