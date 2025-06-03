@@ -118,7 +118,22 @@ func SearchDocs(
 
 	return mcpgo.NewTool(
 		"search_docs",
-		"Search payments documentation for specific terms",
+		"Search the web for Razorpay documentation on specific topics or features.\n\n"+
+			"## Usage\n\n"+
+			"ALWAYS use this tool before writing any code to get the correct and updated documentation"+
+			"This tool searches across all Razorpay documentation for content matching your query.\n"+
+			"Use it when you need information about Razorpay's products, APIs, or integration guides.\n\n"+
+			"## Search Tips\n\n"+
+			"- Use specific technical terms rather than general phrases\n"+
+			"- Include product names to narrow results (e.g., 'payment links creation' instead of just 'create')\n"+
+			"- Add API endpoint names or method names for API documentation\n"+
+			"- Combine multiple keywords for better precision\n\n"+
+			"## Result Interpretation\n\n"+
+			"Each result includes:\n"+
+			"- title: The page or section title\n"+
+			"- desc: A brief description or context\n"+
+			"- url: The relative URL path to the documentation. Use the URL in the results to fetch the relevant documentation.\n"+
+			"- tags: Related keywords and categories",
 		parameters,
 		handler,
 	)
@@ -132,28 +147,162 @@ func extractText(htmlContent string) string {
 	}
 
 	var textBuilder strings.Builder
-	var extractTextNode func(*html.Node)
+	var extractTextNode func(*html.Node, bool)
 
-	// Recursively extract text from HTML nodes
-	extractTextNode = func(n *html.Node) {
+	// Check if a node is inside a pre element
+	isInsidePre := func(n *html.Node) bool {
+		for p := n.Parent; p != nil; p = p.Parent {
+			if p.Type == html.ElementNode && p.Data == "pre" {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Track if we're inside certain elements to adjust formatting
+	extractTextNode = func(n *html.Node, addSpacing bool) {
 		if n.Type == html.TextNode {
 			text := strings.TrimSpace(n.Data)
 			if text != "" {
 				textBuilder.WriteString(text)
-				textBuilder.WriteString("\n")
+				if addSpacing {
+					textBuilder.WriteString(" ")
+				}
 			}
-		}
-		// Skip script and style tags
-		if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "style") {
 			return
 		}
+
+		if n.Type == html.ElementNode {
+			// Skip script, style, nav, header, footer elements
+			if n.Data == "script" || n.Data == "style" ||
+				n.Data == "nav" || n.Data == "header" || n.Data == "footer" {
+				return
+			}
+
+			// Handle different elements with appropriate spacing
+			switch n.Data {
+			case "h1", "h2", "h3", "h4", "h5", "h6":
+				textBuilder.WriteString("\n\n")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, false)
+				}
+				textBuilder.WriteString("\n\n")
+				return
+			case "p", "div":
+				textBuilder.WriteString("\n")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, true)
+				}
+				textBuilder.WriteString("\n")
+				return
+			case "br":
+				textBuilder.WriteString("\n")
+				return
+			case "li":
+				textBuilder.WriteString("\n• ")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, true)
+				}
+				return
+			case "pre":
+				textBuilder.WriteString("\n\n```\n")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, false)
+				}
+				textBuilder.WriteString("\n```\n\n")
+				return
+			case "code":
+				// Only wrap with ``` if it's not inside a pre element
+				if !isInsidePre(n) {
+					textBuilder.WriteString("`")
+					for c := n.FirstChild; c != nil; c = c.NextSibling {
+						extractTextNode(c, false)
+					}
+					textBuilder.WriteString("`")
+					return
+				}
+				// If inside pre, just extract text normally
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, false)
+				}
+				return
+			case "table":
+				textBuilder.WriteString("\n\n")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, false)
+				}
+				textBuilder.WriteString("\n\n")
+				return
+			case "tr":
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, false)
+				}
+				textBuilder.WriteString("\n")
+				return
+			case "td", "th":
+				textBuilder.WriteString("| ")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, true)
+				}
+				textBuilder.WriteString(" ")
+				return
+			case "ul", "ol":
+				textBuilder.WriteString("\n")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, false)
+				}
+				textBuilder.WriteString("\n")
+				return
+			case "strong", "b":
+				textBuilder.WriteString("**")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, false)
+				}
+				textBuilder.WriteString("**")
+				return
+			case "em", "i":
+				textBuilder.WriteString("*")
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					extractTextNode(c, false)
+				}
+				textBuilder.WriteString("*")
+				return
+			}
+		}
+
+		// Default: process all children
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			extractTextNode(c)
+			extractTextNode(c, addSpacing)
 		}
 	}
 
-	extractTextNode(doc)
-	return strings.TrimSpace(textBuilder.String()) + "\n"
+	extractTextNode(doc, false)
+
+	// Clean up the result
+	result := textBuilder.String()
+
+	// Remove excessive newlines
+	result = strings.ReplaceAll(result, "\n\n\n\n", "\n\n")
+	result = strings.ReplaceAll(result, "\n\n\n", "\n\n")
+
+	// Clean up spaces around backticks
+	result = strings.ReplaceAll(result, " `", "`")
+	result = strings.ReplaceAll(result, "` ", "`")
+
+	// Clean up consecutive spaces
+	result = strings.ReplaceAll(result, "  ", " ")
+
+	// Clean up lines
+	lines := strings.Split(result, "\n")
+	var cleanLines []string
+	for _, line := range lines {
+		cleanLine := strings.TrimSpace(line)
+		if cleanLine != "" || len(cleanLines) == 0 || cleanLines[len(cleanLines)-1] != "" {
+			cleanLines = append(cleanLines, cleanLine)
+		}
+	}
+
+	return strings.Join(cleanLines, "\n") + "\n"
 }
 
 // GetDocument returns a tool that fetches Razorpay documentation HTML content by path
