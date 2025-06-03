@@ -57,7 +57,7 @@ func runSseServer(
 	srv, err := razorpay.NewServer(
 		log,
 		client,
-		version,
+		"1.0.0",
 		enabledToolsets,
 		readOnly,
 	)
