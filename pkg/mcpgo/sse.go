@@ -66,7 +66,7 @@ func NewSSEServer(
 	// Create a new SSE server with the base options
 	sseServer := server.NewSSEServer(
 		sImpl.mcpServer,
-		server.WithBaseURL(fmt.Sprintf("http://%s:%d", config.address, config.port)),
+		server.WithBaseURL(config.address),
 		server.WithSSEContextFunc(authFromRequest),
 	)
 
