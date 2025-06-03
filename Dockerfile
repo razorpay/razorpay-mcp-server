@@ -12,8 +12,10 @@ RUN go mod download
 COPY . .
 
 ARG VERSION="dev"
+ARG COMMIT=""
+ARG BUILD_DATE=""
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION} -X main.commit=$(git rev-parse HEAD) -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o razorpay-mcp-server ./cmd/razorpay-mcp-server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT:-$(git rev-parse HEAD 2>/dev/null || echo 'unknown')} -X main.date=${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" -o razorpay-mcp-server ./cmd/razorpay-mcp-server
 
 FROM alpine:latest
 
@@ -34,7 +36,8 @@ ENV CONFIG="" \
     RAZORPAY_KEY_SECRET="" \
     PORT="8090" \
     MODE="stdio" \
-    LOG_FILE=""
+    LOG_FILE="" \
+    ADDRESS="mcp.razorpay.com"
 
 # Switch to the non-root user
 USER rzp
@@ -45,7 +48,7 @@ EXPOSE ${PORT}
 # Use shell form to allow variable substitution and conditional execution
 ENTRYPOINT ["sh", "-c", "\
 if [ \"$MODE\" = \"sse\" ]; then \
-    ./razorpay-mcp-server sse --port ${PORT} ${CONFIG:+--config ${CONFIG}}; \
+    ./razorpay-mcp-server sse --port ${PORT} --address ${ADDRESS} ${CONFIG:+--config ${CONFIG}}; \
 else \
     ./razorpay-mcp-server stdio --key ${RAZORPAY_KEY_ID} --secret ${RAZORPAY_KEY_SECRET} ${CONFIG:+--config ${CONFIG}} ${LOG_FILE:+--log-file ${LOG_FILE}}; \
 fi"]

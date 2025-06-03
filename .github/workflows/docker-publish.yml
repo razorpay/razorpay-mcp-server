@@ -45,3 +45,5 @@ jobs:
           tags: ${{ steps.vars.outputs.tags }}
           build-args: |
             VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
