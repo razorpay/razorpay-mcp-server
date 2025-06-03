@@ -49,6 +49,8 @@ EXPOSE ${PORT}
 ENTRYPOINT ["sh", "-c", "\
 if [ \"$MODE\" = \"sse\" ]; then \
     ./razorpay-mcp-server sse --port ${PORT} --address ${ADDRESS} ${CONFIG:+--config ${CONFIG}}; \
+elif [ \"$MODE\" = \"http\" ]; then \
+    ./razorpay-mcp-server http --port ${PORT} ${CONFIG:+--config ${CONFIG}}; \
 else \
     ./razorpay-mcp-server stdio --key ${RAZORPAY_KEY_ID} --secret ${RAZORPAY_KEY_SECRET} ${CONFIG:+--config ${CONFIG}} ${LOG_FILE:+--log-file ${LOG_FILE}}; \
 fi"]

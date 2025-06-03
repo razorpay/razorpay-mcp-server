@@ -68,7 +68,7 @@ func runHTTPServer(
 	httpSrv, err := razorpay.NewHTTPServer(
 		srv,
 		razorpay.NewHTTPConfig(
-			razorpay.WithHTTPAddress(viper.GetString("address")),
+			razorpay.WithHTTPAddress("localhost"),
 			razorpay.WithHTTPPort(viper.GetInt("port")),
 		),
 	)
