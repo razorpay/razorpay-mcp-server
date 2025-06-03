@@ -109,22 +109,16 @@ func (s *mark3labsSseImpl) Start() error {
 	return s.httpServer.ListenAndServe()
 }
 
-// handleLiveness returns 200 OK for liveness probe
-func (s *mark3labsSseImpl) handleLiveness(
-	w http.ResponseWriter,
-	_ *http.Request,
-) {
+// handleLiveness handles /live endpoint
+func (s *mark3labsSseImpl) handleLiveness(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
-// handleReadiness returns 200 OK for readiness probe
-func (s *mark3labsSseImpl) handleReadiness(
-	w http.ResponseWriter,
-	_ *http.Request,
-) {
+// handleReadiness handles /ready endpoint
+func (s *mark3labsSseImpl) handleReadiness(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 // authFromRequest extracts the auth token from the request headers.

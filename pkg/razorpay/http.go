@@ -143,7 +143,7 @@ func (h *HTTPServer) Shutdown(ctx context.Context) error {
 // handleLiveness returns 200 OK for liveness probe
 func (h *HTTPServer) handleLiveness(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 // handleReadiness returns 200 OK for readiness probe

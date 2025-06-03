@@ -445,7 +445,7 @@ func (t *mark3labsToolImpl) Call(ctx context.Context, request CallToolRequest) (
 
 	// If the result is an error, return it as an error
 	if result.IsError {
-		return nil, fmt.Errorf(result.Text)
+		return nil, fmt.Errorf("%s", result.Text)
 	}
 
 	// Try to parse the result as JSON first
