@@ -2,6 +2,7 @@ package mcpgo
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -102,7 +103,7 @@ func WithToolCapabilities(enabled bool) ServerOption {
 
 // WithAuthenticationMiddleware returns a server option that adds an
 // authentication middleware to the server.
-func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
+func WithAuthenticationMiddleware(client *rzpsdk.Client, log *slog.Logger) ServerOption {
 	return func(s OptionSetter) error {
 		return s.SetOption(server.WithToolHandlerMiddleware(
 			func(next server.ToolHandlerFunc) server.ToolHandlerFunc {
@@ -110,12 +111,22 @@ func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
 					ctx context.Context,
 					request mcp.CallToolRequest,
 				) (result *mcp.CallToolResult, err error) {
+					log.Info("MCP_CALL_REQUEST", "request", request)
+
 					authenticatedCtx, err := AuthenticateRequest(ctx, client)
 					if err != nil {
 						return nil, err
 					}
 
-					return next(authenticatedCtx, request)
+					resp, err := next(authenticatedCtx, request)
+					if err != nil {
+						log.Info("MCP_ERROR_RESPONSE", "response", resp)
+
+						return nil, err
+					}
+
+					log.Info("MCP_CALL_RESPONSE", "response", resp)
+					return resp, nil
 				}
 			}),
 		)

@@ -34,7 +34,7 @@ func NewServer(
 		mcpgo.WithToolCapabilities(true),
 
 		// Add Tool Middlewares
-		mcpgo.WithAuthenticationMiddleware(client),
+		mcpgo.WithAuthenticationMiddleware(client, log),
 	}
 
 	// Create the mcpgo server
