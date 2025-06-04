@@ -1,7 +1,12 @@
 package mcpgo
 
 import (
+	"context"
+
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	rzpsdk "github.com/razorpay/razorpay-go/v2"
 )
 
 // Server defines the minimal MCP server interface needed by the application
@@ -92,5 +97,27 @@ func WithResourceCapabilities(read, list bool) ServerOption {
 func WithToolCapabilities(enabled bool) ServerOption {
 	return func(s OptionSetter) error {
 		return s.SetOption(server.WithToolCapabilities(enabled))
+	}
+}
+
+// WithAuthenticationMiddleware returns a server option that adds an
+// authentication middleware to the server.
+func WithAuthenticationMiddleware(client *rzpsdk.Client) ServerOption {
+	return func(s OptionSetter) error {
+		return s.SetOption(server.WithToolHandlerMiddleware(
+			func(next server.ToolHandlerFunc) server.ToolHandlerFunc {
+				return func(
+					ctx context.Context,
+					request mcp.CallToolRequest,
+				) (result *mcp.CallToolResult, err error) {
+					authenticatedCtx, err := AuthenticateRequest(ctx, client)
+					if err != nil {
+						return nil, err
+					}
+
+					return next(authenticatedCtx, request)
+				}
+			}),
+		)
 	}
 }

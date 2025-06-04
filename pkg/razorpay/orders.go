@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go"
+	rzpsdk "github.com/razorpay/razorpay-go/v2"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
@@ -59,6 +59,12 @@ func CreateOrder(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -112,6 +118,12 @@ func FetchOrder(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -193,6 +205,12 @@ func FetchAllOrders(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		queryParams := make(map[string]interface{})
 
 		validator := NewValidator(&r).
