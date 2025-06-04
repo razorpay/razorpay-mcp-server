@@ -57,7 +57,7 @@ test-coverage:
 
 # Install golangci-lint
 install-lint:
-	@LINT_VERSION=1.64.8; \
+	@LINT_VERSION=2.1.6; \
 	if ! command -v golangci-lint > /dev/null 2>&1; then \
 		echo "Installing golangci-lint v$$LINT_VERSION..."; \
 		curl -fsSL https://github.com/golangci/golangci-lint/releases/download/v$$LINT_VERSION/golangci-lint-$$LINT_VERSION-$$($(GO) env GOOS)-$$($(GO) env GOARCH).tar.gz | \
@@ -71,7 +71,7 @@ lint: install-lint
 	@if [ -f ./bin/golangci-lint ]; then \
 		./bin/golangci-lint run --out-format=colored-line-number --timeout=3m; \
 	else \
-		golangci-lint run --out-format=colored-line-number --timeout=3m; \
+		golangci-lint run --timeout=3m; \
 	fi
 
 # Clean build artifacts
