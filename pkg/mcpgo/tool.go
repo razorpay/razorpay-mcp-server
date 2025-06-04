@@ -3,6 +3,7 @@ package mcpgo
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -33,6 +34,18 @@ type Tool interface {
 
 	// GetHandler internal method for fetching the underlying handler
 	GetHandler() ToolHandler
+
+	// GetName returns the name of the tool
+	GetName() string
+
+	// GetDescription returns the description of the tool
+	GetDescription() string
+
+	// GetInputSchema returns the input schema for the tool
+	GetInputSchema() map[string]interface{}
+
+	// Call executes the tool with the given context and request
+	Call(ctx context.Context, request CallToolRequest) (interface{}, error)
 }
 
 // PropertyOption represents a customization option for
@@ -387,6 +400,62 @@ func convertSchemaToPropertyOptions(
 // GetHandler returns the handler for the tool
 func (t *mark3labsToolImpl) GetHandler() ToolHandler {
 	return t.handler
+}
+
+// GetName returns the name of the tool
+func (t *mark3labsToolImpl) GetName() string {
+	return t.name
+}
+
+// GetDescription returns the description of the tool
+func (t *mark3labsToolImpl) GetDescription() string {
+	return t.description
+}
+
+// GetInputSchema returns the input schema for the tool
+func (t *mark3labsToolImpl) GetInputSchema() map[string]interface{} {
+	properties := make(map[string]interface{})
+	required := make([]string, 0)
+
+	for _, param := range t.parameters {
+		properties[param.Name] = param.Schema
+		if isRequired, ok := param.Schema["required"].(bool); ok && isRequired {
+			required = append(required, param.Name)
+		}
+	}
+
+	schema := map[string]interface{}{
+		"type":       "object",
+		"properties": properties,
+	}
+
+	if len(required) > 0 {
+		schema["required"] = required
+	}
+
+	return schema
+}
+
+// Call executes the tool with the given context and request
+func (t *mark3labsToolImpl) Call(ctx context.Context, request CallToolRequest) (interface{}, error) {
+	result, err := t.handler(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the result is an error, return it as an error
+	if result.IsError {
+		return nil, fmt.Errorf("%s", result.Text)
+	}
+
+	// Try to parse the result as JSON first
+	var jsonResult interface{}
+	if err := json.Unmarshal([]byte(result.Text), &jsonResult); err == nil {
+		return jsonResult, nil
+	}
+
+	// If JSON parsing fails, return the text as is
+	return result.Text, nil
 }
 
 // toMCPServerTool converts our Tool to mcp's ServerTool

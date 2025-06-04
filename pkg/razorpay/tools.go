@@ -3,7 +3,7 @@ package razorpay
 import (
 	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go"
+	rzpsdk "github.com/razorpay/razorpay-go/v2"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
