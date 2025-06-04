@@ -121,7 +121,7 @@ func (h *HTTPServer) Start() error {
 
 	// Create HTTP server
 	h.httpServer = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", h.config.address, h.config.port),
+		Addr:         fmt.Sprintf(":%d", h.config.port),
 		Handler:      h.mux,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
