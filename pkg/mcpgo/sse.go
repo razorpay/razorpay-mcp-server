@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -68,6 +69,8 @@ func NewSSEServer(
 		sImpl.mcpServer,
 		server.WithBaseURL(config.address),
 		server.WithSSEContextFunc(authFromRequest),
+		server.WithKeepAlive(true),
+		server.WithKeepAliveInterval(10*time.Second),
 	)
 
 	// Wrap the server with a recovery handler
