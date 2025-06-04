@@ -218,15 +218,107 @@ npx @modelcontextprotocol/inspector
 
 This will open a browser interface where you can inspect and test the available tools on your SSE server.
 
+## Usage with Streamable HTTP Server
+
+The Razorpay MCP Server supports the [Streamable HTTP transport protocol](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http), providing a robust HTTP-based communication method that supports both request/response and streaming patterns.
+
+### Starting the Streamable HTTP Server
+
+#### From Source
+
+```bash
+# Build the binary
+go build -o razorpay-mcp-server ./cmd/razorpay-mcp-server
+
+# Start the streamable HTTP server
+./razorpay-mcp-server streamable-http --port 8080
+```
+
+#### With Docker
+
+```bash
+# Run the streamable HTTP server on port 8080 (default)
+docker run -p 8080:8080 \
+  -e MODE=streamable-http \
+  -e PORT=8080 \
+  razorpay-mcp-server:latest
+```
+
+### Streamable HTTP Server Options
+
+The streamable HTTP server supports the following configuration options:
+
+- `--address` or `-a`: Address to bind the server to (default: "localhost")
+- `--port` or `-p`: Port to bind the server to (default: 8080)
+- `--toolsets` or `-t`: Comma-separated list of toolsets to enable
+- `--read-only`: Run server in read-only mode
+
+### Example Usage
+
+```bash
+# Start server with custom configuration
+./razorpay-mcp-server streamable-http \
+  --address 0.0.0.0 \
+  --port 9999 \
+  --toolsets payments,orders \
+  --read-only
+
+# Start with environment variables
+RAZORPAY_KEY_ID=your_key_id \
+RAZORPAY_KEY_SECRET=your_key_secret \
+./razorpay-mcp-server streamable-http --port 8080
+```
+
+### Health Endpoints
+
+The streamable HTTP server includes health check endpoints:
+
+- `GET /live`: Liveness probe endpoint
+- `GET /ready`: Readiness probe endpoint
+
+Both endpoints return `200 OK` with an "OK" response body when the server is healthy.
+
+### MCP Endpoint
+
+The main MCP communication happens at:
+
+- `POST /mcp`: For sending requests and notifications
+- `GET /mcp`: For listening to server-sent events
+- `DELETE /mcp`: For session termination
+
+### Authentication
+
+The streamable HTTP server supports authentication via Bearer tokens:
+
+```bash
+curl -H "Authorization: Bearer your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' \
+  http://localhost:8080/mcp
+```
+
+### Testing with MCP Inspector
+
+You can test your streamable HTTP server using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) tool:
+
+```bash
+# Install MCP Inspector
+npm install -g @modelcontextprotocol/inspector
+
+# Open MCP Inspector and connect to your streamable HTTP server
+npx @modelcontextprotocol/inspector http://localhost:8080/mcp
+```
+
 ## Configuration
 
 The server requires the following configuration:
 
 - `RAZORPAY_KEY_ID`: Your Razorpay API key ID (required for stdio mode)
 - `RAZORPAY_KEY_SECRET`: Your Razorpay API key secret (required for stdio mode)
-- `MODE`: Server mode ("stdio" or "sse", default: "stdio")
-- `PORT`: Port for SSE server (default: "8090", used in SSE mode)
-- `LOG_FILE` (optional): Path to log file for stdio mode logs (SSE mode always logs to stdout)
+- `MODE`: Server mode ("stdio", "sse", or "streamable-http", default: "stdio")
+- `PORT`: Port for SSE/streamable HTTP server (default: "8090" for SSE, "8080" for streamable HTTP)
+- `ADDRESS`: Address to bind SSE/streamable HTTP server to (default: "localhost")
+- `LOG_FILE` (optional): Path to log file for stdio mode logs (SSE and streamable HTTP modes always log to stdout)
 - `TOOLSETS` (optional): Comma-separated list of toolsets to enable (default: "all")
 - `READ_ONLY` (optional): Run server in read-only mode (default: false)
 
@@ -242,10 +334,18 @@ For stdio mode:
 - `--read-only`: Run server in read-only mode
 
 For SSE mode:
-- `--port`: Port to run the SSE server on (default: 8090)
+- `--address` or `-a`: Address to bind the server to (default: "localhost")
+- `--port` or `-p`: Port to run the SSE server on (default: 8090)
 - `--toolsets` or `-t`: Comma-separated list of toolsets to enable
 - `--read-only`: Run server in read-only mode
-Note: SSE mode logs are always written to stdout for better container integration
+
+For streamable HTTP mode:
+- `--address` or `-a`: Address to bind the server to (default: "localhost")
+- `--port` or `-p`: Port to run the streamable HTTP server on (default: 8080)
+- `--toolsets` or `-t`: Comma-separated list of toolsets to enable
+- `--read-only`: Run server in read-only mode
+
+Note: SSE and streamable HTTP mode logs are always written to stdout for better container integration
 
 ## Debugging the Server
 

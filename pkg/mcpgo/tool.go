@@ -436,9 +436,10 @@ func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
 		req mcp.CallToolRequest,
 	) (*mcp.CallToolResult, error) {
 		// Convert mcp request to our request
+		// Use GetArguments() for backward compatibility since Arguments is now 'any' type
 		ourReq := CallToolRequest{
 			Name:      req.Params.Name,
-			Arguments: req.Params.Arguments,
+			Arguments: req.GetArguments(),
 		}
 
 		// Call our handler

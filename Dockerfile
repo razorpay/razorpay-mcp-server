@@ -24,6 +24,9 @@ RUN apk --no-cache add ca-certificates
 # Create a non-root user to run the application
 RUN addgroup -S rzpgroup && adduser -S rzp -G rzpgroup
 
+# Create logs directory
+RUN mkdir -p /app/logs && chown -R rzp:rzpgroup /app
+
 WORKDIR /app
 
 COPY --from=builder /app/razorpay-mcp-server .
@@ -34,21 +37,35 @@ RUN chown -R rzp:rzpgroup /app
 ENV CONFIG="" \
     RAZORPAY_KEY_ID="" \
     RAZORPAY_KEY_SECRET="" \
-    PORT="8090" \
+    PORT="" \
     MODE="stdio" \
-    LOG_FILE="" \
-    ADDRESS="mcp.razorpay.com"
+    LOG_FILE="/app/logs" \
+    ADDRESS="localhost" \
+    TOOLSETS="" \
+    READ_ONLY="false"
 
 # Switch to the non-root user
 USER rzp
 
-# Expose the SSE server port (used in SSE mode)
-EXPOSE ${PORT}
+# Expose ports for both SSE (8090) and streamable HTTP (8080)
+EXPOSE 8080 8090
 
 # Use shell form to allow variable substitution and conditional execution
 ENTRYPOINT ["sh", "-c", "\
-if [ \"$MODE\" = \"sse\" ]; then \
-    ./razorpay-mcp-server sse --port ${PORT} --address ${ADDRESS} ${CONFIG:+--config ${CONFIG}}; \
-else \
-    ./razorpay-mcp-server stdio --key ${RAZORPAY_KEY_ID} --secret ${RAZORPAY_KEY_SECRET} ${CONFIG:+--config ${CONFIG}} ${LOG_FILE:+--log-file ${LOG_FILE}}; \
-fi"]
+echo 'logs are stored in: /app/logs'; \
+case \"$MODE\" in \
+    \"sse\") \
+        PORT_FLAG=\"${PORT:-8090}\"; \
+        echo \"Razorpay MCP Server running on sse\"; \
+        ./razorpay-mcp-server sse --port $PORT_FLAG --address ${ADDRESS} ${TOOLSETS:+--toolsets ${TOOLSETS}} ${READ_ONLY:+--read-only}; \
+        ;; \
+    \"streamable-http\") \
+        PORT_FLAG=\"${PORT:-8080}\"; \
+        echo \"Razorpay MCP Server running on streamable-http\"; \
+        ./razorpay-mcp-server streamable-http --port $PORT_FLAG --address ${ADDRESS} ${TOOLSETS:+--toolsets ${TOOLSETS}} ${READ_ONLY:+--read-only}; \
+        ;; \
+    *) \
+        echo \"Razorpay MCP Server running on stdio\"; \
+        ./razorpay-mcp-server stdio --key ${RAZORPAY_KEY_ID} --secret ${RAZORPAY_KEY_SECRET} ${LOG_FILE:+--log-file ${LOG_FILE}} ${TOOLSETS:+--toolsets ${TOOLSETS}} ${READ_ONLY:+--read-only}; \
+        ;; \
+esac"]
