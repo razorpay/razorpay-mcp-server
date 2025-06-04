@@ -70,7 +70,7 @@ func NewSSEServer(
 		server.WithBaseURL(config.address),
 		server.WithSSEContextFunc(authFromRequest),
 		server.WithKeepAlive(true),
-		server.WithKeepAliveInterval(500*time.Millisecond),
+		server.WithKeepAliveInterval(100*time.Millisecond),
 	)
 
 	// Wrap the server with a recovery handler
@@ -110,6 +110,14 @@ func (s *mark3labsSseImpl) Start() error {
 
 	// Start the HTTP server
 	return s.httpServer.ListenAndServe()
+}
+
+// Shutdown gracefully shuts down the SSE server
+func (s *mark3labsSseImpl) Shutdown(ctx context.Context) error {
+	if s.httpServer != nil {
+		return s.httpServer.Shutdown(ctx)
+	}
+	return nil
 }
 
 // handleLiveness returns 200 OK for liveness probe
