@@ -325,6 +325,11 @@ func UpdateOrder(
 		orderUpdateReq := make(map[string]interface{})
 		data := make(map[string]interface{})
 
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(orderUpdateReq, "order_id").
 			ValidateAndAddRequiredMap(orderUpdateReq, "notes")

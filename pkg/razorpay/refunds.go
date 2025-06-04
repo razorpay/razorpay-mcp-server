@@ -238,6 +238,11 @@ func FetchMultipleRefundsForPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fetchReq := make(map[string]interface{})
 		fetchOptions := make(map[string]interface{})
 
@@ -296,6 +301,11 @@ func FetchSpecificRefundForPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -357,6 +367,11 @@ func FetchAllRefunds(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		queryParams := make(map[string]interface{})
 
 		validator := NewValidator(&r).

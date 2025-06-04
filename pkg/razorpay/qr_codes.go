@@ -86,6 +86,11 @@ func CreateQRCode(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		qrData := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -150,6 +155,11 @@ func FetchQRCode(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(params, "qr_code_id")
@@ -218,6 +228,11 @@ func FetchAllQRCodes(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fetchQROptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -267,6 +282,11 @@ func FetchQRCodesByCustomerID(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fetchQROptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -315,6 +335,11 @@ func FetchQRCodesByPaymentID(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fetchQROptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -391,6 +416,11 @@ func FetchPaymentsForQRCode(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 		fetchQROptions := make(map[string]interface{})
 
@@ -445,6 +475,11 @@ func CloseQRCode(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(params, "qr_code_id")

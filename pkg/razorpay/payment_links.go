@@ -272,6 +272,11 @@ func CreateUpiPaymentLink(
 			upiPlCreateReq["notify"] = notify
 		}
 
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create the payment link
 		paymentLink, err := client.PaymentLink.Create(upiPlCreateReq, nil)
 		if err != nil {
@@ -371,6 +376,11 @@ func ResendPaymentLinkNotification(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fields := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -443,6 +453,11 @@ func UpdatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		plUpdateReq := make(map[string]interface{})
 		otherFields := make(map[string]interface{})
 
@@ -512,6 +527,11 @@ func FetchAllPaymentLinks(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		plListReq := make(map[string]interface{})
 
 		validator := NewValidator(&r).

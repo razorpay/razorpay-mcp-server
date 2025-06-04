@@ -70,7 +70,7 @@ func NewSSEServer(
 		server.WithBaseURL(config.address),
 		server.WithSSEContextFunc(authFromRequest),
 		server.WithKeepAlive(true),
-		server.WithKeepAliveInterval(100*time.Millisecond),
+		server.WithKeepAliveInterval(500*time.Millisecond),
 	)
 
 	// Wrap the server with a recovery handler
@@ -126,7 +126,10 @@ func (s *mark3labsSseImpl) handleLiveness(
 	_ *http.Request,
 ) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, err := w.Write([]byte("OK"))
+	if err != nil {
+		return
+	}
 }
 
 // handleReadiness returns 200 OK for readiness probe
@@ -135,7 +138,10 @@ func (s *mark3labsSseImpl) handleReadiness(
 	_ *http.Request,
 ) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, err := w.Write([]byte("OK"))
+	if err != nil {
+		return
+	}
 }
 
 // authFromRequest extracts the auth token from the request headers.

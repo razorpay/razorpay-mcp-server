@@ -29,6 +29,11 @@ func FetchPayout(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		FetchPayoutOptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -90,6 +95,11 @@ func FetchAllPayouts(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		FetchAllPayoutsOptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
