@@ -70,7 +70,7 @@ func NewSSEServer(
 		server.WithBaseURL(config.address),
 		server.WithSSEContextFunc(authFromRequest),
 		server.WithKeepAlive(true),
-		server.WithKeepAliveInterval(10*time.Second),
+		server.WithKeepAliveInterval(500*time.Millisecond),
 	)
 
 	// Wrap the server with a recovery handler
