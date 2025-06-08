@@ -288,7 +288,7 @@ func CreateUpiPaymentLink(
 	}
 
 	return mcpgo.NewTool(
-		"payment_link_upi.create",
+		"payment_link_upi_create",
 		"Create a new UPI payment link in Razorpay with a specified amount and additional options.", // nolint:lll
 		parameters,
 		handler,

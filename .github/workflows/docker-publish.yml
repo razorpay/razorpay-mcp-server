@@ -25,6 +25,16 @@ jobs:
           username: ${{ secrets.PUBLIC_DOCKER_USERNAME }}
           password: ${{ secrets.PUBLIC_DOCKER_PASSWORD }}
 
+      - name: Get Build Info
+        id: build_info
+        run: |
+          TRIGGER_SHA=${{ github.event.pull_request.head.sha || github.sha }}
+          echo "trigger_sha=${TRIGGER_SHA}" >> $GITHUB_OUTPUT
+          
+          # Generate build timestamp in UTC
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "build_date=${BUILD_DATE}" >> $GITHUB_OUTPUT
+
       - name: Determine Docker Tag
         id: vars
         run: |
@@ -32,7 +42,8 @@ jobs:
             IMAGE_TAG="${GITHUB_REF#refs/tags/}"
             echo "tags=razorpay/mcp:${IMAGE_TAG},razorpay/mcp:latest" >> $GITHUB_OUTPUT
           else
-            IMAGE_TAG="${GITHUB_SHA}"  # full commit SHA
+            # Use the trigger SHA instead of the merge commit SHA
+            IMAGE_TAG="${{ steps.build_info.outputs.trigger_sha }}"
             echo "tags=razorpay/mcp:${IMAGE_TAG}" >> $GITHUB_OUTPUT
           fi
       
@@ -45,5 +56,5 @@ jobs:
           tags: ${{ steps.vars.outputs.tags }}
           build-args: |
             VERSION=${{ github.ref_name }}
-            COMMIT=${{ github.sha }}
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            COMMIT=${{ steps.build_info.outputs.trigger_sha }}
+            BUILD_DATE=${{ steps.build_info.outputs.build_date }}

@@ -11,11 +11,19 @@ RUN go mod download
 
 COPY . .
 
+# Build arguments with defaults
 ARG VERSION="dev"
-ARG COMMIT=""
-ARG BUILD_DATE=""
+ARG COMMIT
+ARG BUILD_DATE
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT:-$(git rev-parse HEAD 2>/dev/null || echo 'unknown')} -X main.date=${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" -o razorpay-mcp-server ./cmd/razorpay-mcp-server
+# Use build args if provided, otherwise use fallbacks
+RUN if [ -z "$COMMIT" ]; then \
+        COMMIT=$(git rev-parse HEAD 2>/dev/null || echo 'unknown'); \
+    fi && \
+    if [ -z "$BUILD_DATE" ]; then \
+        BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ); \
+    fi && \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${BUILD_DATE}" -o razorpay-mcp-server ./cmd/razorpay-mcp-server
 
 FROM alpine:latest
 

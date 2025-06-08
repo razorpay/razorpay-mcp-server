@@ -104,8 +104,9 @@ func (s *mark3labsSseImpl) Start() error {
 
 	// Create HTTP server with our custom mux
 	s.httpServer = &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.SSEConfig.port),
-		Handler: s.mux,
+		Addr:              fmt.Sprintf(":%d", s.SSEConfig.port),
+		Handler:           s.mux,
+		ReadHeaderTimeout: 1 * time.Second,
 	}
 
 	// Start the HTTP server
