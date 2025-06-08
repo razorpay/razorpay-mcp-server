@@ -23,8 +23,8 @@ var sseCmd = &cobra.Command{
 	Short: "start the sse server",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create stdout logger
-		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelError,
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
 		}))
 
 		// Get toolsets to enable from config
