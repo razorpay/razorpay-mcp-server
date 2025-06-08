@@ -83,7 +83,7 @@ func runSseServer(
 		errC <- sseSrv.Start()
 	}()
 
-	log.Info("Razorpay MCP Server running on sse\n")
+	log.Info("Razorpay MCP Server running on sse")
 
 	// Wait for shutdown signal
 	select {
