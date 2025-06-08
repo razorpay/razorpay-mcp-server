@@ -103,7 +103,10 @@ func WithToolCapabilities(enabled bool) ServerOption {
 
 // WithAuthenticationMiddleware returns a server option that adds an
 // authentication middleware to the server.
-func WithAuthenticationMiddleware(client *rzpsdk.Client, log *slog.Logger) ServerOption {
+func WithAuthenticationMiddleware(
+	client *rzpsdk.Client,
+	log *slog.Logger,
+) ServerOption {
 	return func(s OptionSetter) error {
 		return s.SetOption(server.WithToolHandlerMiddleware(
 			func(next server.ToolHandlerFunc) server.ToolHandlerFunc {
