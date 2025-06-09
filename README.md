@@ -2,58 +2,176 @@
 
 The Razorpay MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that provides seamless integration with Razorpay APIs, enabling advanced payment processing capabilities for developers and AI tools.
 
+## Quick Start
+
+Choose your preferred setup method:
+- **[Remote MCP Server](#remote-mcp-server-recommended)** - Hosted by Razorpay, no setup required
+- **[Local MCP Server](#local-mcp-server)** - Run on your own infrastructure
+
 ## Available Tools
 
 Currently, the Razorpay MCP Server provides the following tools:
 
-| Tool                                 | Description                                            | API
-|:-------------------------------------|:-------------------------------------------------------|:-----------------------------------
-| `capture_payment`                    | Change the payment status from authorized to captured. | [Payment](https://razorpay.com/docs/api/payments/capture)
-| `fetch_payment`                      | Fetch payment details with ID                          | [Payment](https://razorpay.com/docs/api/payments/fetch-with-id)
-| `fetch_payment_card_details`         | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card)
-| `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments)
-| `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update)|
-| `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard)
-| `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi)
-| `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard)
-| `fetch_payment_link`                 | Fetch details of a payment link                        | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-id-standard/)
-| `send_payment_link`                  | Send a payment link via SMS or email.                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/resend)
-| `update_payment_link`                | Updates a new standard payment link                    | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/update-standard)
-| `create_order`                       | Creates an order                                       | [Order](https://razorpay.com/docs/api/orders/create/)
-| `fetch_order`                        | Fetch order with ID                                    | [Order](https://razorpay.com/docs/api/orders/fetch-with-id)
-| `fetch_all_orders`                   | Fetch all orders                                       | [Order](https://razorpay.com/docs/api/orders/fetch-all)
-| `update_order`                       | Update an order                                        | [Order](https://razorpay.com/docs/api/orders/update) 
-| `fetch_order_payments`               | Fetch all payments for an order                        | [Order](https://razorpay.com/docs/api/orders/fetch-payments/)
-| `create_refund`                      | Creates a refund                                       | [Refund](https://razorpay.com/docs/api/refunds/create-instant/)
-| `fetch_refund`                       | Fetch refund details with ID                           | [Refund](https://razorpay.com/docs/api/refunds/fetch-with-id/)
-| `fetch_all_refunds`                  | Fetch all refunds                                      | [Refund](https://razorpay.com/docs/api/refunds/fetch-all)
-| `update_refund`                      | Update refund notes with ID                            | [Refund](https://razorpay.com/docs/api/refunds/update/)
-| `fetch_multiple_refunds_for_payment` | Fetch multiple refunds for a payment                   | [Refund](https://razorpay.com/docs/api/refunds/fetch-multiple-refund-payment/)
-| `fetch_specific_refund_for_payment`  | Fetch a specific refund for a payment                  | [Refund](https://razorpay.com/docs/api/refunds/fetch-specific-refund-payment/)
-| `create_qr_code`                     | Creates a QR Code                                      | [QR Code](https://razorpay.com/docs/api/qr-codes/create/)
-| `fetch_qr_code`                      | Fetch QR Code with ID                                  | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-with-id/)
-| `fetch_all_qr_codes`                 | Fetch all QR Codes                                     | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-all/)
-| `fetch_qr_codes_by_customer_id`      | Fetch QR Codes with Customer ID                        | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-customer-id/)
-| `fetch_qr_codes_by_payment_id`       | Fetch QR Codes with Payment ID                         | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-payment-id/)
-| `fetch_payments_for_qr_code`         | Fetch Payments for a QR Code                           | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-payments/)
-| `close_qr_code`                      | Closes a QR Code                                       | [QR Code](https://razorpay.com/docs/api/qr-codes/close/)
-| `fetch_all_settlements`              | Fetch all settlements                                  | [Settlement](https://razorpay.com/docs/api/settlements/fetch-all)
-| `fetch_settlement_with_id`           | Fetch settlement details                               | [Settlement](https://razorpay.com/docs/api/settlements/fetch-with-id)
-| `fetch_settlement_recon_details`     | Fetch settlement reconciliation report                 | [Settlement](https://razorpay.com/docs/api/settlements/fetch-recon)
-| `create_instant_settlement`          | Create an instant settlement                           | [Settlement](https://razorpay.com/docs/api/settlements/instant/create)
-| `fetch_all_instant_settlements`      | Fetch all instant settlements                          | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-all)
-| `fetch_instant_settlement_with_id`   | Fetch instant settlement with ID                       | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-with-id)
-| `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/)
-| `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id)
+| Tool                                 | Description                                            | API | Remote Server Support |
+|:-------------------------------------|:-------------------------------------------------------|:------------------------------------|:---------------------|
+| `capture_payment`                    | Change the payment status from authorized to captured. | [Payment](https://razorpay.com/docs/api/payments/capture) | ✅ |
+| `fetch_payment`                      | Fetch payment details with ID                          | [Payment](https://razorpay.com/docs/api/payments/fetch-with-id) | ✅ |
+| `fetch_payment_card_details`         | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card) | ✅ |
+| `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments) | ✅ |
+| `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update) | ✅ |
+| `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard) | ✅ |
+| `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi) | ✅ |
+| `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard) | ✅ |
+| `fetch_payment_link`                 | Fetch details of a payment link                        | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-id-standard/) | ✅ |
+| `send_payment_link`                  | Send a payment link via SMS or email.                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/resend) | ✅ |
+| `update_payment_link`                | Updates a new standard payment link                    | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/update-standard) | ✅ |
+| `create_order`                       | Creates an order                                       | [Order](https://razorpay.com/docs/api/orders/create/) | ✅ |
+| `fetch_order`                        | Fetch order with ID                                    | [Order](https://razorpay.com/docs/api/orders/fetch-with-id) | ✅ |
+| `fetch_all_orders`                   | Fetch all orders                                       | [Order](https://razorpay.com/docs/api/orders/fetch-all) | ✅ |
+| `update_order`                       | Update an order                                        | [Order](https://razorpay.com/docs/api/orders/update) | ✅ |
+| `fetch_order_payments`               | Fetch all payments for an order                        | [Order](https://razorpay.com/docs/api/orders/fetch-payments/) | ✅ |
+| `create_refund`                      | Creates a refund                                       | [Refund](https://razorpay.com/docs/api/refunds/create-instant/) | ❌ |
+| `fetch_refund`                       | Fetch refund details with ID                           | [Refund](https://razorpay.com/docs/api/refunds/fetch-with-id/) | ✅ |
+| `fetch_all_refunds`                  | Fetch all refunds                                      | [Refund](https://razorpay.com/docs/api/refunds/fetch-all) | ✅ |
+| `update_refund`                      | Update refund notes with ID                            | [Refund](https://razorpay.com/docs/api/refunds/update/) | ✅ |
+| `fetch_multiple_refunds_for_payment` | Fetch multiple refunds for a payment                   | [Refund](https://razorpay.com/docs/api/refunds/fetch-multiple-refund-payment/) | ✅ |
+| `fetch_specific_refund_for_payment`  | Fetch a specific refund for a payment                  | [Refund](https://razorpay.com/docs/api/refunds/fetch-specific-refund-payment/) | ✅ |
+| `create_qr_code`                     | Creates a QR Code                                      | [QR Code](https://razorpay.com/docs/api/qr-codes/create/) | ✅ |
+| `fetch_qr_code`                      | Fetch QR Code with ID                                  | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-with-id/) | ✅ |
+| `fetch_all_qr_codes`                 | Fetch all QR Codes                                     | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-all/) | ✅ |
+| `fetch_qr_codes_by_customer_id`      | Fetch QR Codes with Customer ID                        | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-customer-id/) | ✅ |
+| `fetch_qr_codes_by_payment_id`       | Fetch QR Codes with Payment ID                         | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-payment-id/) | ✅ |
+| `fetch_payments_for_qr_code`         | Fetch Payments for a QR Code                           | [QR Code](https://razorpay.com/docs/api/qr-codes/fetch-payments/) | ✅ |
+| `close_qr_code`                      | Closes a QR Code                                       | [QR Code](https://razorpay.com/docs/api/qr-codes/close/) | ❌ |
+| `fetch_all_settlements`              | Fetch all settlements                                  | [Settlement](https://razorpay.com/docs/api/settlements/fetch-all) | ✅ |
+| `fetch_settlement_with_id`           | Fetch settlement details                               | [Settlement](https://razorpay.com/docs/api/settlements/fetch-with-id) | ✅ |
+| `fetch_settlement_recon_details`     | Fetch settlement reconciliation report                 | [Settlement](https://razorpay.com/docs/api/settlements/fetch-recon) | ✅ |
+| `create_instant_settlement`          | Create an instant settlement                           | [Settlement](https://razorpay.com/docs/api/settlements/instant/create) | ❌ |
+| `fetch_all_instant_settlements`      | Fetch all instant settlements                          | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-all) | ✅ |
+| `fetch_instant_settlement_with_id`   | Fetch instant settlement with ID                       | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-with-id) | ✅ |
+| `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/) | ✅ |
+| `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id) | ✅ |
 
+> **Note:** Some tools marked with ❌ are not available in the Remote MCP Server for security reasons. Use the [Local MCP Server](#local-mcp-server) if you need these capabilities.
 
-## Use Cases 
+## Use Cases
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
 - Agentic Applications: Building AI powered tools that interact with Razorpay's payment ecosystem using this Razorpay MCP server.
 
-## Setup
+## Remote MCP Server (Recommended)
+
+The Remote MCP Server is hosted by Razorpay and provides instant access to Razorpay APIs without any local setup. This is the recommended approach for most users.
+
+### Benefits of Remote MCP Server
+
+- **Zero Setup**: No need to install Docker, Go, or manage local infrastructure
+- **Always Updated**: Automatically stays updated with the latest features and security patches
+- **High Availability**: Backed by Razorpay's robust infrastructure with 99.9% uptime
+- **Reduced Latency**: Optimized routing and caching for faster API responses
+- **Enhanced Security**: Secure token-based authentication with automatic token rotation
+- **No Maintenance**: No need to worry about updates, patches, or server maintenance
 
 ### Prerequisites
+
+You need to have `npm` and `npx` installed on your system:
+
+#### macOS
+```bash
+# Install Node.js (which includes npm and npx) using Homebrew
+brew install node
+
+# Alternatively, download from https://nodejs.org/
+```
+
+#### Windows
+```bash
+# Install Node.js (which includes npm and npx) using Chocolatey
+choco install nodejs
+
+# Alternatively, download from https://nodejs.org/
+```
+
+#### Verify Installation
+```bash
+npx --version
+```
+
+### Usage with Claude Desktop
+
+Add the following to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "rzp-sse-mcp-server": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.razorpay.com/sse",
+        "--header",
+        "Authorization: Bearer <Merchant Token>"
+      ]
+    }
+  }
+}
+```
+
+Replace `<Merchant Token>` with your Razorpay merchant token.
+
+- Learn about how to configure MCP servers in Claude desktop: [Link](https://modelcontextprotocol.io/quickstart/user)
+- How to install Claude Desktop: [Link](https://claude.ai/download)
+
+### Usage with VS Code
+
+Add the following to your VS Code settings (JSON):
+
+```json
+{
+  "mcp": {
+    "inputs": [
+      {
+        "type": "promptString",
+        "id": "merchant_token",
+        "description": "Razorpay Merchant Token",
+        "password": true
+      }
+    ],
+    "servers": {
+      "razorpay-remote": {
+        "command": "npx",
+        "args": [
+          "mcp-remote",
+          "https://mcp.razorpay.com/sse",
+          "--header",
+          "Authorization: Bearer ${input:merchant_token}"
+        ]
+      }
+    }
+  }
+}
+```
+
+Learn more about MCP servers in VS Code's [agent mode documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
+
+### Authentication
+
+The Remote MCP Server uses merchant token-based authentication. You can generate your merchant token from the Razorpay Dashboard under API Keys section.
+
+### Limitations
+
+For security reasons, the following tools are not available in the Remote MCP Server:
+- `close_qr_code`
+- `create_refund`
+- `create_instant_settlement`
+
+If you need these capabilities, please use the [Local MCP Server](#local-mcp-server).
+
+## Local MCP Server
+
+For users who prefer to run the MCP server on their own infrastructure or need access to all tools (including those restricted in the remote server), you can deploy the server locally.
+
+### Prerequisites
+
 - Docker
 - Golang (Go)
 - Git
@@ -71,6 +189,38 @@ You can use the public Razorpay image directly. No need to build anything yourse
 This will use the public razorpay image
 
 Add the following to your `claude_desktop_config.json`:
+
+```json
+{
+    "mcpServers": {
+        "razorpay-mcp-server": {
+            "command": "docker",
+            "args": [
+                "run",
+                "--rm",
+                "-i",
+                "-e",
+                "RAZORPAY_KEY_ID",
+                "-e",
+                "RAZORPAY_KEY_SECRET",
+                "razorpay/mcp"
+            ],
+            "env": {
+                "RAZORPAY_KEY_ID": "your_razorpay_key_id",
+                "RAZORPAY_KEY_SECRET": "your_razorpay_key_secret"
+            }
+        }
+    }
+}
+```
+Please replace the `your_razorpay_key_id` and `your_razorpay_key_secret` with your keys.
+
+- Learn about how to configure MCP servers in Claude desktop: [Link](https://modelcontextprotocol.io/quickstart/user)
+- How to install Claude Desktop: [Link](https://claude.ai/download)
+
+#### Usage with VS Code
+
+Add the following to your VS Code settings (JSON):
 
 ```json
 {
@@ -148,7 +298,7 @@ Learn more about MCP servers in VS Code's [agent mode documentation](https://cod
 
 ### Build from Docker (Alternative)
 
-You need to clone the Github repo and build the image for Razorpay MCP Server using `docker`. Do make sure `docker` is installed and running in your system. 
+You need to clone the Github repo and build the image for Razorpay MCP Server using `docker`. Do make sure `docker` is installed and running in your system.
 
 ```bash
 # Run the server
