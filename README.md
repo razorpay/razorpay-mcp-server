@@ -97,6 +97,31 @@ choco install nodejs
 npx --version
 ```
 
+### Usage with Cursor
+
+Inside your cursor settings in MCP, add this config.
+
+```json
+{
+  "mcpServers": {
+    "rzp-sse-mcp-server": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.razorpay.com/sse",
+        "--header",
+        "Authorization:${AUTH_HEADER}"
+      ],
+      "env": {
+        "AUTH_HEADER": "Bearer <Base64(key:secret)>"
+      }
+    }
+  }
+}
+```
+
+Replace `key` & `secret` with your Razorpay API KEY & API SECRET
+
 ### Usage with Claude Desktop
 
 Add the following to your `claude_desktop_config.json`:
@@ -193,6 +218,7 @@ To run the Razorpay MCP server, use one of the following methods:
 You can use the public Razorpay image directly. No need to build anything yourself - just copy-paste the configurations below and make sure Docker is already installed.
 
 > **Note:** To use a specific version instead of the latest, replace `razorpay/mcp` with `razorpay/mcp:v1.0.0` (or your desired version tag) in the configurations below. Available tags can be found on [Docker Hub](https://hub.docker.com/r/razorpay/mcp/tags).
+
 
 #### Usage with Claude Desktop
 
