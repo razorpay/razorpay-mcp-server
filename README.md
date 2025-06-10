@@ -73,7 +73,8 @@ The Remote MCP Server is hosted by Razorpay and provides instant access to Razor
 
 ### Prerequisites
 
-You need to have `npm` and `npx` installed on your system:
+`npx` is needed to use mcp server.
+You need to have Node.js installed on your system, which includes both `npm` (Node Package Manager) and `npx` (Node Package Execute) by default:
 
 #### macOS
 ```bash
@@ -155,16 +156,25 @@ Learn more about MCP servers in VS Code's [agent mode documentation](https://cod
 
 ### Authentication
 
-The Remote MCP Server uses merchant token-based authentication. You can generate your merchant token from the Razorpay Dashboard under API Keys section.
+## Authentication
 
-### Limitations
+The Remote MCP Server uses merchant token-based authentication. To generate your merchant token:
 
-For security reasons, the following tools are not available in the Remote MCP Server:
-- `close_qr_code`
-- `create_refund`
-- `create_instant_settlement`
+1. Go to the [Razorpay Dashboard](https://dashboard.razorpay.com/) and navigate to Settings > API Keys
+2. Locate your API Key and API Secret:
+   - API Key is visible on the dashboard
+   - API Secret is generated only once when you first create it. **Important:** Do not generate a new secret if you already have one
 
-If you need these capabilities, please use the [Local MCP Server](#local-mcp-server).
+3. Generate your merchant token by running this command in your terminal:
+   ```bash
+   echo <RAZORPAY_API_KEY>:<RAZORPAY_API_SECRET> | base64
+   ```
+   Replace `<RAZORPAY_API_KEY>` and `<RAZORPAY_API_SECRET>` with your actual credentials
+
+4. Copy the base64-encoded output - this is your merchant token for the Remote MCP Server
+
+> **Note:** For local MCP Server deployment, you can use the API Key and Secret directly without generating a merchant token.
+     
 
 ## Local MCP Server
 
