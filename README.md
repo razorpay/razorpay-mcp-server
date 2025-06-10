@@ -52,7 +52,6 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/) | ✅ |
 | `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id) | ✅ |
 
-> **Note:** Some tools marked with ❌ are not available in the Remote MCP Server for security reasons. Use the [Local MCP Server](#local-mcp-server) if you need these capabilities.
 
 ## Use Cases
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
@@ -142,7 +141,7 @@ Add the following to your `claude_desktop_config.json`:
 }
 ```
 
-Replace `<Merchant Token>` with your Razorpay merchant token.
+Replace `<Merchant Token>` with your Razorpay merchant token. Check Authentication section for steps to generate token.
 
 - Learn about how to configure MCP servers in Claude desktop: [Link](https://modelcontextprotocol.io/quickstart/user)
 - How to install Claude Desktop: [Link](https://claude.ai/download)
@@ -179,7 +178,6 @@ Add the following to your VS Code settings (JSON):
 
 Learn more about MCP servers in VS Code's [agent mode documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
 
-### Authentication
 
 ## Authentication
 
