@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
-	stdlog "log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,28 +13,19 @@ import (
 
 	rzpsdk "github.com/razorpay/razorpay-go/v2"
 
-	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay"
 )
 
-// stdioCmd starts the mcp server in stdio transport mode
-var stdioCmd = &cobra.Command{
-	Use:   "stdio",
-	Short: "start the stdio server",
+// sseCmd starts the mcp server in sse transport mode
+var sseCmd = &cobra.Command{
+	Use:   "sse",
+	Short: "start the sse server",
 	Run: func(cmd *cobra.Command, args []string) {
-		logPath := viper.GetString("log_file")
-		log, close, err := log.New(logPath)
-		if err != nil {
-			stdlog.Fatalf("create logger: %v", err)
-		}
-		defer close()
-
-		key := viper.GetString("key")
-		secret := viper.GetString("secret")
-		client := rzpsdk.NewClient(key, secret)
-
-		client.SetUserAgent("razorpay-mcp/" + version + "/stdio")
+		// Create stdout logger
+		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelError,
+		}))
 
 		// Get toolsets to enable from config
 		enabledToolsets := viper.GetStringSlice("toolsets")
@@ -44,15 +33,15 @@ var stdioCmd = &cobra.Command{
 		// Get read-only mode from config
 		readOnly := viper.GetBool("read_only")
 
-		err = runStdioServer(log, client, enabledToolsets, readOnly)
+		err := runSseServer(logger, nil, enabledToolsets, readOnly)
 		if err != nil {
-			log.Error("error running stdio server", "error", err)
-			stdlog.Fatalf("failed to run stdio server: %v", err)
+			logger.Error("error running sse server", "error", err)
+			os.Exit(1)
 		}
 	},
 }
 
-func runStdioServer(
+func runSseServer(
 	log *slog.Logger,
 	client *rzpsdk.Client,
 	enabledToolsets []string,
@@ -68,7 +57,7 @@ func runStdioServer(
 	srv, err := razorpay.NewServer(
 		log,
 		client,
-		version,
+		"1.0.0",
 		enabledToolsets,
 		readOnly,
 	)
@@ -77,22 +66,24 @@ func runStdioServer(
 	}
 	srv.RegisterTools()
 
-	stdioSrv, err := mcpgo.NewStdioServer(srv.GetMCPServer())
+	sseSrv, err := mcpgo.NewSSEServer(
+		srv.GetMCPServer(),
+		mcpgo.NewSSEConfig(
+			mcpgo.WithSSEAddress(viper.GetString("address")),
+			mcpgo.WithSSEPort(viper.GetInt("port")),
+		),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to create stdio server: %w", err)
+		return fmt.Errorf("failed to create sse server: %w", err)
 	}
 
-	in, out := io.Reader(os.Stdin), io.Writer(os.Stdout)
 	errC := make(chan error, 1)
 	go func() {
 		log.Info("starting server")
-		errC <- stdioSrv.Listen(ctx, in, out)
+		errC <- sseSrv.Start()
 	}()
 
-	_, _ = fmt.Fprintf(
-		os.Stderr,
-		"Razorpay MCP Server running on stdio\n",
-	)
+	log.Info("Razorpay MCP Server running on sse\n")
 
 	// Wait for shutdown signal
 	select {
