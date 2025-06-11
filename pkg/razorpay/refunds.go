@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go"
+	rzpsdk "github.com/razorpay/razorpay-go/v2"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
@@ -51,6 +51,12 @@ func CreateRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 		data := make(map[string]interface{})
 
@@ -105,6 +111,12 @@ func FetchRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -156,6 +168,12 @@ func UpdateRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 		data := make(map[string]interface{})
 

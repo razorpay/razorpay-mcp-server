@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go"
+	rzpsdk "github.com/razorpay/razorpay-go/v2"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
@@ -91,6 +91,12 @@ func CreatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create a parameters map to collect validated parameters
 		plCreateReq := make(map[string]interface{})
 		customer := make(map[string]interface{})
@@ -303,6 +309,12 @@ func FetchPaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fields := make(map[string]interface{})
 
 		validator := NewValidator(&r).
