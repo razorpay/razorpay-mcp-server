@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 )
 
 // AuthenticateRequest handles authentication for a request context.
@@ -22,7 +24,7 @@ func AuthenticateRequest(
 	}
 
 	// Check if auth token is provided
-	auth := AuthTokenFromContext(ctx)
+	auth := contextkey.AuthTokenFromContext(ctx)
 	if auth == "" {
 		return nil, fmt.Errorf("unauthorized: no auth token provided")
 	}
@@ -44,7 +46,7 @@ func AuthenticateRequest(
 	newClient.SetUserAgent("razorpay-mcp" + "/sse")
 
 	// Store the client in context
-	ctx = WithClient(ctx, newClient)
+	ctx = contextkey.WithClient(ctx, newClient)
 
 	return ctx, nil
 }

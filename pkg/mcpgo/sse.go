@@ -168,7 +168,7 @@ func authFromRequest(ctx context.Context, r *http.Request) context.Context {
 	}
 
 	ctx = setRzpKeyInContext(ctx, parts[1])
-	return WithAuthToken(ctx, parts[1])
+	return contextkey.WithAuthToken(ctx, parts[1])
 }
 
 func setRzpKeyInContext(
