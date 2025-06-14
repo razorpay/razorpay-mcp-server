@@ -24,6 +24,9 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 		version:         "1.0.0",
 		enabledToolsets: []string{},
 		readOnly:        false,
+		serverName:      "razorpay-mcp-server",
+		enableResources: true,
+		enableTools:     true,
 	}
 
 	// Apply options
@@ -31,18 +34,16 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 		opt(config)
 	}
 
+	// Validate required fields
 	if config.observability == nil {
 		return nil, fmt.Errorf("observability is required")
 	}
-	if config.version == "" {
-		return nil, fmt.Errorf("version is required")
-	}
 
-	// Create default mcpgo server options
+	// Build MCP server options with configured capabilities
 	mcpOpts := []mcpgo.ServerOption{
 		mcpgo.WithLogging(),
-		mcpgo.WithResourceCapabilities(true, true),
-		mcpgo.WithToolCapabilities(true),
+		mcpgo.WithResourceCapabilities(config.enableResources, config.enableResources),
+		mcpgo.WithToolCapabilities(config.enableTools),
 		mcpgo.WithHooks(mcpgo.SetupHooks(config.observability)),
 
 		// Add Tool Middlewares
@@ -51,15 +52,22 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 
 	// Create the mcpgo server
 	server := mcpgo.NewServer(
-		"razorpay-mcp-server",
+		config.serverName,
 		config.version,
 		mcpOpts...,
 	)
 
-	// Initialize toolsets
-	toolsets, err := NewToolSets(config.observability, config.client, config.enabledToolsets, config.readOnly)
-	if err != nil {
-		return nil, err
+	// Handle toolsets - use custom or create new
+	var toolsets *toolsets.ToolsetGroup
+	var err error
+
+	toolsets = config.customToolsets
+	if toolsets == nil {
+		// Initialize toolsets with configuration
+		toolsets, err = NewToolSets(config.observability, config.client, config.enabledToolsets, config.readOnly)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create toolsets: %w", err)
+		}
 	}
 
 	// Create the server instance
@@ -68,7 +76,7 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 		toolsets: toolsets,
 	}
 
-	// Register all tools
+	// Register tools based on configuration
 	srv.RegisterTools()
 
 	return srv, nil
