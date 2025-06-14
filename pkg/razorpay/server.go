@@ -1,59 +1,96 @@
 package razorpay
 
 import (
-	"log/slog"
+	"context"
+	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
+	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
 
 // Server extends mcpgo.Server
 type Server struct {
-	log      *slog.Logger
-	client   *rzpsdk.Client
 	server   mcpgo.Server
 	toolsets *toolsets.ToolsetGroup
 }
 
-// NewServer creates a new Server
-func NewServer(
-	log *slog.Logger,
-	client *rzpsdk.Client,
-	version string,
-	enabledToolsets []string,
-	readOnly bool,
-) (*Server, error) {
-	// Create default options
-	opts := []mcpgo.ServerOption{
-		mcpgo.WithLogging(),
-		mcpgo.WithResourceCapabilities(true, true),
-		mcpgo.WithToolCapabilities(true),
+// NewServer creates a new Server with the provided options
+func NewServer(opts ...ServerOption) (*Server, error) {
+	// Default configuration
+	config := &serverConfig{
+		version:         "1.0.0",
+		serverName:      "razorpay-mcp-server",
+		enabledToolsets: []string{},
+		mcpOptions:      []mcpgo.ServerOption{},
+		readOnly:        false,
+		enableResources: true,
+		enableTools:     true,
 	}
 
-	// Create the mcpgo server
-	server := mcpgo.NewServer(
-		"razorpay-mcp-server",
-		version,
-		opts...,
-	)
+	// Apply options
+	for _, opt := range opts {
+		opt(config)
+	}
 
-	// Initialize toolsets
-	toolsets, err := NewToolSets(log, client, enabledToolsets, readOnly)
-	if err != nil {
-		return nil, err
+	// Validate required fields
+	if config.observability == nil {
+		return nil, fmt.Errorf("observability is required")
+	}
+
+	// Handle server creation - use custom server or create new one
+	var server = config.customServer
+	if server == nil {
+		// Build MCP server options with configured capabilities
+		mcpOpts := []mcpgo.ServerOption{
+			mcpgo.WithLogging(),
+			mcpgo.WithResourceCapabilities(
+				config.enableResources, config.enableResources),
+			mcpgo.WithToolCapabilities(config.enableTools),
+			mcpgo.WithHooks(mcpgo.SetupHooks(config.observability)),
+
+			// Add tool middlewares
+			mcpgo.WithAuthenticationMiddleware(config.client),
+		}
+
+		// Add any custom MCP options
+		mcpOpts = append(mcpOpts, config.mcpOptions...)
+
+		// Create the mcpgo server
+		server = mcpgo.NewServer(
+			config.serverName,
+			config.version,
+			mcpOpts...,
+		)
+	}
+
+	// Handle toolsets - use custom or create new
+	var (
+		err      error
+		toolsets = config.customToolsets
+	)
+	if toolsets == nil {
+		// Initialize toolsets with configuration
+		toolsets, err = NewToolSets(
+			config.observability,
+			config.client,
+			config.enabledToolsets,
+			config.readOnly,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create toolsets: %w", err)
+		}
 	}
 
 	// Create the server instance
 	srv := &Server{
-		log:      log,
-		client:   client,
 		server:   server,
 		toolsets: toolsets,
 	}
 
-	// Register all tools
+	// Register tools based on configuration
 	srv.RegisterTools()
 
 	return srv, nil
@@ -67,4 +104,27 @@ func (s *Server) RegisterTools() {
 // GetMCPServer returns the underlying MCP server instance
 func (s *Server) GetMCPServer() mcpgo.Server {
 	return s.server
+}
+
+// getClientFromContextOrDefault returns either the provided default
+// client or gets one from context.
+func getClientFromContextOrDefault(
+	ctx context.Context,
+	defaultClient *rzpsdk.Client,
+) (*rzpsdk.Client, error) {
+	if defaultClient != nil {
+		return defaultClient, nil
+	}
+
+	clientInterface := contextkey.ClientFromContext(ctx)
+	if clientInterface == nil {
+		return nil, fmt.Errorf("no client found in context")
+	}
+
+	client, ok := clientInterface.(*rzpsdk.Client)
+	if !ok {
+		return nil, fmt.Errorf("invalid client type in context")
+	}
+
+	return client, nil
 }

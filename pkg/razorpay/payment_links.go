@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // CreatePaymentLink returns a tool that creates payment links in Razorpay
 func CreatePaymentLink(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -91,6 +91,12 @@ func CreatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create a parameters map to collect validated parameters
 		plCreateReq := make(map[string]interface{})
 		customer := make(map[string]interface{})
@@ -148,7 +154,7 @@ func CreatePaymentLink(
 
 // CreateUpiPaymentLink returns a tool that creates payment links in Razorpay
 func CreateUpiPaymentLink(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -266,6 +272,11 @@ func CreateUpiPaymentLink(
 			upiPlCreateReq["notify"] = notify
 		}
 
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create the payment link
 		paymentLink, err := client.PaymentLink.Create(upiPlCreateReq, nil)
 		if err != nil {
@@ -277,7 +288,7 @@ func CreateUpiPaymentLink(
 	}
 
 	return mcpgo.NewTool(
-		"payment_link_upi.create",
+		"payment_link_upi_create",
 		"Create a new UPI payment link in Razorpay with a specified amount and additional options.", // nolint:lll
 		parameters,
 		handler,
@@ -287,7 +298,7 @@ func CreateUpiPaymentLink(
 // FetchPaymentLink returns a tool that fetches payment link details using
 // payment_link_id
 func FetchPaymentLink(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -303,6 +314,12 @@ func FetchPaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fields := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -336,7 +353,7 @@ func FetchPaymentLink(
 // ResendPaymentLinkNotification returns a tool that sends/resends notifications
 // for a payment link via email or SMS
 func ResendPaymentLinkNotification(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -359,6 +376,11 @@ func ResendPaymentLinkNotification(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fields := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -392,7 +414,7 @@ func ResendPaymentLinkNotification(
 
 // UpdatePaymentLink returns a tool that updates an existing payment link
 func UpdatePaymentLink(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -431,6 +453,11 @@ func UpdatePaymentLink(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		plUpdateReq := make(map[string]interface{})
 		otherFields := make(map[string]interface{})
 
@@ -476,7 +503,7 @@ func UpdatePaymentLink(
 // FetchAllPaymentLinks returns a tool that fetches all payment links
 // with optional filtering
 func FetchAllPaymentLinks(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -500,6 +527,11 @@ func FetchAllPaymentLinks(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		plListReq := make(map[string]interface{})
 
 		validator := NewValidator(&r).
