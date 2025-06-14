@@ -12,23 +12,8 @@ import (
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
-	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
-	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
-
-// createMockObservability creates a mock observability object for testing
-func createMockObservability() *observability.Observability {
-	// Create a mock logger config for sse mode
-	config := log.NewConfig(
-		log.WithMode(log.ModeSSE),
-	)
-
-	// Create observability with a mock logger
-	ctx := context.Background()
-	obs, _ := observability.New(ctx, config)
-	return obs
-}
 
 // TestConcurrentRequestHandling tests concurrent requests with different
 // auth tokens

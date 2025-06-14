@@ -76,11 +76,11 @@ func runStdioServer(
 	defer stop()
 
 	srv, err := razorpay.NewServer(
-		obs,
-		client,
-		version,
-		enabledToolsets,
-		readOnly,
+		razorpay.WithObservability(obs),
+		razorpay.WithClient(client),
+		razorpay.WithVersion("1.0.0"),
+		razorpay.WithEnabledToolsets(enabledToolsets),
+		razorpay.WithReadOnly(readOnly),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)

@@ -8,57 +8,64 @@ import (
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
-	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
 
 // Server extends mcpgo.Server
 type Server struct {
-	observability *observability.Observability
-	client        *rzpsdk.Client
-	server        mcpgo.Server
-	toolsets      *toolsets.ToolsetGroup
+	server   mcpgo.Server
+	toolsets *toolsets.ToolsetGroup
 }
 
-// NewServer creates a new Server
-func NewServer(
-	obs *observability.Observability,
-	client *rzpsdk.Client,
-	version string,
-	enabledToolsets []string,
-	readOnly bool,
-) (*Server, error) {
+// NewServer creates a new Server with the provided options
+func NewServer(opts ...ServerOption) (*Server, error) {
+	// Default configuration
+	config := &serverConfig{
+		version:         "1.0.0",
+		enabledToolsets: []string{},
+		readOnly:        false,
+	}
 
-	// Create default options
-	opts := []mcpgo.ServerOption{
+	// Apply options
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	if config.observability == nil {
+		return nil, fmt.Errorf("observability is required")
+	}
+	if config.version == "" {
+		return nil, fmt.Errorf("version is required")
+	}
+
+	// Create default mcpgo server options
+	mcpOpts := []mcpgo.ServerOption{
 		mcpgo.WithLogging(),
 		mcpgo.WithResourceCapabilities(true, true),
 		mcpgo.WithToolCapabilities(true),
-		mcpgo.WithHooks(mcpgo.SetupHooks(obs)),
+		mcpgo.WithHooks(mcpgo.SetupHooks(config.observability)),
 
 		// Add Tool Middlewares
-		mcpgo.WithAuthenticationMiddleware(client),
+		mcpgo.WithAuthenticationMiddleware(config.client),
 	}
 
 	// Create the mcpgo server
 	server := mcpgo.NewServer(
 		"razorpay-mcp-server",
-		version,
-		opts...,
+		config.version,
+		mcpOpts...,
 	)
 
 	// Initialize toolsets
-	toolsets, err := NewToolSets(obs, client, enabledToolsets, readOnly)
+	toolsets, err := NewToolSets(config.observability, config.client, config.enabledToolsets, config.readOnly)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create the server instance
 	srv := &Server{
-		observability: obs,
-		client:        client,
-		server:        server,
-		toolsets:      toolsets,
+		server:   server,
+		toolsets: toolsets,
 	}
 
 	// Register all tools

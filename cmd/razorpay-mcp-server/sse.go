@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 
@@ -42,7 +41,7 @@ var sseCmd = &cobra.Command{
 		// Get read-only mode from config
 		readOnly := viper.GetBool("read_only")
 
-		err := runSseServer(obs, nil, enabledToolsets, readOnly)
+		err := runSseServer(obs, enabledToolsets, readOnly)
 		if err != nil {
 			obs.Logger.Errorf(ctx, "error running sse server", "error", err)
 			os.Exit(1)
@@ -52,7 +51,6 @@ var sseCmd = &cobra.Command{
 
 func runSseServer(
 	obs *observability.Observability,
-	client *rzpsdk.Client,
 	enabledToolsets []string,
 	readOnly bool,
 ) error {
@@ -64,11 +62,10 @@ func runSseServer(
 	defer stop()
 
 	srv, err := razorpay.NewServer(
-		obs,
-		client,
-		"1.0.0",
-		enabledToolsets,
-		readOnly,
+		razorpay.WithObservability(obs),
+		razorpay.WithVersion("1.0.0"),
+		razorpay.WithEnabledToolsets(enabledToolsets),
+		razorpay.WithReadOnly(readOnly),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
