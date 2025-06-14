@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -29,10 +30,7 @@ func (s *slogLogger) logWithLevel(
 	// Convert args to slog attributes
 	attrs = append(attrs, s.convertArgsToAttrs(args...)...)
 
-	// Format the message
-	msg := fmt.Sprintf(format, args...)
-
-	s.logger.LogAttrs(ctx, level, msg, attrs...)
+	s.logger.LogAttrs(ctx, level, format, attrs...)
 }
 
 // Infof logs an info message with context fields
@@ -96,19 +94,6 @@ func (s *slogLogger) convertArgsToAttrs(args ...interface{}) []slog.Attr {
 	return attrs
 }
 
-// getDefaultLogPath returns an absolute path for the logs directory
-func getDefaultLogPath() string {
-	execPath, err := os.Executable()
-	if err != nil {
-		// Fallback to temp directory if we can't determine executable path
-		return filepath.Join(os.TempDir(), "razorpay-mcp-server-logs")
-	}
-
-	execDir := filepath.Dir(execPath)
-
-	return filepath.Join(execDir, "logs")
-}
-
 // Close implements the Logger interface Close method
 func (s *slogLogger) Close() error {
 	if s.closer != nil {
@@ -134,38 +119,61 @@ func NewSloggerWithStdout(config *Config) (*slogLogger, error) {
 	// For stdio mode, always use Stdout regardless of path
 	// This ensures logs don't interfere with MCP protocol on stdout
 	return &slogLogger{
-		logger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		logger: slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level: config.slog.logLevel,
 		})),
 	}, nil
 }
 
-// NewSloggerWithFile creates a new slog logger that writes to a file
-func NewSloggerWithFile(path string) (Logger, error) {
-	if path == "" {
-		return NewSlogger()
-	}
-
-	// Ensure the directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return NewSlogger() // fallback to stderr logger
-	}
-
-	// Open the log file
-	f, err := os.OpenFile(
-		path,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-		0644,
-	)
+// getDefaultLogPath returns an absolute path for the logs directory
+func getDefaultLogPath() string {
+	execPath, err := os.Executable()
 	if err != nil {
-		return NewSlogger() // fallback to stderr logger
+		// Fallback to temp directory if we can't determine executable path
+		return filepath.Join(os.TempDir(), "razorpay-mcp-server-logs")
 	}
 
+	execDir := filepath.Dir(execPath)
+
+	return filepath.Join(execDir, "logs")
+}
+
+// NewSloggerWithFile returns a new slog.Logger.
+// If path to log file is not provided then
+// logger uses a default path next to the executable
+// If the log file cannot be opened, falls back to stderr
+//
+// TODO: add redaction of sensitive data
+func NewSloggerWithFile(path string) (*slogLogger, error) {
+	if path == "" {
+		path = getDefaultLogPath()
+	}
+
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		// Fall back to stderr if we can't open the log file
+		fmt.Fprintf(
+			os.Stderr,
+			"Warning: Failed to open log file: %v\nFalling back to stderr\n",
+			err,
+		)
+		logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+		noop := func() error { return nil }
+		return &slogLogger{
+			logger: logger,
+			closer: noop,
+		}, nil
+	}
+
+	fmt.Fprintf(os.Stderr, "logs are stored in: %v\n", path)
 	return &slogLogger{
-		logger: slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})),
-		closer: f.Close,
+		logger: slog.New(slog.NewTextHandler(file, nil)),
+		closer: func() error {
+			if err := file.Close(); err != nil {
+				log.Printf("close log file: %v", err)
+			}
+
+			return nil
+		},
 	}, nil
 }
