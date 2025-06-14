@@ -41,9 +41,7 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 	}
 
 	// Handle server creation - use custom server or create new one
-	var server mcpgo.Server
-
-	server = config.customServer
+	var server = config.customServer
 	if server == nil {
 		// Build MCP server options with configured capabilities
 		mcpOpts := []mcpgo.ServerOption{
@@ -69,16 +67,16 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 	}
 
 	// Handle toolsets - use custom or create new
-	var toolsets *toolsets.ToolsetGroup
-	var err error
-
-	toolsets = config.customToolsets
+	var (
+		err      error
+		toolsets = config.customToolsets
+	)
 	if toolsets == nil {
 		// Initialize toolsets with configuration
 		toolsets, err = NewToolSets(
-			config.observability, 
-			config.client, 
-			config.enabledToolsets, 
+			config.observability,
+			config.client,
+			config.enabledToolsets,
 			config.readOnly,
 		)
 		if err != nil {
