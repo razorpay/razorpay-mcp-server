@@ -3,6 +3,7 @@ package razorpay
 import (
 	rzpsdk "github.com/razorpay/razorpay-go"
 
+	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
@@ -15,10 +16,12 @@ type serverConfig struct {
 	observability   *observability.Observability
 	client          *rzpsdk.Client
 	customToolsets  *toolsets.ToolsetGroup
+	customServer    mcpgo.Server
 	version         string
-	enabledToolsets []string
-	readOnly        bool
 	serverName      string
+	enabledToolsets []string
+	mcpOptions      []mcpgo.ServerOption
+	readOnly        bool
 	enableResources bool
 	enableTools     bool
 }
@@ -83,5 +86,19 @@ func WithResourceCapabilities(enable bool) ServerOption {
 func WithToolCapabilities(enable bool) ServerOption {
 	return func(c *serverConfig) {
 		c.enableTools = enable
+	}
+}
+
+// WithMCPOptions sets custom MCP server options
+func WithMCPOptions(opts ...mcpgo.ServerOption) ServerOption {
+	return func(c *serverConfig) {
+		c.mcpOptions = append(c.mcpOptions, opts...)
+	}
+}
+
+// WithCustomServer sets a pre-configured MCP server instance
+func WithCustomServer(server mcpgo.Server) ServerOption {
+	return func(c *serverConfig) {
+		c.customServer = server
 	}
 }

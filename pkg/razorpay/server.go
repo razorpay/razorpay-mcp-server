@@ -22,9 +22,10 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 	// Default configuration
 	config := &serverConfig{
 		version:         "1.0.0",
-		enabledToolsets: []string{},
-		readOnly:        false,
 		serverName:      "razorpay-mcp-server",
+		enabledToolsets: []string{},
+		mcpOptions:      []mcpgo.ServerOption{},
+		readOnly:        false,
 		enableResources: true,
 		enableTools:     true,
 	}
@@ -39,23 +40,33 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 		return nil, fmt.Errorf("observability is required")
 	}
 
-	// Build MCP server options with configured capabilities
-	mcpOpts := []mcpgo.ServerOption{
-		mcpgo.WithLogging(),
-		mcpgo.WithResourceCapabilities(config.enableResources, config.enableResources),
-		mcpgo.WithToolCapabilities(config.enableTools),
-		mcpgo.WithHooks(mcpgo.SetupHooks(config.observability)),
+	// Handle server creation - use custom server or create new one
+	var server mcpgo.Server
 
-		// Add Tool Middlewares
-		mcpgo.WithAuthenticationMiddleware(config.client),
+	server = config.customServer
+	if server == nil {
+		// Build MCP server options with configured capabilities
+		mcpOpts := []mcpgo.ServerOption{
+			mcpgo.WithLogging(),
+			mcpgo.WithResourceCapabilities(
+				config.enableResources, config.enableResources),
+			mcpgo.WithToolCapabilities(config.enableTools),
+			mcpgo.WithHooks(mcpgo.SetupHooks(config.observability)),
+
+			// Add tool middlewares
+			mcpgo.WithAuthenticationMiddleware(config.client),
+		}
+
+		// Add any custom MCP options
+		mcpOpts = append(mcpOpts, config.mcpOptions...)
+
+		// Create the mcpgo server
+		server = mcpgo.NewServer(
+			config.serverName,
+			config.version,
+			mcpOpts...,
+		)
 	}
-
-	// Create the mcpgo server
-	server := mcpgo.NewServer(
-		config.serverName,
-		config.version,
-		mcpOpts...,
-	)
 
 	// Handle toolsets - use custom or create new
 	var toolsets *toolsets.ToolsetGroup
@@ -64,7 +75,12 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 	toolsets = config.customToolsets
 	if toolsets == nil {
 		// Initialize toolsets with configuration
-		toolsets, err = NewToolSets(config.observability, config.client, config.enabledToolsets, config.readOnly)
+		toolsets, err = NewToolSets(
+			config.observability, 
+			config.client, 
+			config.enabledToolsets, 
+			config.readOnly,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create toolsets: %w", err)
 		}
