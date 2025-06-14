@@ -16,7 +16,7 @@ type ToolHandler func(
 // CallToolRequest represents a request to call a tool
 type CallToolRequest struct {
 	Name      string
-	Arguments map[string]interface{}
+	Arguments any
 }
 
 // ToolResult represents the result of a tool call

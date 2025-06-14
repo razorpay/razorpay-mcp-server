@@ -36,7 +36,12 @@ func TestConcurrentRequestHandling(t *testing.T) {
 				return mcpgo.NewToolResultError("no client found in context"), nil
 			}
 
-			requestID := request.Arguments["test_param"].(string)
+			args, ok := request.Arguments.(map[string]interface{})
+			if !ok {
+				return mcpgo.NewToolResultError("invalid arguments format"), nil
+			}
+
+			requestID := args["test_param"].(string)
 			capturedClients.Store(requestID, client)
 
 			return mcpgo.NewToolResultText(fmt.Sprintf("processed: %s", requestID)), nil
