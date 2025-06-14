@@ -37,7 +37,7 @@ func CreateTestObservability() *observability.Observability {
 }
 
 // createMCPRequest creates a CallToolRequest with the given arguments
-func createMCPRequest(args map[string]interface{}) mcpgo.CallToolRequest {
+func createMCPRequest(args any) mcpgo.CallToolRequest {
 	return mcpgo.CallToolRequest{
 		Arguments: args,
 	}

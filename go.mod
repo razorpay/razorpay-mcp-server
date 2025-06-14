@@ -6,7 +6,7 @@ require (
 	github.com/go-test/deep v1.1.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/mark3labs/mcp-go v0.23.0
+	github.com/mark3labs/mcp-go v0.32.0
 	github.com/razorpay/razorpay-go v1.3.5-0.20250610122721-57013a9296d5
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
