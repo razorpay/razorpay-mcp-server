@@ -18,7 +18,7 @@ type Server interface {
 }
 
 // NewServer creates a new MCP server
-func NewServer(name, version string, opts ...ServerOption) *mark3labsImpl {
+func NewServer(name, version string, opts ...ServerOption) *Mark3labsImpl {
 	// Create option setter to collect mcp options
 	optSetter := &mark3labsOptionSetter{
 		mcpOptions: []server.ServerOption{},
@@ -36,18 +36,18 @@ func NewServer(name, version string, opts ...ServerOption) *mark3labsImpl {
 		optSetter.mcpOptions...,
 	)
 
-	return &mark3labsImpl{
-		mcpServer: mcpServer,
-		name:      name,
-		version:   version,
+	return &Mark3labsImpl{
+		McpServer: mcpServer,
+		Name:      name,
+		Version:   version,
 	}
 }
 
-// mark3labsImpl implements the Server interface using mark3labs/mcp-go
-type mark3labsImpl struct {
-	mcpServer *server.MCPServer
-	name      string
-	version   string
+// Mark3labsImpl implements the Server interface using mark3labs/mcp-go
+type Mark3labsImpl struct {
+	McpServer *server.MCPServer
+	Name      string
+	Version   string
 }
 
 // mark3labsOptionSetter is used to apply options to the server
@@ -63,13 +63,13 @@ func (s *mark3labsOptionSetter) SetOption(option interface{}) error {
 }
 
 // AddTools adds tools to the server
-func (s *mark3labsImpl) AddTools(tools ...Tool) {
+func (s *Mark3labsImpl) AddTools(tools ...Tool) {
 	// Convert our Tool to mcp's ServerTool
 	var mcpTools []server.ServerTool
 	for _, tool := range tools {
 		mcpTools = append(mcpTools, tool.toMCPServerTool())
 	}
-	s.mcpServer.AddTools(mcpTools...)
+	s.McpServer.AddTools(mcpTools...)
 }
 
 // OptionSetter is an interface for setting options on a configurable object

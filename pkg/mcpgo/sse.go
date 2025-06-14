@@ -62,15 +62,15 @@ func NewSSEServer(
 	mcpServer Server,
 	config *SSEConfig,
 ) (*mark3labsSseImpl, error) {
-	sImpl, ok := mcpServer.(*mark3labsImpl)
+	sImpl, ok := mcpServer.(*Mark3labsImpl)
 	if !ok {
-		return nil, fmt.Errorf("%w: expected *mark3labsImpl, got %T",
+		return nil, fmt.Errorf("%w: expected *Mark3labsImpl, got %T",
 			ErrInvalidServerImplementation, mcpServer)
 	}
 
 	// Create a new SSE server with the base options
 	sseServer := server.NewSSEServer(
-		sImpl.mcpServer,
+		sImpl.McpServer,
 		server.WithBaseURL(config.address),
 		server.WithSSEContextFunc(authFromRequest),
 		server.WithKeepAlive(true),

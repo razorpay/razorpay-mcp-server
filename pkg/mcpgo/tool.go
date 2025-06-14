@@ -217,7 +217,7 @@ type mark3labsToolImpl struct {
 }
 
 // NewTool creates a new tool with the given
-// name, description, parameters and handler
+// Name, description, parameters and handler
 func NewTool(
 	name,
 	description string,
