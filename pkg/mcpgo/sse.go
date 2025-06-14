@@ -2,12 +2,16 @@ package mcpgo
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/server"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 )
 
 type SSEConfig struct {
@@ -70,7 +74,7 @@ func NewSSEServer(
 		server.WithBaseURL(config.address),
 		server.WithSSEContextFunc(authFromRequest),
 		server.WithKeepAlive(true),
-		server.WithKeepAliveInterval(500*time.Millisecond),
+		server.WithKeepAliveInterval(10*time.Second),
 	)
 
 	// Wrap the server with a recovery handler
@@ -147,6 +151,15 @@ func (s *mark3labsSseImpl) handleReadiness(
 
 // authFromRequest extracts the auth token from the request headers.
 func authFromRequest(ctx context.Context, r *http.Request) context.Context {
+	// Extract task ID from X-Task-Id header
+	if taskID := r.Header.Get("X-Task-Id"); taskID != "" {
+		ctx = contextkey.WithTaskID(ctx, taskID)
+	} else {
+		ctx = contextkey.WithTaskID(ctx, uuid.New().String())
+	}
+
+	ctx = contextkey.WithRequestID(ctx, uuid.New().String())
+
 	authHeader := r.Header.Get("Authorization")
 
 	parts := strings.SplitN(authHeader, " ", 2)
@@ -154,5 +167,27 @@ func authFromRequest(ctx context.Context, r *http.Request) context.Context {
 		return ctx
 	}
 
+	ctx = setRzpKeyInContext(ctx, parts[1])
 	return WithAuthToken(ctx, parts[1])
+}
+
+func setRzpKeyInContext(
+	ctx context.Context,
+	basicAuthToken string,
+) context.Context {
+	token, err := base64.StdEncoding.DecodeString(basicAuthToken)
+	if err != nil {
+		return ctx
+	}
+
+	parts := strings.Split(string(token), ":")
+	if len(parts) != 2 {
+		return ctx
+	}
+
+	if parts[0] != "" {
+		ctx = contextkey.WithRzpKey(ctx, parts[0])
+	}
+
+	return ctx
 }

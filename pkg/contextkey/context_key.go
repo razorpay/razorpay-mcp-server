@@ -2,8 +2,6 @@ package contextkey
 
 import (
 	"context"
-
-	"github.com/razorpay/goutils/passport/v4"
 )
 
 // contextKey is a type used for context value keys to avoid key collisions.
@@ -11,14 +9,11 @@ type contextKey string
 
 // Context keys for storing various values.
 const (
-	authTokenKey  contextKey = "auth_token"
-	clientKey     contextKey = "client"
-	requestIDKey  contextKey = "request_id"
-	taskIDKey     contextKey = "task_id"
-	merchantIDKey contextKey = "merchant_id"
-	rzpKeyKey     contextKey = "rzp_key"
-	passportKey   contextKey = "passport"
-	authModeKey   contextKey = "auth_mode"
+	authTokenKey contextKey = "auth_token"
+	clientKey    contextKey = "client"
+	requestIDKey contextKey = "request_id"
+	taskIDKey    contextKey = "task_id"
+	rzpKeyKey    contextKey = "rzp_key"
 )
 
 // WithAuthToken returns a new context with the authentication token attached.
@@ -98,28 +93,6 @@ func TaskIDFromContext(ctx context.Context) string {
 	return taskID
 }
 
-// WithMerchantID returns a new context with the merchant ID attached.
-func WithMerchantID(ctx context.Context, merchantID string) context.Context {
-	return context.WithValue(ctx, merchantIDKey, merchantID)
-}
-
-// MerchantIDFromContext extracts the merchant ID from the context.
-// Returns an empty string if no merchant ID is found or if the value
-// is not a string.
-func MerchantIDFromContext(ctx context.Context) string {
-	value := ctx.Value(merchantIDKey)
-	if value == nil {
-		return ""
-	}
-
-	merchantID, ok := value.(string)
-	if !ok {
-		return ""
-	}
-
-	return merchantID
-}
-
 // WithRzpKey returns a new context with the Razorpay key attached.
 func WithRzpKey(ctx context.Context, rzpKey string) context.Context {
 	return context.WithValue(ctx, rzpKeyKey, rzpKey)
@@ -140,49 +113,4 @@ func RzpKeyFromContext(ctx context.Context) string {
 	}
 
 	return rzpKey
-}
-
-// WithPassport returns a new context with the passport instance attached.
-func WithPassport(
-	ctx context.Context,
-	passport passport.IPassport,
-) context.Context {
-	return context.WithValue(ctx, passportKey, passport)
-}
-
-// PassportFromContext extracts the passport instance from the context.
-// Returns nil if no passport is found.
-func PassportFromContext(ctx context.Context) passport.IPassport {
-	value := ctx.Value(passportKey)
-	if value == nil {
-		return nil
-	}
-
-	passport, ok := value.(passport.IPassport)
-	if !ok {
-		return nil
-	}
-
-	return passport
-}
-
-// WithAuthMode returns a new context with the auth mode attached.
-func WithAuthMode(ctx context.Context, mode string) context.Context {
-	return context.WithValue(ctx, authModeKey, mode)
-}
-
-// AuthModeFromContext extracts the auth mode from the context.
-// Returns an empty string if no mode is found.
-func AuthModeFromContext(ctx context.Context) string {
-	value := ctx.Value(authModeKey)
-	if value == nil {
-		return ""
-	}
-
-	mode, ok := value.(string)
-	if !ok {
-		return ""
-	}
-
-	return mode
 }
