@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // FetchPayment returns a tool that fetches payment details using payment_id
 func FetchPayment(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -66,7 +66,7 @@ func FetchPayment(
 // FetchPaymentCardDetails returns a tool that fetches card details
 // for a payment
 func FetchPaymentCardDetails(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -121,7 +121,7 @@ func FetchPaymentCardDetails(
 
 // UpdatePayment returns a tool that updates the notes for a payment
 func UpdatePayment(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -183,7 +183,7 @@ func UpdatePayment(
 
 // CapturePayment returns a tool that captures an authorized payment
 func CapturePayment(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -258,7 +258,7 @@ func CapturePayment(
 //
 //nolint:lll
 func FetchAllPayments(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{

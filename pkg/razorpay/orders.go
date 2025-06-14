@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // CreateOrder returns a tool that creates new orders in Razorpay
 func CreateOrder(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -103,7 +103,7 @@ func CreateOrder(
 
 // FetchOrder returns a tool to fetch order details by ID
 func FetchOrder(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -153,7 +153,7 @@ func FetchOrder(
 
 // FetchAllOrders returns a tool to fetch all orders with optional filtering
 func FetchAllOrders(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -245,7 +245,7 @@ func FetchAllOrders(
 
 // FetchOrderPayments returns a tool to fetch all payments for a specific order
 func FetchOrderPayments(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -262,6 +262,12 @@ func FetchOrderPayments(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		orderPaymentsReq := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -299,7 +305,7 @@ func FetchOrderPayments(
 // UpdateOrder returns a tool to update an order
 // only the order's notes can be updated
 func UpdateOrder(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{

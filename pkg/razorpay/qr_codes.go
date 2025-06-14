@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // CreateQRCode returns a tool that creates QR codes in Razorpay
 func CreateQRCode(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -137,7 +137,7 @@ func CreateQRCode(
 
 // FetchQRCode returns a tool that fetches a specific QR code by ID
 func FetchQRCode(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -189,7 +189,7 @@ func FetchQRCode(
 // FetchAllQRCodes returns a tool that fetches all QR codes
 // with pagination support
 func FetchAllQRCodes(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -265,7 +265,7 @@ func FetchAllQRCodes(
 // FetchQRCodesByCustomerID returns a tool that fetches QR codes
 // for a specific customer ID
 func FetchQRCodesByCustomerID(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -317,7 +317,7 @@ func FetchQRCodesByCustomerID(
 // FetchQRCodesByPaymentID returns a tool that fetches QR codes
 // for a specific payment ID
 func FetchQRCodesByPaymentID(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -369,7 +369,7 @@ func FetchQRCodesByPaymentID(
 
 // FetchPaymentsForQRCode returns a tool that fetches payments made on a QR code
 func FetchPaymentsForQRCode(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -457,7 +457,7 @@ func FetchPaymentsForQRCode(
 
 // CloseQRCode returns a tool that closes a specific QR code
 func CloseQRCode(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{

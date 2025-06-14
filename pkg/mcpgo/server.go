@@ -2,12 +2,13 @@ package mcpgo
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // Server defines the minimal MCP server interface needed by the application
@@ -86,6 +87,12 @@ func WithLogging() ServerOption {
 	}
 }
 
+func WithHooks(hooks *server.Hooks) ServerOption {
+	return func(s OptionSetter) error {
+		return s.SetOption(server.WithHooks(hooks))
+	}
+}
+
 // WithResourceCapabilities returns a server option
 // that enables resource capabilities
 func WithResourceCapabilities(read, list bool) ServerOption {
@@ -105,7 +112,6 @@ func WithToolCapabilities(enabled bool) ServerOption {
 // authentication middleware to the server.
 func WithAuthenticationMiddleware(
 	client *rzpsdk.Client,
-	log *slog.Logger,
 ) ServerOption {
 	return func(s OptionSetter) error {
 		return s.SetOption(server.WithToolHandlerMiddleware(
@@ -114,24 +120,73 @@ func WithAuthenticationMiddleware(
 					ctx context.Context,
 					request mcp.CallToolRequest,
 				) (result *mcp.CallToolResult, err error) {
-					log.Info("MCP_CALL_REQUEST", "request", request)
-
 					authenticatedCtx, err := AuthenticateRequest(ctx, client)
 					if err != nil {
 						return nil, err
 					}
-
-					resp, err := next(authenticatedCtx, request)
-					if err != nil {
-						log.Info("MCP_ERROR_RESPONSE", "response", resp)
-
-						return nil, err
-					}
-
-					log.Info("MCP_CALL_RESPONSE", "response", resp)
-					return resp, nil
+					return next(authenticatedCtx, request)
 				}
 			}),
 		)
 	}
+}
+
+// SetupHooks creates and configures the server hooks with logging
+func SetupHooks(obs *observability.Observability) *server.Hooks {
+	hooks := &server.Hooks{}
+	hooks.AddBeforeAny(func(ctx context.Context, id any, method mcp.MCPMethod,
+		message any) {
+		obs.Logger.Infof(ctx, "MCP_METHOD_CALLED",
+			"method", method,
+			"id", id,
+			"message", message)
+	})
+
+	hooks.AddOnSuccess(func(ctx context.Context, id any, method mcp.MCPMethod,
+		message any, result any) {
+		logResult := result
+		if method == mcp.MethodToolsList {
+			if r, ok := result.(*mcp.ListToolsResult); ok {
+				simplifiedTools := make([]string, 0, len(r.Tools))
+				for _, tool := range r.Tools {
+					simplifiedTools = append(simplifiedTools, tool.Name)
+				}
+				// Create new map for logging with just the tool names
+				logResult = map[string]interface{}{
+					"tools": simplifiedTools,
+				}
+			}
+		}
+
+		obs.Logger.Infof(ctx, "MCP_METHOD_SUCCEEDED",
+			"method", method,
+			"id", id,
+			"result", logResult)
+	})
+
+	hooks.AddOnError(func(ctx context.Context, id any, method mcp.MCPMethod,
+		message any, err error) {
+		obs.Logger.Infof(ctx, "MCP_METHOD_FAILED",
+			"method", method,
+			"id", id,
+			"message", message,
+			"error", err)
+	})
+
+	hooks.AddBeforeCallTool(func(ctx context.Context, id any,
+		message *mcp.CallToolRequest) {
+		obs.Logger.Infof(ctx, "TOOL_CALL_STARTED",
+			"id", id,
+			"request", message)
+	})
+
+	hooks.AddAfterCallTool(func(ctx context.Context, id any,
+		message *mcp.CallToolRequest, result *mcp.CallToolResult) {
+		obs.Logger.Infof(ctx, "TOOL_CALL_COMPLETED",
+			"id", id,
+			"request", message,
+			"result", result)
+	})
+
+	return hooks
 }

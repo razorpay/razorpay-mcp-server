@@ -3,38 +3,41 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
 
+	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
 
 // Server extends mcpgo.Server
 type Server struct {
-	log      *slog.Logger
-	client   *rzpsdk.Client
-	server   mcpgo.Server
-	toolsets *toolsets.ToolsetGroup
+	observability *observability.Observability
+	client        *rzpsdk.Client
+	server        mcpgo.Server
+	toolsets      *toolsets.ToolsetGroup
 }
 
 // NewServer creates a new Server
 func NewServer(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 	version string,
 	enabledToolsets []string,
 	readOnly bool,
 ) (*Server, error) {
+
 	// Create default options
 	opts := []mcpgo.ServerOption{
 		mcpgo.WithLogging(),
 		mcpgo.WithResourceCapabilities(true, true),
 		mcpgo.WithToolCapabilities(true),
+		mcpgo.WithHooks(mcpgo.SetupHooks(obs)),
 
 		// Add Tool Middlewares
-		mcpgo.WithAuthenticationMiddleware(client, log),
+		mcpgo.WithAuthenticationMiddleware(client),
 	}
 
 	// Create the mcpgo server
@@ -45,17 +48,17 @@ func NewServer(
 	)
 
 	// Initialize toolsets
-	toolsets, err := NewToolSets(log, client, enabledToolsets, readOnly)
+	toolsets, err := NewToolSets(obs, client, enabledToolsets, readOnly)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create the server instance
 	srv := &Server{
-		log:      log,
-		client:   client,
-		server:   server,
-		toolsets: toolsets,
+		observability: obs,
+		client:        client,
+		server:        server,
+		toolsets:      toolsets,
 	}
 
 	// Register all tools
@@ -84,7 +87,7 @@ func getClientFromContextOrDefault(
 		return defaultClient, nil
 	}
 
-	clientInterface := mcpgo.ClientFromContext(ctx)
+	clientInterface := contextkey.ClientFromContext(ctx)
 	if clientInterface == nil {
 		return nil, fmt.Errorf("no client found in context")
 	}

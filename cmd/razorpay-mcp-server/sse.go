@@ -11,7 +11,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
+	"github.com/razorpay/razorpay-mcp-server/pkg/log"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay"
@@ -22,10 +24,17 @@ var sseCmd = &cobra.Command{
 	Use:   "sse",
 	Short: "start the sse server",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Create stdout logger
-		logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
+		config := log.NewConfig(
+			log.WithMode(log.ModeSSE),
+			log.WithLogLevel(slog.LevelInfo),
+		)
+
+		ctx, logger := log.New(context.Background(), config)
+
+		// Create observability with SSE mode
+		obs := observability.New(
+			observability.WithLoggingService(logger),
+		)
 
 		// Get toolsets to enable from config
 		enabledToolsets := viper.GetStringSlice("toolsets")
@@ -33,16 +42,16 @@ var sseCmd = &cobra.Command{
 		// Get read-only mode from config
 		readOnly := viper.GetBool("read_only")
 
-		err := runSseServer(logger, nil, enabledToolsets, readOnly)
+		err := runSseServer(obs, nil, enabledToolsets, readOnly)
 		if err != nil {
-			logger.Error("error running sse server", "error", err)
+			obs.Logger.Errorf(ctx, "error running sse server", "error", err)
 			os.Exit(1)
 		}
 	},
 }
 
 func runSseServer(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 	enabledToolsets []string,
 	readOnly bool,
@@ -55,7 +64,7 @@ func runSseServer(
 	defer stop()
 
 	srv, err := razorpay.NewServer(
-		log,
+		obs,
 		client,
 		"1.0.0",
 		enabledToolsets,
@@ -79,20 +88,20 @@ func runSseServer(
 
 	errC := make(chan error, 1)
 	go func() {
-		log.Info("starting server")
+		obs.Logger.Infof(ctx, "starting server")
 		errC <- sseSrv.Start()
 	}()
 
-	log.Info("Razorpay MCP Server running on sse")
+	obs.Logger.Infof(ctx, "Razorpay MCP Server running on sse")
 
 	// Wait for shutdown signal
 	select {
 	case <-ctx.Done():
-		log.Info("shutting down server...")
+		obs.Logger.Infof(ctx, "shutting down server...")
 		return nil
 	case err := <-errC:
 		if err != nil {
-			log.Error("server error", "error", err)
+			obs.Logger.Errorf(ctx, "server error", "error", err)
 			return err
 		}
 		return nil

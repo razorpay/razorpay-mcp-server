@@ -62,7 +62,7 @@ Before the implementation use the documentation URL provided to figure out the r
 Now follow the detailed implementation guide in [pkg/razorpay/README.md](mdc:../pkg/razorpay/README.md) for creating tools and start making code changes.
 
 Other guidelines:
-1. [Razorpay Go SDK Constants](mdc:https:/github.com/razorpay/razorpay-go/v2/blob/master/constants/url.go) - Use these constants for specifying the api endpoints while writing the tests.
+1. [Razorpay Go SDK Constants](mdc:https:/github.com/razorpay/razorpay-go/blob/master/constants/url.go) - Use these constants for specifying the api endpoints while writing the tests.
 2. Use the payload and response from the docs provided to write the positive test case for the tool.
 
 STYLE:
@@ -251,9 +251,9 @@ Contains the Model Context Protocol implementation:
 - `ToolParameter` types
 - Response handling utilities (`NewToolResultJSON`, etc.)
 
-### `github.com/razorpay/razorpay-go/v2` - Razorpay Go SDK
+### `github.com/razorpay/razorpay-go` - Razorpay Go SDK
 
-**Imported as:** `rzpsdk "github.com/razorpay/razorpay-go/v2"`
+**Imported as:** `rzpsdk "github.com/razorpay/razorpay-go"`
 
 Official Razorpay client library providing:
 - `Client` struct with resource-specific clients (Payment, Order, PaymentLink, etc.)

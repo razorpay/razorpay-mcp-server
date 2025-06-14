@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // CreatePaymentLink returns a tool that creates payment links in Razorpay
 func CreatePaymentLink(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -154,7 +154,7 @@ func CreatePaymentLink(
 
 // CreateUpiPaymentLink returns a tool that creates payment links in Razorpay
 func CreateUpiPaymentLink(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -298,7 +298,7 @@ func CreateUpiPaymentLink(
 // FetchPaymentLink returns a tool that fetches payment link details using
 // payment_link_id
 func FetchPaymentLink(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -353,7 +353,7 @@ func FetchPaymentLink(
 // ResendPaymentLinkNotification returns a tool that sends/resends notifications
 // for a payment link via email or SMS
 func ResendPaymentLinkNotification(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -414,7 +414,7 @@ func ResendPaymentLinkNotification(
 
 // UpdatePaymentLink returns a tool that updates an existing payment link
 func UpdatePaymentLink(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -503,7 +503,7 @@ func UpdatePaymentLink(
 // FetchAllPaymentLinks returns a tool that fetches all payment links
 // with optional filtering
 func FetchAllPaymentLinks(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{

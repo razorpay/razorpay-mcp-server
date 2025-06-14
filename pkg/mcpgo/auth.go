@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
 )
 
 // AuthenticateRequest handles authentication for a request context.
@@ -41,7 +41,7 @@ func AuthenticateRequest(
 
 	// Create a new client with the auth credentials
 	newClient := rzpsdk.NewClient(parts[0], parts[1])
-	newClient.SetUserAgent("razorpay-mcp/" + "/sse")
+	newClient.SetUserAgent("razorpay-mcp" + "/sse")
 
 	// Store the client in context
 	ctx = WithClient(ctx, newClient)

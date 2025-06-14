@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
-	rzpsdk "github.com/razorpay/razorpay-go/v2"
+	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // CreateRefund returns a tool that creates a normal refund for a payment
 func CreateRefund(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -94,7 +94,7 @@ func CreateRefund(
 
 // FetchRefund returns a tool that fetches a refund by ID
 func FetchRefund(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -145,7 +145,7 @@ func FetchRefund(
 
 // UpdateRefund returns a tool that updates a refund's notes
 func UpdateRefund(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -206,7 +206,7 @@ func UpdateRefund(
 // FetchMultipleRefundsForPayment returns a tool that fetches multiple refunds
 // for a payment
 func FetchMultipleRefundsForPayment(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -279,7 +279,7 @@ func FetchMultipleRefundsForPayment(
 // FetchSpecificRefundForPayment returns a tool that fetches a specific refund
 // for a payment
 func FetchSpecificRefundForPayment(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -340,7 +340,7 @@ func FetchSpecificRefundForPayment(
 // FetchAllRefunds returns a tool that fetches all refunds with pagination
 // support
 func FetchAllRefunds(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{

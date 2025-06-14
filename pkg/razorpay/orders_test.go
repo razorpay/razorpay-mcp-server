@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/razorpay/razorpay-go/v2/constants"
+	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
 )
