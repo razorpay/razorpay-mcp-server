@@ -37,6 +37,9 @@ func New(ctx context.Context, config *Config) (context.Context, Logger) {
 			fmt.Printf("failed to initialize logger\n")
 			os.Exit(1)
 		}
+	default:
+		fmt.Printf("failed to initialize logger\n")
+		os.Exit(1)
 	}
 
 	return ctx, logger
