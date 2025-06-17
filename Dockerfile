@@ -44,7 +44,7 @@ ENV CONFIG="" \
     RAZORPAY_KEY_SECRET="" \
     PORT="8090" \
     MODE="stdio" \
-    LOG_FILE="" \
+    LOG_FILE=""
 
 # Switch to the non-root user
 USER rzp
