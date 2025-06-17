@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // FetchPayment returns a tool that fetches payment details using payment_id
 func FetchPayment(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -28,6 +28,12 @@ func FetchPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -60,7 +66,7 @@ func FetchPayment(
 // FetchPaymentCardDetails returns a tool that fetches card details
 // for a payment
 func FetchPaymentCardDetails(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -76,6 +82,12 @@ func FetchPaymentCardDetails(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -109,7 +121,7 @@ func FetchPaymentCardDetails(
 
 // UpdatePayment returns a tool that updates the notes for a payment
 func UpdatePayment(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -131,6 +143,12 @@ func UpdatePayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 		paymentUpdateReq := make(map[string]interface{})
 
@@ -165,7 +183,7 @@ func UpdatePayment(
 
 // CapturePayment returns a tool that captures an authorized payment
 func CapturePayment(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -192,6 +210,12 @@ func CapturePayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 		paymentCaptureReq := make(map[string]interface{})
 
@@ -234,7 +258,7 @@ func CapturePayment(
 //
 //nolint:lll
 func FetchAllPayments(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -270,6 +294,12 @@ func FetchAllPayments(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create query parameters map
 		paymentListOptions := make(map[string]interface{})
 

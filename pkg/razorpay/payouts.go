@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // FetchPayoutByID returns a tool that fetches a payout by its ID
 func FetchPayout(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -29,6 +29,11 @@ func FetchPayout(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		FetchPayoutOptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -61,7 +66,7 @@ func FetchPayout(
 
 // FetchAllPayouts returns a tool that fetches all payouts
 func FetchAllPayouts(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -90,6 +95,11 @@ func FetchAllPayouts(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		FetchAllPayoutsOptions := make(map[string]interface{})
 
 		validator := NewValidator(&r).

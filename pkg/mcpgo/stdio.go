@@ -17,14 +17,14 @@ var ErrInvalidServerImplementation = errors.New(
 
 // NewStdioServer creates a new stdio transport server
 func NewStdioServer(mcpServer Server) (*mark3labsStdioImpl, error) {
-	sImpl, ok := mcpServer.(*mark3labsImpl)
+	sImpl, ok := mcpServer.(*Mark3labsImpl)
 	if !ok {
-		return nil, fmt.Errorf("%w: expected *mark3labsImpl, got %T",
+		return nil, fmt.Errorf("%w: expected *Mark3labsImpl, got %T",
 			ErrInvalidServerImplementation, mcpServer)
 	}
 
 	return &mark3labsStdioImpl{
-		mcpStdioServer: server.NewStdioServer(sImpl.mcpServer),
+		mcpStdioServer: server.NewStdioServer(sImpl.McpServer),
 	}, nil
 }
 

@@ -3,8 +3,6 @@ package razorpay
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,7 +12,9 @@ import (
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
+	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // RazorpayToolTestCase defines a common structure for Razorpay tool tests
@@ -27,13 +27,19 @@ type RazorpayToolTestCase struct {
 	ExpectedErrMsg string
 }
 
-// CreateTestLogger creates a logger suitable for testing
-func CreateTestLogger() *slog.Logger {
-	return slog.New(slog.NewTextHandler(io.Discard, nil))
+// CreateTestObservability creates an observability stack suitable for testing
+func CreateTestObservability() *observability.Observability {
+	// Create a logger that discards output
+	_, logger := log.New(context.Background(), log.NewConfig(
+		log.WithMode(log.ModeStdio)),
+	)
+	return &observability.Observability{
+		Logger: logger,
+	}
 }
 
 // createMCPRequest creates a CallToolRequest with the given arguments
-func createMCPRequest(args map[string]interface{}) mcpgo.CallToolRequest {
+func createMCPRequest(args any) mcpgo.CallToolRequest {
 	return mcpgo.CallToolRequest{
 		Arguments: args,
 	}
@@ -66,7 +72,7 @@ func newMockRzpClient(
 func runToolTest(
 	t *testing.T,
 	tc RazorpayToolTestCase,
-	toolCreator func(*slog.Logger, *rzpsdk.Client) mcpgo.Tool,
+	toolCreator func(*observability.Observability, *rzpsdk.Client) mcpgo.Tool,
 	objectType string,
 ) {
 	mockRzpClient, mockServer := newMockRzpClient(tc.MockHttpClient)
@@ -74,8 +80,8 @@ func runToolTest(
 		defer mockServer.Close()
 	}
 
-	log := CreateTestLogger()
-	tool := toolCreator(log, mockRzpClient)
+	obs := CreateTestObservability()
+	tool := toolCreator(obs, mockRzpClient)
 
 	request := createMCPRequest(tc.Request)
 	result, err := tool.GetHandler()(context.Background(), request)
