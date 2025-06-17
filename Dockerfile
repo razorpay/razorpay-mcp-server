@@ -49,8 +49,5 @@ ENV CONFIG="" \
 # Switch to the non-root user
 USER rzp
 
-# Expose the SSE server port (used in SSE mode)
-EXPOSE ${PORT}
-
 # Use shell form to allow variable substitution and conditional execution
 ENTRYPOINT ["sh", "-c", "./razorpay-mcp-server stdio --key ${RAZORPAY_KEY_ID} --secret ${RAZORPAY_KEY_SECRET} ${CONFIG:+--config ${CONFIG}} ${LOG_FILE:+--log-file ${LOG_FILE}}"]
