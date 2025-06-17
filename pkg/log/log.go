@@ -37,13 +37,9 @@ func New(ctx context.Context, config *Config) (context.Context, Logger) {
 			fmt.Printf("failed to initialize logger\n")
 			os.Exit(1)
 		}
-	case ModeSSE:
-		// For SSE mode, use slog with stdout
-		logger, err = NewSloggerWithStdout(config)
-		if err != nil {
-			fmt.Printf("failed to initialize logger\n")
-			os.Exit(1)
-		}
+	default:
+		fmt.Printf("failed to initialize logger\n")
+		os.Exit(1)
 	}
 
 	return ctx, logger

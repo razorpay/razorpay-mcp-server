@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-
-	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 )
 
 // slogLogger implements Logger interface using slog
@@ -65,13 +63,9 @@ func (s *slogLogger) Warningf(
 }
 
 // extractContextAttrs extracts fields from context and converts to slog.Attr
-func (s *slogLogger) extractContextAttrs(ctx context.Context) []slog.Attr {
+func (s *slogLogger) extractContextAttrs(_ context.Context) []slog.Attr {
 	// Always include all fields as attributes
-	return []slog.Attr{
-		slog.String("request_id", contextkey.RequestIDFromContext(ctx)),
-		slog.String("task_id", contextkey.TaskIDFromContext(ctx)),
-		slog.String("rzp_key", contextkey.RzpKeyFromContext(ctx)),
-	}
+	return []slog.Attr{}
 }
 
 // convertArgsToAttrs converts key-value pairs to slog.Attr

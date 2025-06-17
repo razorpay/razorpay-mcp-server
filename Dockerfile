@@ -44,19 +44,10 @@ ENV CONFIG="" \
     RAZORPAY_KEY_SECRET="" \
     PORT="8090" \
     MODE="stdio" \
-    LOG_FILE="" \
-    ADDRESS="mcp.razorpay.com"
+    LOG_FILE=""
 
 # Switch to the non-root user
 USER rzp
 
-# Expose the SSE server port (used in SSE mode)
-EXPOSE ${PORT}
-
 # Use shell form to allow variable substitution and conditional execution
-ENTRYPOINT ["sh", "-c", "\
-if [ \"$MODE\" = \"sse\" ]; then \
-    ./razorpay-mcp-server sse --port ${PORT} --address ${ADDRESS} ${CONFIG:+--config ${CONFIG}}; \
-else \
-    ./razorpay-mcp-server stdio --key ${RAZORPAY_KEY_ID} --secret ${RAZORPAY_KEY_SECRET} ${CONFIG:+--config ${CONFIG}} ${LOG_FILE:+--log-file ${LOG_FILE}}; \
-fi"]
+ENTRYPOINT ["sh", "-c", "./razorpay-mcp-server stdio --key ${RAZORPAY_KEY_ID} --secret ${RAZORPAY_KEY_SECRET} ${CONFIG:+--config ${CONFIG}} ${LOG_FILE:+--log-file ${LOG_FILE}}"]

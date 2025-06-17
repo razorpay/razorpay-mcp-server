@@ -50,9 +50,6 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 				config.enableResources, config.enableResources),
 			mcpgo.WithToolCapabilities(config.enableTools),
 			mcpgo.WithHooks(mcpgo.SetupHooks(config.observability)),
-
-			// Add tool middlewares
-			mcpgo.WithAuthenticationMiddleware(config.client),
 		}
 
 		// Add any custom MCP options

@@ -30,7 +30,9 @@ type RazorpayToolTestCase struct {
 // CreateTestObservability creates an observability stack suitable for testing
 func CreateTestObservability() *observability.Observability {
 	// Create a logger that discards output
-	_, logger := log.New(context.Background(), &log.Config{})
+	_, logger := log.New(context.Background(), log.NewConfig(
+		log.WithMode(log.ModeStdio)),
+	)
 	return &observability.Observability{
 		Logger: logger,
 	}
