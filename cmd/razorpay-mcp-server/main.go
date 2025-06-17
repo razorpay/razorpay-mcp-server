@@ -40,8 +40,6 @@ func init() {
 	rootCmd.PersistentFlags().StringP("log-file", "l", "", "path to the log file")
 	rootCmd.PersistentFlags().StringSliceP("toolsets", "t", []string{}, "comma-separated list of toolsets to enable")
 	rootCmd.PersistentFlags().Bool("read-only", false, "run server in read-only mode")
-	rootCmd.PersistentFlags().StringP("address", "a", "localhost", "address to bind the sse server to")
-	rootCmd.PersistentFlags().IntP("port", "p", 8080, "port to bind the sse server to")
 
 	// bind flags to viper
 	_ = viper.BindPFlag("key", rootCmd.PersistentFlags().Lookup("key"))
@@ -49,8 +47,6 @@ func init() {
 	_ = viper.BindPFlag("log_file", rootCmd.PersistentFlags().Lookup("log-file"))
 	_ = viper.BindPFlag("toolsets", rootCmd.PersistentFlags().Lookup("toolsets"))
 	_ = viper.BindPFlag("read_only", rootCmd.PersistentFlags().Lookup("read-only"))
-	_ = viper.BindPFlag("address", rootCmd.PersistentFlags().Lookup("address"))
-	_ = viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
 
 	// Set environment variable mappings
 	_ = viper.BindEnv("key", "RAZORPAY_KEY_ID")        // Maps RAZORPAY_KEY_ID to key
@@ -61,7 +57,6 @@ func init() {
 
 	// subcommands
 	rootCmd.AddCommand(stdioCmd)
-	rootCmd.AddCommand(sseCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.

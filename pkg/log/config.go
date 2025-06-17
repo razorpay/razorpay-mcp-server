@@ -7,7 +7,6 @@ import (
 // Logger modes
 const (
 	ModeStdio = "stdio"
-	ModeSSE   = "sse"
 )
 
 // Config holds logger configuration with options pattern.

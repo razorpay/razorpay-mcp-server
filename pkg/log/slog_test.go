@@ -2,7 +2,6 @@ package log
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -98,13 +97,6 @@ func TestNew(t *testing.T) {
 			config: NewConfig(
 				WithMode(ModeStdio),
 				WithLogPath(""),
-			),
-		},
-		{
-			name: "sse mode",
-			config: NewConfig(
-				WithMode(ModeSSE),
-				WithLogLevel(slog.LevelInfo),
 			),
 		},
 		{
