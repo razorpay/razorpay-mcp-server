@@ -15,8 +15,8 @@ type Server interface {
 	AddTools(tools ...Tool)
 }
 
-// NewServer creates a new MCP server
-func NewServer(name, version string, opts ...ServerOption) *Mark3labsImpl {
+// NewMcpServer creates a new MCP server
+func NewMcpServer(name, version string, opts ...ServerOption) *Mark3labsImpl {
 	// Create option setter to collect mcp options
 	optSetter := &mark3labsOptionSetter{
 		mcpOptions: []server.ServerOption{},
