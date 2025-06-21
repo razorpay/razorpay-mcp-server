@@ -75,19 +75,12 @@ func runStdioServer(
 	)
 	defer stop()
 
-	srv, err := razorpay.NewServer(
-		razorpay.WithObservability(obs),
-		razorpay.WithClient(client),
-		razorpay.WithVersion("1.0.0"),
-		razorpay.WithEnabledToolsets(enabledToolsets),
-		razorpay.WithReadOnly(readOnly),
-	)
+	srv, err := razorpay.NewRzpMcpServer(obs, client, enabledToolsets, readOnly)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
-	srv.RegisterTools()
 
-	stdioSrv, err := mcpgo.NewStdioServer(srv.GetMCPServer())
+	stdioSrv, err := mcpgo.NewStdioServer(srv)
 	if err != nil {
 		return fmt.Errorf("failed to create stdio server: %w", err)
 	}
