@@ -59,10 +59,7 @@ func extractValueGeneric[T any](
 	// Type assert Arguments from any to map[string]interface{}
 	args, ok := request.Arguments.(map[string]interface{})
 	if !ok {
-		if required {
-			return nil, errors.New("invalid arguments format for parameter: " + name)
-		}
-		return nil, nil
+		return nil, errors.New("invalid arguments type")
 	}
 
 	val, ok := args[name]

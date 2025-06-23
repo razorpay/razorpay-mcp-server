@@ -53,7 +53,7 @@ var stdioCmd = &cobra.Command{
 		// Get read-only mode from config
 		readOnly := viper.GetBool("read_only")
 
-		err := runStdioServer(obs, client, enabledToolsets, readOnly)
+		err := runStdioServer(ctx, obs, client, enabledToolsets, readOnly)
 		if err != nil {
 			obs.Logger.Errorf(ctx,
 				"error running stdio server", "error", err)
@@ -63,13 +63,14 @@ var stdioCmd = &cobra.Command{
 }
 
 func runStdioServer(
+	ctx context.Context,
 	obs *observability.Observability,
 	client *rzpsdk.Client,
 	enabledToolsets []string,
 	readOnly bool,
 ) error {
 	ctx, stop := signal.NotifyContext(
-		context.Background(),
+		ctx,
 		os.Interrupt,
 		syscall.SIGTERM,
 	)
