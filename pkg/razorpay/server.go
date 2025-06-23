@@ -8,99 +8,45 @@ import (
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
-	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
-// Server extends mcpgo.Server
-type Server struct {
-	server   mcpgo.Server
-	toolsets *toolsets.ToolsetGroup
-}
-
-// NewServer creates a new Server with the provided options
-func NewServer(opts ...ServerOption) (*Server, error) {
-	// Default configuration
-	config := &serverConfig{
-		version:         "1.0.0",
-		serverName:      "razorpay-mcp-server",
-		enabledToolsets: []string{},
-		mcpOptions:      []mcpgo.ServerOption{},
-		readOnly:        false,
-		enableResources: true,
-		enableTools:     true,
-	}
-
-	// Apply options
-	for _, opt := range opts {
-		opt(config)
-	}
-
-	// Validate required fields
-	if config.observability == nil {
+func NewRzpMcpServer(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+	enabledToolsets []string,
+	readOnly bool,
+	mcpOpts ...mcpgo.ServerOption,
+) (mcpgo.Server, error) {
+	// Validate required parameters
+	if obs == nil {
 		return nil, fmt.Errorf("observability is required")
 	}
-
-	// Handle server creation - use custom server or create new one
-	var server = config.customServer
-	if server == nil {
-		// Build MCP server options with configured capabilities
-		mcpOpts := []mcpgo.ServerOption{
-			mcpgo.WithLogging(),
-			mcpgo.WithResourceCapabilities(
-				config.enableResources, config.enableResources),
-			mcpgo.WithToolCapabilities(config.enableTools),
-			mcpgo.WithHooks(mcpgo.SetupHooks(config.observability)),
-		}
-
-		// Add any custom MCP options
-		mcpOpts = append(mcpOpts, config.mcpOptions...)
-
-		// Create the mcpgo server
-		server = mcpgo.NewServer(
-			config.serverName,
-			config.version,
-			mcpOpts...,
-		)
+	if client == nil {
+		return nil, fmt.Errorf("razorpay client is required")
 	}
 
-	// Handle toolsets - use custom or create new
-	var (
-		err      error
-		toolsets = config.customToolsets
-	)
-	if toolsets == nil {
-		// Initialize toolsets with configuration
-		toolsets, err = NewToolSets(
-			config.observability,
-			config.client,
-			config.enabledToolsets,
-			config.readOnly,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create toolsets: %w", err)
-		}
+	// Set up default MCP options with Razorpay-specific hooks
+	defaultOpts := []mcpgo.ServerOption{
+		mcpgo.WithLogging(),
+		mcpgo.WithResourceCapabilities(true, true),
+		mcpgo.WithToolCapabilities(true),
+		mcpgo.WithHooks(mcpgo.SetupHooks(obs)),
 	}
+	// Merge with user-provided options
+	mcpOpts = append(defaultOpts, mcpOpts...)
 
-	// Create the server instance
-	srv := &Server{
-		server:   server,
-		toolsets: toolsets,
+	// Create server
+	server := mcpgo.NewMcpServer("razorpay-mcp-server", "1.0.0", mcpOpts...)
+
+	// Register Razorpay tools
+	toolsets, err := NewToolSets(obs, client, enabledToolsets, readOnly)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create toolsets: %w", err)
 	}
+	toolsets.RegisterTools(server)
 
-	// Register tools based on configuration
-	srv.RegisterTools()
-
-	return srv, nil
-}
-
-// RegisterTools adds all available tools to the server
-func (s *Server) RegisterTools() {
-	s.toolsets.RegisterTools(s.server)
-}
-
-// GetMCPServer returns the underlying MCP server instance
-func (s *Server) GetMCPServer() mcpgo.Server {
-	return s.server
+	return server, nil
 }
 
 // getClientFromContextOrDefault returns either the provided default
