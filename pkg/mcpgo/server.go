@@ -1,7 +1,12 @@
 package mcpgo
 
 import (
+	"context"
+
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // Server defines the minimal MCP server interface needed by the application
@@ -10,8 +15,8 @@ type Server interface {
 	AddTools(tools ...Tool)
 }
 
-// NewServer creates a new MCP server
-func NewServer(name, version string, opts ...ServerOption) *mark3labsImpl {
+// NewMcpServer creates a new MCP server
+func NewMcpServer(name, version string, opts ...ServerOption) *Mark3labsImpl {
 	// Create option setter to collect mcp options
 	optSetter := &mark3labsOptionSetter{
 		mcpOptions: []server.ServerOption{},
@@ -29,18 +34,18 @@ func NewServer(name, version string, opts ...ServerOption) *mark3labsImpl {
 		optSetter.mcpOptions...,
 	)
 
-	return &mark3labsImpl{
-		mcpServer: mcpServer,
-		name:      name,
-		version:   version,
+	return &Mark3labsImpl{
+		McpServer: mcpServer,
+		Name:      name,
+		Version:   version,
 	}
 }
 
-// mark3labsImpl implements the Server interface using mark3labs/mcp-go
-type mark3labsImpl struct {
-	mcpServer *server.MCPServer
-	name      string
-	version   string
+// Mark3labsImpl implements the Server interface using mark3labs/mcp-go
+type Mark3labsImpl struct {
+	McpServer *server.MCPServer
+	Name      string
+	Version   string
 }
 
 // mark3labsOptionSetter is used to apply options to the server
@@ -56,13 +61,13 @@ func (s *mark3labsOptionSetter) SetOption(option interface{}) error {
 }
 
 // AddTools adds tools to the server
-func (s *mark3labsImpl) AddTools(tools ...Tool) {
+func (s *Mark3labsImpl) AddTools(tools ...Tool) {
 	// Convert our Tool to mcp's ServerTool
 	var mcpTools []server.ServerTool
 	for _, tool := range tools {
 		mcpTools = append(mcpTools, tool.toMCPServerTool())
 	}
-	s.mcpServer.AddTools(mcpTools...)
+	s.McpServer.AddTools(mcpTools...)
 }
 
 // OptionSetter is an interface for setting options on a configurable object
@@ -80,6 +85,12 @@ func WithLogging() ServerOption {
 	}
 }
 
+func WithHooks(hooks *server.Hooks) ServerOption {
+	return func(s OptionSetter) error {
+		return s.SetOption(server.WithHooks(hooks))
+	}
+}
+
 // WithResourceCapabilities returns a server option
 // that enables resource capabilities
 func WithResourceCapabilities(read, list bool) ServerOption {
@@ -93,4 +104,64 @@ func WithToolCapabilities(enabled bool) ServerOption {
 	return func(s OptionSetter) error {
 		return s.SetOption(server.WithToolCapabilities(enabled))
 	}
+}
+
+// SetupHooks creates and configures the server hooks with logging
+func SetupHooks(obs *observability.Observability) *server.Hooks {
+	hooks := &server.Hooks{}
+	hooks.AddBeforeAny(func(ctx context.Context, id any, method mcp.MCPMethod,
+		message any) {
+		obs.Logger.Infof(ctx, "MCP_METHOD_CALLED",
+			"method", method,
+			"id", id,
+			"message", message)
+	})
+
+	hooks.AddOnSuccess(func(ctx context.Context, id any, method mcp.MCPMethod,
+		message any, result any) {
+		logResult := result
+		if method == mcp.MethodToolsList {
+			if r, ok := result.(*mcp.ListToolsResult); ok {
+				simplifiedTools := make([]string, 0, len(r.Tools))
+				for _, tool := range r.Tools {
+					simplifiedTools = append(simplifiedTools, tool.Name)
+				}
+				// Create new map for logging with just the tool names
+				logResult = map[string]interface{}{
+					"tools": simplifiedTools,
+				}
+			}
+		}
+
+		obs.Logger.Infof(ctx, "MCP_METHOD_SUCCEEDED",
+			"method", method,
+			"id", id,
+			"result", logResult)
+	})
+
+	hooks.AddOnError(func(ctx context.Context, id any, method mcp.MCPMethod,
+		message any, err error) {
+		obs.Logger.Infof(ctx, "MCP_METHOD_FAILED",
+			"method", method,
+			"id", id,
+			"message", message,
+			"error", err)
+	})
+
+	hooks.AddBeforeCallTool(func(ctx context.Context, id any,
+		message *mcp.CallToolRequest) {
+		obs.Logger.Infof(ctx, "TOOL_CALL_STARTED",
+			"id", id,
+			"request", message)
+	})
+
+	hooks.AddAfterCallTool(func(ctx context.Context, id any,
+		message *mcp.CallToolRequest, result *mcp.CallToolResult) {
+		obs.Logger.Infof(ctx, "TOOL_CALL_COMPLETED",
+			"id", id,
+			"request", message,
+			"result", result)
+	})
+
+	return hooks
 }

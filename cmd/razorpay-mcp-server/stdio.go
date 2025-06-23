@@ -17,6 +17,7 @@ import (
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay"
 )
 
@@ -26,17 +27,25 @@ var stdioCmd = &cobra.Command{
 	Short: "start the stdio server",
 	Run: func(cmd *cobra.Command, args []string) {
 		logPath := viper.GetString("log_file")
-		log, close, err := log.New(logPath)
-		if err != nil {
-			stdlog.Fatalf("create logger: %v", err)
-		}
-		defer close()
+
+		config := log.NewConfig(
+			log.WithMode(log.ModeStdio),
+			log.WithLogLevel(slog.LevelInfo),
+			log.WithLogPath(logPath),
+		)
+
+		ctx, logger := log.New(context.Background(), config)
+
+		// Create observability with SSE mode
+		obs := observability.New(
+			observability.WithLoggingService(logger),
+		)
 
 		key := viper.GetString("key")
 		secret := viper.GetString("secret")
 		client := rzpsdk.NewClient(key, secret)
 
-		client.SetUserAgent("razorpay-mcp/" + version + "/stdio")
+		client.SetUserAgent("razorpay-mcp" + version + "/stdio")
 
 		// Get toolsets to enable from config
 		enabledToolsets := viper.GetStringSlice("toolsets")
@@ -44,40 +53,35 @@ var stdioCmd = &cobra.Command{
 		// Get read-only mode from config
 		readOnly := viper.GetBool("read_only")
 
-		err = runStdioServer(log, client, enabledToolsets, readOnly)
+		err := runStdioServer(ctx, obs, client, enabledToolsets, readOnly)
 		if err != nil {
-			log.Error("error running stdio server", "error", err)
+			obs.Logger.Errorf(ctx,
+				"error running stdio server", "error", err)
 			stdlog.Fatalf("failed to run stdio server: %v", err)
 		}
 	},
 }
 
 func runStdioServer(
-	log *slog.Logger,
+	ctx context.Context,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 	enabledToolsets []string,
 	readOnly bool,
 ) error {
 	ctx, stop := signal.NotifyContext(
-		context.Background(),
+		ctx,
 		os.Interrupt,
 		syscall.SIGTERM,
 	)
 	defer stop()
 
-	srv, err := razorpay.NewServer(
-		log,
-		client,
-		version,
-		enabledToolsets,
-		readOnly,
-	)
+	srv, err := razorpay.NewRzpMcpServer(obs, client, enabledToolsets, readOnly)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
-	srv.RegisterTools()
 
-	stdioSrv, err := mcpgo.NewStdioServer(srv.GetMCPServer())
+	stdioSrv, err := mcpgo.NewStdioServer(srv)
 	if err != nil {
 		return fmt.Errorf("failed to create stdio server: %w", err)
 	}
@@ -85,7 +89,7 @@ func runStdioServer(
 	in, out := io.Reader(os.Stdin), io.Writer(os.Stdout)
 	errC := make(chan error, 1)
 	go func() {
-		log.Info("starting server")
+		obs.Logger.Infof(ctx, "starting server")
 		errC <- stdioSrv.Listen(ctx, in, out)
 	}()
 
@@ -97,11 +101,11 @@ func runStdioServer(
 	// Wait for shutdown signal
 	select {
 	case <-ctx.Done():
-		log.Info("shutting down server...")
+		obs.Logger.Infof(ctx, "shutting down server...")
 		return nil
 	case err := <-errC:
 		if err != nil {
-			log.Error("server error", "error", err)
+			obs.Logger.Errorf(ctx, "server error", "error", err)
 			return err
 		}
 		return nil

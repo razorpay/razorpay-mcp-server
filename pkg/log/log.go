@@ -1,58 +1,46 @@
 package log
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"log/slog"
 	"os"
-	"path/filepath"
 )
 
-// getDefaultLogPath returns an absolute path for the logs directory
-func getDefaultLogPath() string {
-	execPath, err := os.Executable()
-	if err != nil {
-		// Fallback to temp directory if we can't determine executable path
-		return filepath.Join(os.TempDir(), "razorpay-mcp-server-logs")
-	}
-
-	execDir := filepath.Dir(execPath)
-
-	return filepath.Join(execDir, "logs")
+// Logger is an interface for logging, it is used internally
+// at present but has scope for external implementations
+//
+//nolint:interfacebloat
+type Logger interface {
+	Infof(ctx context.Context, format string, args ...interface{})
+	Errorf(ctx context.Context, format string, args ...interface{})
+	Fatalf(ctx context.Context, format string, args ...interface{})
+	Debugf(ctx context.Context, format string, args ...interface{})
+	Warningf(ctx context.Context, format string, args ...interface{})
+	Close() error
 }
 
-// New returns a new slog.Logger.
-// If path to log file is not provided then
-// logger uses a default path next to the executable
-// If the log file cannot be opened, falls back to stderr
-//
-// TODO: add redaction of sensitive data
-func New(path string) (*slog.Logger, func(), error) {
-	if path == "" {
-		path = getDefaultLogPath()
-	}
+// New creates a new logger based on the provided configuration.
+// It returns an enhanced context and a logger implementation.
+// For stdio mode, it creates a file-based slog logger.
+// For sse mode, it creates a stdout-based slog logger.
+func New(ctx context.Context, config *Config) (context.Context, Logger) {
+	var (
+		logger Logger
+		err    error
+	)
 
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		// Fall back to stderr if we can't open the log file
-		fmt.Fprintf(
-			os.Stderr,
-			"Warning: Failed to open log file: %v\nFalling back to stderr\n",
-			err,
-		)
-		logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-		noop := func() {}
-		return logger, noop, nil
-	}
-
-	close := func() {
-		if err := file.Close(); err != nil {
-			log.Printf("close log file: %v", err)
+	switch config.GetMode() {
+	case ModeStdio:
+		// For stdio mode, use slog logger that writes to file
+		logger, err = NewSloggerWithFile(config.GetSlogConfig().GetPath())
+		if err != nil {
+			fmt.Printf("failed to initialize logger\n")
+			os.Exit(1)
 		}
+	default:
+		fmt.Printf("failed to initialize logger\n")
+		os.Exit(1)
 	}
 
-	fmt.Fprintf(os.Stderr, "logs are stored in: %v\n", path)
-	logger := slog.New(slog.NewTextHandler(file, nil))
-
-	return logger, close, nil
+	return ctx, logger
 }

@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // CreateRefund returns a tool that creates a normal refund for a payment
 func CreateRefund(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -51,6 +51,12 @@ func CreateRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 		data := make(map[string]interface{})
 
@@ -88,7 +94,7 @@ func CreateRefund(
 
 // FetchRefund returns a tool that fetches a refund by ID
 func FetchRefund(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -105,6 +111,12 @@ func FetchRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -133,7 +145,7 @@ func FetchRefund(
 
 // UpdateRefund returns a tool that updates a refund's notes
 func UpdateRefund(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -156,6 +168,12 @@ func UpdateRefund(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		payload := make(map[string]interface{})
 		data := make(map[string]interface{})
 
@@ -188,7 +206,7 @@ func UpdateRefund(
 // FetchMultipleRefundsForPayment returns a tool that fetches multiple refunds
 // for a payment
 func FetchMultipleRefundsForPayment(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -220,6 +238,11 @@ func FetchMultipleRefundsForPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		fetchReq := make(map[string]interface{})
 		fetchOptions := make(map[string]interface{})
 
@@ -256,7 +279,7 @@ func FetchMultipleRefundsForPayment(
 // FetchSpecificRefundForPayment returns a tool that fetches a specific refund
 // for a payment
 func FetchSpecificRefundForPayment(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -278,6 +301,11 @@ func FetchSpecificRefundForPayment(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
@@ -312,7 +340,7 @@ func FetchSpecificRefundForPayment(
 // FetchAllRefunds returns a tool that fetches all refunds with pagination
 // support
 func FetchAllRefunds(
-	_ *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -339,6 +367,11 @@ func FetchAllRefunds(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		queryParams := make(map[string]interface{})
 
 		validator := NewValidator(&r).

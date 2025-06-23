@@ -56,7 +56,13 @@ func extractValueGeneric[T any](
 	name string,
 	required bool,
 ) (*T, error) {
-	val, ok := request.Arguments[name]
+	// Type assert Arguments from any to map[string]interface{}
+	args, ok := request.Arguments.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("invalid arguments type")
+	}
+
+	val, ok := args[name]
 	if !ok || val == nil {
 		if required {
 			return nil, errors.New("missing required parameter: " + name)

@@ -3,16 +3,16 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 // FetchSettlement returns a tool that fetches a settlement by ID
 func FetchSettlement(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -28,6 +28,11 @@ func FetchSettlement(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create a parameters map to collect validated parameters
 		fetchSettlementOptions := make(map[string]interface{})
 
@@ -60,7 +65,7 @@ func FetchSettlement(
 // FetchSettlementRecon returns a tool that fetches settlement
 // reconciliation reports
 func FetchSettlementRecon(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -96,6 +101,11 @@ func FetchSettlementRecon(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create a parameters map to collect validated parameters
 		fetchReconOptions := make(map[string]interface{})
 
@@ -131,7 +141,7 @@ func FetchSettlementRecon(
 // FetchAllSettlements returns a tool to fetch multiple settlements with
 // filtering and pagination
 func FetchAllSettlements(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -167,6 +177,11 @@ func FetchAllSettlements(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create parameters map to collect validated parameters
 		fetchAllSettlementsOptions := make(map[string]interface{})
 
@@ -200,7 +215,7 @@ func FetchAllSettlements(
 
 // CreateInstantSettlement returns a tool that creates an instant settlement
 func CreateInstantSettlement(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -235,6 +250,11 @@ func CreateInstantSettlement(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create parameters map to collect validated parameters
 		createInstantSettlementReq := make(map[string]interface{})
 
@@ -272,7 +292,7 @@ func CreateInstantSettlement(
 // FetchAllInstantSettlements returns a tool to fetch all instant settlements
 // with filtering and pagination
 func FetchAllInstantSettlements(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -315,6 +335,11 @@ func FetchAllInstantSettlements(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create parameters map to collect validated parameters
 		options := make(map[string]interface{})
 
@@ -349,7 +374,7 @@ func FetchAllInstantSettlements(
 
 // FetchInstantSettlement returns a tool that fetches instant settlement by ID
 func FetchInstantSettlement(
-	log *slog.Logger,
+	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
@@ -365,6 +390,11 @@ func FetchInstantSettlement(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
 		// Create parameters map to collect validated parameters
 		params := make(map[string]interface{})
 
