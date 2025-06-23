@@ -3,12 +3,10 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
-
 	rzpsdk "github.com/razorpay/razorpay-go"
-
 	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
 func NewRzpMcpServer(
@@ -34,10 +32,10 @@ func NewRzpMcpServer(
 		mcpgo.WithHooks(mcpgo.SetupHooks(obs)),
 	}
 	// Merge with user-provided options
-	allOpts := append(defaultOpts, mcpOpts...)
+	mcpOpts = append(defaultOpts, mcpOpts...)
 
 	// Create server
-	server := mcpgo.NewMcpServer("razorpay-mcp-server", "1.0.0", allOpts...)
+	server := mcpgo.NewMcpServer("razorpay-mcp-server", "1.0.0", mcpOpts...)
 
 	// Register Razorpay tools
 	toolsets, err := NewToolSets(obs, client, enabledToolsets, readOnly)
