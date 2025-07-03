@@ -24,6 +24,12 @@ func NewToolSets(
 			FetchAllPayments(obs, client),
 		).
 		AddWriteTools(
+			CreatePaymentOrder(obs, client),
+			AcceptAndProcessPayments(obs, client),
+			AcceptPaymentsByChat(obs, client),
+			CreatePaymentsByToken(obs, client),
+			OtpGenerateForPayment(obs, client),
+			OtpVerifyForPayment(obs, client),
 			CapturePayment(obs, client),
 			UpdatePayment(obs, client),
 		)
@@ -65,24 +71,24 @@ func NewToolSets(
 			UpdateRefund(obs, client),
 		)
 
-	payouts := toolsets.NewToolset("payouts", "Razorpay Payouts related tools").
-		AddReadTools(
-			FetchPayout(obs, client),
-			FetchAllPayouts(obs, client),
-		)
+	// payouts := toolsets.NewToolset("payouts", "Razorpay Payouts related tools").
+	// 	AddReadTools(
+	// 		FetchPayout(obs, client),
+	// 		FetchAllPayouts(obs, client),
+	// 	)
 
-	qrCodes := toolsets.NewToolset("qr_codes", "Razorpay QR Codes related tools").
-		AddReadTools(
-			FetchQRCode(obs, client),
-			FetchAllQRCodes(obs, client),
-			FetchQRCodesByCustomerID(obs, client),
-			FetchQRCodesByPaymentID(obs, client),
-			FetchPaymentsForQRCode(obs, client),
-		).
-		AddWriteTools(
-			CreateQRCode(obs, client),
-			CloseQRCode(obs, client),
-		)
+	// qrCodes := toolsets.NewToolset("qr_codes", "Razorpay QR Codes related tools").
+	// 	AddReadTools(
+	// 		FetchQRCode(obs, client),
+	// 		FetchAllQRCodes(obs, client),
+	// 		FetchQRCodesByCustomerID(obs, client),
+	// 		FetchQRCodesByPaymentID(obs, client),
+	// 		FetchPaymentsForQRCode(obs, client),
+	// 	).
+	// 	AddWriteTools(
+	// 		CreateQRCode(obs, client),
+	// 		CloseQRCode(obs, client),
+	// 	)
 
 	settlements := toolsets.NewToolset("settlements",
 		"Razorpay Settlements related tools").
@@ -102,8 +108,8 @@ func NewToolSets(
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
 	toolsetGroup.AddToolset(refunds)
-	toolsetGroup.AddToolset(payouts)
-	toolsetGroup.AddToolset(qrCodes)
+	//toolsetGroup.AddToolset(payouts)
+	//toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
 
 	// Enable the requested features

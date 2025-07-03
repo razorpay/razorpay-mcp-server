@@ -19,6 +19,12 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_payment_card_details`         | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card) | ✅ |
 | `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments) | ✅ |
 | `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update) | ✅ |
+| `create_payment_order`               | Create a new order for payment processing              | [Order](https://razorpay.com/docs/api/orders/create/) | ✅ |
+| `accept_and_process_payments`        | Accept and process payments by fetching customer card details | [Customer](https://razorpay.com/docs/api/customers/fetch-with-id) | ✅ |
+| `acceptpaymentsBychat`               | Accept mobile number and amount in INR, display dummy card and ask for confirmation | Custom | ✅ |
+| `create_payments_by_token`           | Create a new payment using a saved token | [Payment](https://razorpay.com/docs/api/payments/recurring-payments/) | ✅ |
+| `otp_generate_for_payment`           | Make a POST request to generate OTP for payment processing | Custom HTTP | ✅ |
+| `otp_verify_for_payment`             | Make a POST request to verify OTP for payment processing | Custom HTTP | ✅ |
 | `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard) | ✅ |
 | `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi) | ✅ |
 | `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard) | ✅ |
