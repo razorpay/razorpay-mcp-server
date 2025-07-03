@@ -1045,3 +1045,117 @@ func AcceptPaymentsByChat(
 		handler,
 	)
 }
+
+// CreatePayment returns a tool that creates a payment with wallet using the CreatePaymentJson function
+func CreatePaymentWallet(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"amount",
+			mcpgo.Description("Payment amount in the smallest currency sub-unit "+
+				"(e.g., for ₹295, use 29500)"),
+			mcpgo.Required(),
+			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+		),
+		mcpgo.WithString(
+			"currency",
+			mcpgo.Description("ISO code for the currency to be taken as INR"),
+			mcpgo.Required(),
+			mcpgo.Pattern("^[A-Z]{3}$"), // ISO currency codes are 3 uppercase letters
+		),
+		mcpgo.WithString(
+			"method",
+			mcpgo.Description("Payment method to be taken as wallet"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"wallet",
+			mcpgo.Description("wallet for the payment to be taken as amazonpay"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"email",
+			mcpgo.Description("Customer's email address to be taken as kushalsalecha@yahoo.com"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"contact",
+			mcpgo.Description("Customer's contact number"),
+			mcpgo.Required(),
+		),
+		// Card-specific parameters (optional)
+
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		paymentData := make(map[string]interface{})
+		cardData := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredFloat(paymentData, "amount").
+			ValidateAndAddRequiredString(paymentData, "currency").
+			ValidateAndAddRequiredString(paymentData, "method").
+			ValidateAndAddRequiredString(paymentData, "wallet").
+			ValidateAndAddRequiredString(paymentData, "email").
+			ValidateAndAddRequiredString(paymentData, "contact")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		// Validate card method requirements
+		//method := paymentData["method"].(string)
+		// if method == "card" {
+		// 	// Check if all required card fields are present
+		// 	requiredCardFields := []string{"token"}
+		// 	for _, field := range requiredCardFields {
+		// 		if _, exists := cardData[field]; !exists {
+		// 			return mcpgo.NewToolResultError(
+		// 				fmt.Sprintf("%s is required when method is 'card'", field)), nil
+		// 		}
+		// 	}
+
+		// 	// Add card data to payment data
+		// 	card := make(map[string]interface{})
+		// 	card["number"] = cardData["card_number"]
+		// 	card["expiry_month"] = cardData["card_expiry_month"]
+		// 	card["expiry_year"] = cardData["card_expiry_year"]
+		// 	card["cvv"] = cardData["card_cvv"]
+		// 	card["name"] = cardData["card_name"]
+
+		// 	paymentData["card"] = card
+		// }
+
+		// Remove card fields from the top level as they are now nested under 'card'
+		for key := range cardData {
+			delete(paymentData, key)
+		}
+
+		// Create payment using Razorpay SDK's CreatePaymentJson
+		payment, err := client.Payment.CreatePaymentJson(paymentData, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("creating payment failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(payment)
+	}
+
+	return mcpgo.NewTool(
+		"create_payment",
+		"Create a payment using Razorpay's CreatePaymentJson function. Supports various payment methods including cards and wallets.", //nolint:lll
+		parameters,
+		handler,
+	)
+}
