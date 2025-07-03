@@ -600,3 +600,236 @@ func Test_FetchAllPayments(t *testing.T) {
 		})
 	}
 }
+
+func Test_CreatePayment(t *testing.T) {
+	createPaymentPath := fmt.Sprintf(
+		"/%s%s/create/json",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	successfulCardPaymentResp := map[string]interface{}{
+		"id":            "pay_NT48CvBhIC98MQ",
+		"entity":        "payment",
+		"amount":        float64(50000),
+		"currency":      "INR",
+		"status":        "captured",
+		"method":        "card",
+		"order_id":      "order_NT48CvBhIC98MQ",
+		"description":   "Payment for test order",
+		"international": false,
+		"captured":      true,
+		"card": map[string]interface{}{
+			"id":      "card_NT48CvBhIC98MQ",
+			"entity":  "card",
+			"name":    "Test User",
+			"last4":   "1111",
+			"network": "Visa",
+			"type":    "credit",
+			"issuer":  "HDFC",
+			"emi":     false,
+		},
+		"email":      "test@example.com",
+		"contact":    "+919999999999",
+		"created_at": float64(1640995200),
+	}
+
+	successfulUpiPaymentResp := map[string]interface{}{
+		"id":            "pay_NU48CvBhIC98MQ",
+		"entity":        "payment",
+		"amount":        float64(25000),
+		"currency":      "INR",
+		"status":        "captured",
+		"method":        "upi",
+		"description":   "UPI payment test",
+		"international": false,
+		"captured":      true,
+		"vpa":           "test@upi",
+		"email":         "upi@example.com",
+		"created_at":    float64(1640995200),
+	}
+
+	errorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "The amount field is required.",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful card payment creation",
+			Request: map[string]interface{}{
+				"amount":            float64(50000),
+				"currency":          "INR",
+				"method":            "card",
+				"order_id":          "order_NT48CvBhIC98MQ",
+				"description":       "Payment for test order",
+				"email":             "test@example.com",
+				"contact":           "+919999999999",
+				"card_number":       "4111111111111111",
+				"card_expiry_month": "12",
+				"card_expiry_year":  "2025",
+				"card_cvv":          "123",
+				"card_name":         "Test User",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentPath,
+						Method:   "POST",
+						Response: successfulCardPaymentResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulCardPaymentResp,
+		},
+		{
+			Name: "successful UPI payment creation",
+			Request: map[string]interface{}{
+				"amount":      float64(25000),
+				"currency":    "INR",
+				"method":      "upi",
+				"description": "UPI payment test",
+				"email":       "upi@example.com",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentPath,
+						Method:   "POST",
+						Response: successfulUpiPaymentResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulUpiPaymentResp,
+		},
+		{
+			Name: "card method without card details",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+				"method":   "card",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "card_number is required when method is 'card'",
+		},
+		{
+			Name: "card method with partial card details",
+			Request: map[string]interface{}{
+				"amount":      float64(50000),
+				"currency":    "INR",
+				"method":      "card",
+				"card_number": "4111111111111111",
+				"card_name":   "Test User",
+				// Missing expiry month, year, and CVV
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "card_expiry_month is required when method is 'card'",
+		},
+		{
+			Name: "missing amount parameter",
+			Request: map[string]interface{}{
+				"currency": "INR",
+				"method":   "upi",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: amount",
+		},
+		{
+			Name: "missing currency parameter",
+			Request: map[string]interface{}{
+				"amount": float64(50000),
+				"method": "upi",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: currency",
+		},
+		{
+			Name: "missing method parameter",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: method",
+		},
+		{
+			Name: "payment creation failure",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+				"method":   "upi",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentPath,
+						Method:   "POST",
+						Response: errorResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "creating payment failed: The amount field is required.",
+		},
+		{
+			Name: "payment with notes",
+			Request: map[string]interface{}{
+				"amount":   float64(30000),
+				"currency": "INR",
+				"method":   "netbanking",
+				"notes": map[string]interface{}{
+					"order_type": "premium",
+					"user_id":    "12345",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   createPaymentPath,
+						Method: "POST",
+						Response: map[string]interface{}{
+							"id":       "pay_NV48CvBhIC98MQ",
+							"entity":   "payment",
+							"amount":   float64(30000),
+							"currency": "INR",
+							"status":   "captured",
+							"method":   "netbanking",
+							"notes": map[string]interface{}{
+								"order_type": "premium",
+								"user_id":    "12345",
+							},
+						},
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"id":       "pay_NV48CvBhIC98MQ",
+				"entity":   "payment",
+				"amount":   float64(30000),
+				"currency": "INR",
+				"status":   "captured",
+				"method":   "netbanking",
+				"notes": map[string]interface{}{
+					"order_type": "premium",
+					"user_id":    "12345",
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, CreatePayment, "Payment Creation")
+		})
+	}
+}
