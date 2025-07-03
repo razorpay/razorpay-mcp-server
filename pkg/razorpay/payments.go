@@ -1006,33 +1006,89 @@ func AcceptPaymentsByChat(
 		obs.Logger.Infof(ctx, "AcceptPaymentsByChat called",
 			"mobile_number", mobileNumber, "amount", amount)
 
-		// Display dummy card information
-		dummyCard := "1333"
+		// Step 1: Create customer using the mobile number
+		customerData := map[string]interface{}{
+			"contact":       mobileNumber,
+			"fail_existing": "0", // Return existing customer if already exists
+		}
 
-		// Prepare response with dummy card information and confirmation request
+		customer, err := client.Customer.Create(customerData, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("creating customer failed: %s", err.Error())), nil
+		}
+
+		// Extract customer ID from response
+		customerId, ok := customer["id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("failed to extract customer ID from response"), nil
+		}
+
+		obs.Logger.Infof(ctx, "Customer created/retrieved", "customer_id", customerId)
+
+		// Step 2: Fetch all tokens for the customer
+		tokens, err := client.Token.All(customerId, nil, nil)
+		if err != nil {
+			obs.Logger.Infof(ctx, "Failed to fetch tokens for customer", "customer_id", customerId, "error", err.Error())
+			// Don't fail the entire operation, just log the error
+			tokens = map[string]interface{}{
+				"count": 0,
+				"items": []interface{}{},
+				"error": err.Error(),
+			}
+		}
+
+		// Extract token ID from tokens response
+		var tokenId string
+		var nextSteps []string
+
+		if tokenItems, ok := tokens["items"]; ok {
+			if itemsArray, ok := tokenItems.([]interface{}); ok && len(itemsArray) > 0 {
+				if firstToken, ok := itemsArray[0].(map[string]interface{}); ok {
+					if id, ok := firstToken["id"].(string); ok {
+						tokenId = id
+					}
+				}
+			}
+		}
+
+		// Prepare response with customer and token information
 		response := map[string]interface{}{
-			"mobile_number": mobileNumber,
-			"amount_inr":    amount,
-			"amount_paisa":  amount * 100, // Convert to paisa for API usage
-			"dummy_card":    dummyCard,
-			"card_type":     "Mastercard",
-			"card_issuer":   "HDFC Bank",
-			"status":        "awaiting_confirmation",
-			"message": fmt.Sprintf("Payment Details:\n- Mobile: %s\n- Amount: ₹%d\n- Card: %s (Mastercard - HDFC Bank)\n\nDo you want to proceed with this payment?",
-				mobileNumber, amount, dummyCard),
+			"mobile_number":    mobileNumber,
+			"amount_inr":       amount,
+			"amount_paisa":     amount * 100, // Convert to paisa for API usage
+			"customer_details": customer,
+			"customer_id":      customerId,
+			"tokens_response":  tokens,
+			"status":           "customer_and_tokens_fetched",
+			"message": fmt.Sprintf("Payment Details:\n- Mobile: %s\n- Amount: ₹%d\n- Customer ID: %s\n- Tokens Found: %v\n\nCustomer and token details retrieved successfully.",
+				mobileNumber, amount, customerId, tokens),
 			"confirmation_required": true,
 			"auto_execute_next":     false,
-			"next_tool_on_yes":      "create_payments_by_token",
-			"next_tool_params": map[string]interface{}{
-				"token_id": "token_QoWfObL2yAS5Yk",
+		}
+
+		// Add next tool parameters based on token availability
+		if tokenId != "" {
+			response["next_tool_on_yes"] = "create_payments_by_token"
+			response["next_tool_params"] = map[string]interface{}{
+				"token_id": tokenId,
+			//	"token_id": "token_QoWfObL2yAS5Yk",
 				"amount":   amount * 100, // Convert to paisa for API
-			},
-			"next_steps": []string{
+			}
+			nextSteps = []string{
 				"User should respond with 'yes' or 'proceed' to continue",
 				"User can respond with 'no' or 'cancel' to cancel",
-				"Upon 'yes' confirmation, create_payments_by_token will be executed with token_QoWfObL2yAS5Yk",
-			},
+				fmt.Sprintf("Upon 'yes' confirmation, create_payments_by_token will be executed with %s", tokenId),
+			}
+		} else {
+			nextSteps = []string{
+				"No saved payment tokens found for this customer",
+				"Customer needs to provide new payment details",
+				"Consider collecting card details or other payment methods",
+			}
 		}
+
+		response["next_steps"] = nextSteps
 
 		return mcpgo.NewToolResultJSON(response)
 	}

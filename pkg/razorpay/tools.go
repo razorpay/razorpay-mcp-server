@@ -60,17 +60,17 @@ func NewToolSets(
 			UpdateOrder(obs, client),
 		)
 
-	refunds := toolsets.NewToolset("refunds", "Razorpay Refunds related tools").
-		AddReadTools(
-			FetchRefund(obs, client),
-			FetchMultipleRefundsForPayment(obs, client),
-			FetchSpecificRefundForPayment(obs, client),
-			FetchAllRefunds(obs, client),
-		).
-		AddWriteTools(
-			CreateRefund(obs, client),
-			UpdateRefund(obs, client),
-		)
+	// refunds := toolsets.NewToolset("refunds", "Razorpay Refunds related tools").
+	// 	AddReadTools(
+	// 		FetchRefund(obs, client),
+	// 		FetchMultipleRefundsForPayment(obs, client),
+	// 		FetchSpecificRefundForPayment(obs, client),
+	// 		FetchAllRefunds(obs, client),
+	// 	).
+	// 	AddWriteTools(
+	// 		CreateRefund(obs, client),
+	// 		UpdateRefund(obs, client),
+	// 	)
 
 	// payouts := toolsets.NewToolset("payouts", "Razorpay Payouts related tools").
 	// 	AddReadTools(
@@ -91,27 +91,41 @@ func NewToolSets(
 	// 		CloseQRCode(obs, client),
 	// 	)
 
-	settlements := toolsets.NewToolset("settlements",
-		"Razorpay Settlements related tools").
+	// settlements := toolsets.NewToolset("settlements",
+	// 	"Razorpay Settlements related tools").
+	// 	AddReadTools(
+	// 		FetchSettlement(obs, client),
+	// 		FetchSettlementRecon(obs, client),
+	// 		FetchAllSettlements(obs, client),
+	// 		FetchAllInstantSettlements(obs, client),
+	// 		FetchInstantSettlement(obs, client),
+	// 	).
+	// 	AddWriteTools(
+	// 		CreateInstantSettlement(obs, client),
+	// 	)
+
+	tokens := toolsets.NewToolset("tokens", "Razorpay tokens related tools").
 		AddReadTools(
-			FetchSettlement(obs, client),
-			FetchSettlementRecon(obs, client),
-			FetchAllSettlements(obs, client),
-			FetchAllInstantSettlements(obs, client),
-			FetchInstantSettlement(obs, client),
-		).
-		AddWriteTools(
-			CreateInstantSettlement(obs, client),
+			FetchToken(obs, client),
+			FetchAllTokens(obs, client),
+		)
+
+	customers := toolsets.NewToolset("customers", "Razorpay Customers related tools"). //nolint:lll
+												AddWriteTools(
+			CreateCustomer(obs, client),
 		)
 
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
-	toolsetGroup.AddToolset(refunds)
+	//toolsetGroup.AddToolset(refunds)
 	//toolsetGroup.AddToolset(payouts)
 	//toolsetGroup.AddToolset(qrCodes)
-	toolsetGroup.AddToolset(settlements)
+	//toolsetGroup.AddToolset(settlements)
+
+	toolsetGroup.AddToolset(tokens)
+	toolsetGroup.AddToolset(customers)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
