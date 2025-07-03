@@ -24,7 +24,7 @@ func NewToolSets(
 			FetchAllPayments(obs, client),
 		).
 		AddWriteTools(
-			CreatePayment(obs, client),
+			CreatePaymentWallet(obs, client),
 			CapturePayment(obs, client),
 			UpdatePayment(obs, client),
 		)

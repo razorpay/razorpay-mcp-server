@@ -330,8 +330,8 @@ func FetchAllPayments(
 	)
 }
 
-// CreatePayment returns a tool that creates a payment using the CreatePaymentJson function
-func CreatePayment(
+// CreatePayment returns a tool that creates a payment with wallet using the CreatePaymentJson function
+func CreatePaymentWallet(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
@@ -345,44 +345,29 @@ func CreatePayment(
 		),
 		mcpgo.WithString(
 			"currency",
-			mcpgo.Description("ISO code for the currency (e.g., INR, USD, SGD)"),
+			mcpgo.Description("ISO code for the currency to be taken as INR"),
 			mcpgo.Required(),
 			mcpgo.Pattern("^[A-Z]{3}$"), // ISO currency codes are 3 uppercase letters
 		),
 		mcpgo.WithString(
 			"method",
-			mcpgo.Description("Payment method (e.g., card, netbanking, upi, wallet)"),
+			mcpgo.Description("Payment method to be taken as wallet"),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
-			"token",
-			mcpgo.Description("token id (required if method is 'card')"),
-		),
-		mcpgo.WithString(
-			"order_id",
-			mcpgo.Description("Order ID to associate this payment with (optional)"),
-		),
-		mcpgo.WithString(
-			"customer_id",
-			mcpgo.Description("Customer ID for the payment (optional)"),
+			"wallet",
+			mcpgo.Description("wallet for the payment to be taken as amazonpay"),
+			mcpgo.Required(),
 		),
 		mcpgo.WithString(
 			"email",
-			mcpgo.Description("Customer's email address"),
+			mcpgo.Description("Customer's email address to be taken as kushalsalecha@yahoo.com"),
+			mcpgo.Required(),
 		),
 		mcpgo.WithString(
 			"contact",
 			mcpgo.Description("Customer's contact number"),
-		),
-		mcpgo.WithString(
-			"description",
-			mcpgo.Description("Description of the payment"),
-		),
-		mcpgo.WithObject(
-			"notes",
-			mcpgo.Description("Key-value pairs for additional information "+
-				"(max 15 pairs, 256 chars each)"),
-			mcpgo.MaxProperties(15),
+			mcpgo.Required(),
 		),
 		// Card-specific parameters (optional)
 
@@ -405,9 +390,7 @@ func CreatePayment(
 			ValidateAndAddRequiredFloat(paymentData, "amount").
 			ValidateAndAddRequiredString(paymentData, "currency").
 			ValidateAndAddRequiredString(paymentData, "method").
-			ValidateAndAddRequiredString(paymentData, "token").
-			ValidateAndAddOptionalString(paymentData, "order_id").
-			ValidateAndAddOptionalString(paymentData, "customer_id").
+			ValidateAndAddRequiredString(paymentData, "wallet").
 			ValidateAndAddOptionalString(paymentData, "email").
 			ValidateAndAddOptionalString(paymentData, "contact")
 
@@ -455,7 +438,7 @@ func CreatePayment(
 
 	return mcpgo.NewTool(
 		"create_payment",
-		"Create a payment using Razorpay's CreatePaymentJson function. Supports various payment methods including cards, UPI, netbanking, and wallets.", //nolint:lll
+		"Create a payment using Razorpay's CreatePaymentJson function. Supports various payment methods including cards and wallets.", //nolint:lll
 		parameters,
 		handler,
 	)
