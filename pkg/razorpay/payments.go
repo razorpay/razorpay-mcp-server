@@ -329,3 +329,134 @@ func FetchAllPayments(
 		handler,
 	)
 }
+
+// CreatePayment returns a tool that creates a payment using the CreatePaymentJson function
+func CreatePayment(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"amount",
+			mcpgo.Description("Payment amount in the smallest currency sub-unit "+
+				"(e.g., for ₹295, use 29500)"),
+			mcpgo.Required(),
+			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+		),
+		mcpgo.WithString(
+			"currency",
+			mcpgo.Description("ISO code for the currency (e.g., INR, USD, SGD)"),
+			mcpgo.Required(),
+			mcpgo.Pattern("^[A-Z]{3}$"), // ISO currency codes are 3 uppercase letters
+		),
+		mcpgo.WithString(
+			"method",
+			mcpgo.Description("Payment method (e.g., card, netbanking, upi, wallet)"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"token",
+			mcpgo.Description("token id (required if method is 'card')"),
+		),
+		mcpgo.WithString(
+			"order_id",
+			mcpgo.Description("Order ID to associate this payment with (optional)"),
+		),
+		mcpgo.WithString(
+			"customer_id",
+			mcpgo.Description("Customer ID for the payment (optional)"),
+		),
+		mcpgo.WithString(
+			"email",
+			mcpgo.Description("Customer's email address"),
+		),
+		mcpgo.WithString(
+			"contact",
+			mcpgo.Description("Customer's contact number"),
+		),
+		mcpgo.WithString(
+			"description",
+			mcpgo.Description("Description of the payment"),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs for additional information "+
+				"(max 15 pairs, 256 chars each)"),
+			mcpgo.MaxProperties(15),
+		),
+		// Card-specific parameters (optional)
+
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		paymentData := make(map[string]interface{})
+		cardData := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredFloat(paymentData, "amount").
+			ValidateAndAddRequiredString(paymentData, "currency").
+			ValidateAndAddRequiredString(paymentData, "method").
+			ValidateAndAddRequiredString(paymentData, "token").
+			ValidateAndAddOptionalString(paymentData, "order_id").
+			ValidateAndAddOptionalString(paymentData, "customer_id").
+			ValidateAndAddOptionalString(paymentData, "email").
+			ValidateAndAddOptionalString(paymentData, "contact")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		// Validate card method requirements
+		//method := paymentData["method"].(string)
+		// if method == "card" {
+		// 	// Check if all required card fields are present
+		// 	requiredCardFields := []string{"token"}
+		// 	for _, field := range requiredCardFields {
+		// 		if _, exists := cardData[field]; !exists {
+		// 			return mcpgo.NewToolResultError(
+		// 				fmt.Sprintf("%s is required when method is 'card'", field)), nil
+		// 		}
+		// 	}
+
+		// 	// Add card data to payment data
+		// 	card := make(map[string]interface{})
+		// 	card["number"] = cardData["card_number"]
+		// 	card["expiry_month"] = cardData["card_expiry_month"]
+		// 	card["expiry_year"] = cardData["card_expiry_year"]
+		// 	card["cvv"] = cardData["card_cvv"]
+		// 	card["name"] = cardData["card_name"]
+
+		// 	paymentData["card"] = card
+		// }
+
+		// Remove card fields from the top level as they are now nested under 'card'
+		for key := range cardData {
+			delete(paymentData, key)
+		}
+
+		// Create payment using Razorpay SDK's CreatePaymentJson
+		payment, err := client.Payment.CreatePaymentJson(paymentData, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("creating payment failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(payment)
+	}
+
+	return mcpgo.NewTool(
+		"create_payment",
+		"Create a payment using Razorpay's CreatePaymentJson function. Supports various payment methods including cards, UPI, netbanking, and wallets.", //nolint:lll
+		parameters,
+		handler,
+	)
+}
