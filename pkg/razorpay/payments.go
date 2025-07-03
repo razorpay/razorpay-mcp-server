@@ -1069,16 +1069,18 @@ func AcceptPaymentsByChat(
 
 		// Add next tool parameters based on token availability
 		if tokenId != "" {
-			response["next_tool_on_yes"] = "create_payments_by_token"
+			response["next_tool_on_card"] = "create_payments_by_token"
+			response["next_tool_on_wallet"] = "create_payment_wallet"
 			response["next_tool_params"] = map[string]interface{}{
-				"token_id": tokenId,
-			//	"token_id": "token_QoWfObL2yAS5Yk",
+				//"token_id": tokenId,
+				"token_id": "token_QoWfObL2yAS5Yk",
 				"amount":   amount * 100, // Convert to paisa for API
 			}
 			nextSteps = []string{
-				"User should respond with 'yes' or 'proceed' to continue",
+				"User should respond with 'card' or 'wallet' to continue",
 				"User can respond with 'no' or 'cancel' to cancel",
-				fmt.Sprintf("Upon 'yes' confirmation, create_payments_by_token will be executed with %s", tokenId),
+				fmt.Sprintf("Upon 'card' confirmation, create_payments_by_token will be executed with %s", tokenId),
+				fmt.Sprintf("Upon 'wallet' confirmation, create_payment_wallet will be executed with %s", tokenId),
 			}
 		} else {
 			nextSteps = []string{
