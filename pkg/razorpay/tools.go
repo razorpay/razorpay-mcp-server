@@ -25,6 +25,7 @@ func NewToolSets(
 		).
 		AddWriteTools(
 			CreatePaymentWallet(obs, client),
+			CreatePaymentUpiCollect(obs, client),
 			CreatePaymentOrder(obs, client),
 			AcceptAndProcessPayments(obs, client),
 			AcceptPaymentsByChat(obs, client),

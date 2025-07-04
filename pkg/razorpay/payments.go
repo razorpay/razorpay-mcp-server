@@ -1217,3 +1217,115 @@ func CreatePaymentWallet(
 		handler,
 	)
 }
+
+// CreatePaymentUpiCollect returns a tool that creates a UPI collect payment using the CreateUpi function
+func CreatePaymentUpiCollect(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"amount",
+			mcpgo.Description("Payment amount in the smallest currency sub-unit "+
+				"(e.g., for ₹295, use 29500)"),
+			mcpgo.Required(),
+			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+		),
+		mcpgo.WithString(
+			"currency",
+			mcpgo.Description("ISO code for the currency (typically INR for UPI)"),
+			mcpgo.Required(),
+			mcpgo.Pattern("^[A-Z]{3}$"), // ISO currency codes are 3 uppercase letters
+		),
+		mcpgo.WithString(
+			"email",
+			mcpgo.Description("Customer's email address can be taken as kushalsalecha@yahoo.com"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"contact",
+			mcpgo.Description("Customer's contact number"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"vpa",
+			mcpgo.Description("Virtual Payment Address (UPI ID) of the customer"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"flow",
+			mcpgo.Description("UPI flow type, should be 'collect' for UPI collect payments"),
+		),
+		mcpgo.WithString(
+			"expiry_time",
+			mcpgo.Description("Expiry time for the UPI collect request in minutes (default: 6)"),
+		),
+		mcpgo.WithString(
+			"description",
+			mcpgo.Description("Description for the UPI collect payment"),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		paymentData := make(map[string]interface{})
+		upiData := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredFloat(paymentData, "amount").
+			ValidateAndAddRequiredString(paymentData, "currency").
+			ValidateAndAddRequiredString(paymentData, "email").
+			ValidateAndAddRequiredString(paymentData, "contact").
+			ValidateAndAddRequiredString(upiData, "vpa").
+			ValidateAndAddOptionalString(upiData, "flow").
+			ValidateAndAddOptionalString(upiData, "expiry_time").
+			ValidateAndAddOptionalString(paymentData, "description")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		// Manual validation for minimum amount
+		if amount, exists := paymentData["amount"]; exists {
+			if amountVal, ok := amount.(float64); ok && amountVal < 100 {
+				return mcpgo.NewToolResultError("parameter amount must be at least 100"), nil
+			}
+		}
+
+		// Set default values for UPI collect
+		if _, exists := upiData["flow"]; !exists {
+			upiData["flow"] = "collect"
+		}
+		if _, exists := upiData["expiry_time"]; !exists {
+			upiData["expiry_time"] = "6"
+		}
+
+		// Add UPI data to payment data
+		paymentData["upi"] = upiData
+
+		// Create UPI payment using Razorpay SDK's CreateUpi
+		payment, err := client.Payment.CreateUpi(paymentData, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("creating UPI collect payment failed: %s", err.Error())), nil
+		}
+
+		return mcpgo.NewToolResultJSON(payment)
+	}
+
+	return mcpgo.NewTool(
+		"create_payment_upi_collect",
+		"Create a UPI collect payment using Razorpay's CreateUpi function. "+
+			"This initiates a UPI collect request to the customer's VPA.", //nolint:lll
+		parameters,
+		handler,
+	)
+}

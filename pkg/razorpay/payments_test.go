@@ -600,3 +600,238 @@ func Test_FetchAllPayments(t *testing.T) {
 		})
 	}
 }
+
+func Test_CreatePaymentUpiCollect(t *testing.T) {
+	createPaymentPath := fmt.Sprintf(
+		"/%s%s/create/upi",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	// Sample response for successful UPI collect payment creation
+	successfulUpiPaymentResp := map[string]interface{}{
+		"id":                "pay_29QQoUBi66xm2f",
+		"entity":            "payment",
+		"amount":            float64(50000),
+		"currency":          "INR",
+		"status":            "created",
+		"order_id":          nil,
+		"invoice_id":        nil,
+		"international":     false,
+		"method":            "upi",
+		"amount_refunded":   float64(0),
+		"refund_status":     nil,
+		"captured":          false,
+		"description":       "UPI collect payment for services",
+		"card_id":           nil,
+		"bank":              nil,
+		"wallet":            nil,
+		"vpa":               "nikhilsharmanitsr-2@okaxis",
+		"email":             "customer@example.com",
+		"contact":           "+919000090000",
+		"notes":             map[string]interface{}{},
+		"fee":               nil,
+		"tax":               nil,
+		"error_code":        nil,
+		"error_description": nil,
+		"error_source":      nil,
+		"error_step":        nil,
+		"error_reason":      nil,
+		"acquirer_data":     map[string]interface{}{},
+		"created_at":        float64(1574837626),
+		"upi": map[string]interface{}{
+			"flow":        "collect",
+			"expiry_time": "6",
+			"vpa":         "nikhilsharmanitsr-2@okaxis",
+		},
+	}
+
+	// Error response for invalid VPA
+	invalidVpaResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Invalid VPA format",
+			"field":       "vpa",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful UPI collect payment creation with all parameters",
+			Request: map[string]interface{}{
+				"amount":      float64(50000),
+				"currency":    "INR",
+				"email":       "customer@example.com",
+				"contact":     "+919000090000",
+				"vpa":         "nikhilsharmanitsr-2@okaxis",
+				"flow":        "collect",
+				"expiry_time": "6",
+				"description": "UPI collect payment for services",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentPath,
+						Method:   "POST",
+						Response: successfulUpiPaymentResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulUpiPaymentResp,
+		},
+		{
+			Name: "successful UPI collect payment creation with default values",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+				"email":    "customer@example.com",
+				"contact":  "+919000090000",
+				"vpa":      "nikhilsharmanitsr-2@okaxis",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentPath,
+						Method:   "POST",
+						Response: successfulUpiPaymentResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulUpiPaymentResp,
+		},
+		{
+			Name: "UPI payment with invalid VPA",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+				"email":    "customer@example.com",
+				"contact":  "+919000090000",
+				"vpa":      "invalid_vpa_format",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentPath,
+						Method:   "POST",
+						Response: invalidVpaResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "creating UPI collect payment failed: Invalid VPA format",
+		},
+		{
+			Name: "missing required amount parameter",
+			Request: map[string]interface{}{
+				"currency": "INR",
+				"email":    "customer@example.com",
+				"contact":  "+919000090000",
+				"vpa":      "nikhilsharmanitsr-2@okaxis",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: amount",
+		},
+		{
+			Name: "missing required currency parameter",
+			Request: map[string]interface{}{
+				"amount":  float64(50000),
+				"email":   "customer@example.com",
+				"contact": "+919000090000",
+				"vpa":     "nikhilsharmanitsr-2@okaxis",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: currency",
+		},
+		{
+			Name: "missing required email parameter",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+				"contact":  "+919000090000",
+				"vpa":      "nikhilsharmanitsr-2@okaxis",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: email",
+		},
+		{
+			Name: "missing required contact parameter",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+				"email":    "customer@example.com",
+				"vpa":      "nikhilsharmanitsr-2@okaxis",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: contact",
+		},
+		{
+			Name: "missing required vpa parameter",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+				"email":    "customer@example.com",
+				"contact":  "+919000090000",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: vpa",
+		},
+		{
+			Name: "amount below minimum",
+			Request: map[string]interface{}{
+				"amount":   float64(50), // Below minimum of 100
+				"currency": "INR",
+				"email":    "customer@example.com",
+				"contact":  "+919000090000",
+				"vpa":      "nikhilsharmanitsr-2@okaxis",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "parameter amount must be at least 100",
+		},
+		{
+			Name: "multiple validation errors with wrong types",
+			Request: map[string]interface{}{
+				"amount":   "not_a_number",
+				"currency": 123, // Should be string
+				"email":    123, // Should be string
+				"contact":  123, // Should be string
+				"vpa":      123, // Should be string
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"invalid parameter type: amount\n- " +
+				"invalid parameter type: currency\n- " +
+				"invalid parameter type: email\n- " +
+				"invalid parameter type: contact\n- " +
+				"invalid parameter type: vpa",
+		},
+		{
+			Name:    "multiple validation errors - all required parameters missing",
+			Request: map[string]interface{}{
+				// All required parameters missing
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: amount\n- " +
+				"missing required parameter: currency\n- " +
+				"missing required parameter: email\n- " +
+				"missing required parameter: contact\n- " +
+				"missing required parameter: vpa",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, CreatePaymentUpiCollect, "UPI Payment")
+		})
+	}
+}
