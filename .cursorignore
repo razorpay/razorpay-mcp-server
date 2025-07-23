@@ -24,19 +24,10 @@ temp/*
 logs/*
 
 # Sensitive Data
-*.json
-*.xml
-*.yml
-*.yaml
-*.properties
-properties.json
 *.sqlite
 *.sqlite3
 *.dbsql
 secrets.*
-*secret*
-*password*
-*credential*
 .npmrc
 .yarnrc
 .aws/*
@@ -70,14 +61,6 @@ authorized_keys
 .env.test
 .env.production
 config/*
-
-# Documentation and Notes
-*.mdx
-*.rst
-*.txt
-docs/*
-CHANGELOG*
-LICENSE*
 
 # Database Files
 *.sql
