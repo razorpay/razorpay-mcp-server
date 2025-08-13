@@ -103,11 +103,11 @@ Inside your cursor settings in MCP, add this config.
 ```json
 {
   "mcpServers": {
-    "rzp-sse-mcp-server": {
+    "rzp-mcp-server": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://mcp.razorpay.com/sse",
+        "https://mcp.razorpay.com/mcp",
         "--header",
         "Authorization:${AUTH_HEADER}"
       ],
@@ -128,11 +128,11 @@ Add the following to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "rzp-sse-mcp-server": {
+    "rzp-mcp-server": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://mcp.razorpay.com/sse",
+        "https://mcp.razorpay.com/mcp",
         "--header",
         "Authorization: Bearer <Merchant Token>"
       ]
@@ -166,7 +166,7 @@ Add the following to your VS Code settings (JSON):
         "command": "npx",
         "args": [
           "mcp-remote",
-          "https://mcp.razorpay.com/sse",
+          "https://mcp.razorpay.com/mcp",
           "--header",
           "Authorization: Bearer ${input:merchant_token}"
         ]
