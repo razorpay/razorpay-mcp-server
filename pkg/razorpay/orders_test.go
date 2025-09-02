@@ -92,6 +92,82 @@ func Test_CreateOrder(t *testing.T) {
 			ExpectedResult: orderWithRequiredParamsResp,
 		},
 		{
+			Name: "successful order creation with transfers",
+			Request: map[string]interface{}{
+				"amount":   float64(100000),
+				"currency": "INR",
+				"transfers": []interface{}{
+					map[string]interface{}{
+						"account":  "acc_KD088uBnQf0XeK",
+						"amount":   float64(80000),
+						"currency": "INR",
+						"notes": map[string]interface{}{
+							"account": "Seller Account",
+						},
+						"linked_account_notes": []interface{}{"account"},
+					},
+					map[string]interface{}{
+						"account":  "acc_KD097GTiIju5WG",
+						"amount":   float64(20000),
+						"currency": "INR",
+						"on_hold":  true,
+						"notes": map[string]interface{}{
+							"account": "Platform Fee Account",
+						},
+						"linked_account_notes": []interface{}{"account"},
+					},
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				orderWithTransfersResp := map[string]interface{}{
+					"id":       "order_EKwxwAgItmmXdp",
+					"amount":   float64(100000),
+					"currency": "INR",
+					"status":   "created",
+					"transfers": []interface{}{
+						map[string]interface{}{
+							"account":  "acc_KD088uBnQf0XeK",
+							"amount":   float64(80000),
+							"currency": "INR",
+						},
+						map[string]interface{}{
+							"account":  "acc_KD097GTiIju5WG",
+							"amount":   float64(20000),
+							"currency": "INR",
+							"on_hold":  true,
+						},
+					},
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: orderWithTransfersResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"id":       "order_EKwxwAgItmmXdp",
+				"amount":   float64(100000),
+				"currency": "INR",
+				"status":   "created",
+				"transfers": []interface{}{
+					map[string]interface{}{
+						"account":  "acc_KD088uBnQf0XeK",
+						"amount":   float64(80000),
+						"currency": "INR",
+					},
+					map[string]interface{}{
+						"account":  "acc_KD097GTiIju5WG",
+						"amount":   float64(20000),
+						"currency": "INR",
+						"on_hold":  true,
+					},
+				},
+			},
+		},
+		{
 			Name: "multiple validation errors",
 			Request: map[string]interface{}{
 				// Missing both amount and currency (required parameters)
