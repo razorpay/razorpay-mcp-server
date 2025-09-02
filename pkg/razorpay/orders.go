@@ -55,9 +55,11 @@ func CreateOrder(
 		),
 		mcpgo.WithArray(
 			"transfers",
-			mcpgo.Description("Array of transfer objects for splitting "+
-				"payments to linked accounts. Each transfer object should "+
-				"contain account, amount, and currency fields"),
+			mcpgo.Description("Array of transfer objects for distributing "+
+				"payment amounts among multiple linked accounts. Each transfer "+
+				"object should contain: account (linked account ID), amount "+
+				"(in currency subunits), currency (ISO code), and optional fields "+
+				"like notes, linked_account_notes, on_hold, on_hold_until"),
 		),
 	}
 
