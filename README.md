@@ -19,6 +19,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_payment_card_details`         | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card) | ✅ |
 | `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments) | ✅ |
 | `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update) | ✅ |
+| `create_payment`                     | Create a payment using various payment methods          | [Payment](https://razorpay.com/docs/api/payments/create) | ❌ |
 | `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard) | ✅ |
 | `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi) | ✅ |
 | `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard) | ✅ |
@@ -51,6 +52,9 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_instant_settlement_with_id`   | Fetch instant settlement with ID                       | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-with-id) | ✅ |
 | `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/) | ✅ |
 | `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id) | ✅ |
+| `fetch_token`                        | Fetch token details using customer_id and token_id     | [Token](https://razorpay.com/docs/api/tokens/fetch-with-id) | ✅ |
+| `fetch_all_tokens`                   | Fetch all tokens for a specific customer               | [Token](https://razorpay.com/docs/api/tokens/fetch-all) | ✅ |
+| `create_customer`                    | Create a new customer with name and optional contact details | [Customer](https://razorpay.com/docs/api/customers) | ❌ |
 
 
 ## Use Cases
