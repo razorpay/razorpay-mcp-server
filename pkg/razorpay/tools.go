@@ -101,6 +101,7 @@ func NewToolSets(
 		AddReadTools(
 			FetchCustomer(obs, client),
 			FetchAllCustomers(obs, client),
+			FetchCustomerTokens(obs, client),
 		).
 		AddWriteTools(
 			CreateCustomer(obs, client),

@@ -55,6 +55,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_customer`                     | Fetch customer details with ID                          | [Customer](https://razorpay.com/docs/api/customers/) | ✅ |
 | `edit_customer`                      | Update customer details such as name, contact, email   | [Customer](https://razorpay.com/docs/api/customers/) | ✅ |
 | `fetch_all_customers`                | Fetch all customers with filtering and pagination       | [Customer](https://razorpay.com/docs/api/customers/) | ✅ |
+| `fetch_customer_tokens`              | Fetch all tokens for a customer for recurring payments | [Customer Tokens](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/cards/tokens/#22-fetch-tokens-by-customer-id) | ✅ |
 
 
 ## Use Cases
