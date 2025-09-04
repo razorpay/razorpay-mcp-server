@@ -97,6 +97,16 @@ func NewToolSets(
 			CreateInstantSettlement(obs, client),
 		)
 
+	customers := toolsets.NewToolset("customers", "Razorpay Customers related tools").
+		AddReadTools(
+			FetchCustomer(obs, client),
+			FetchAllCustomers(obs, client),
+		).
+		AddWriteTools(
+			CreateCustomer(obs, client),
+			EditCustomer(obs, client),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
@@ -105,6 +115,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(payouts)
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
+	toolsetGroup.AddToolset(customers)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
