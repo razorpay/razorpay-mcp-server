@@ -97,7 +97,8 @@ func NewToolSets(
 			CreateInstantSettlement(obs, client),
 		)
 
-	customers := toolsets.NewToolset("customers", "Razorpay Customers related tools").
+	customers := toolsets.NewToolset("customers",
+		"Razorpay Customers related tools").
 		AddReadTools(
 			FetchCustomer(obs, client),
 			FetchAllCustomers(obs, client),

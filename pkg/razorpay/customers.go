@@ -60,10 +60,12 @@ func CreateCustomer(
 		validator := NewValidator(&r)
 
 		// Validate required name parameter with empty string check
-		if nameValue, err := extractValueGeneric[string](&r, "name", true); err != nil {
+		nameValue, err := extractValueGeneric[string](&r, "name", true)
+		if err != nil {
 			validator = validator.addError(err)
 		} else if nameValue != nil && *nameValue == "" {
-			validator = validator.addError(fmt.Errorf("missing required parameter: name"))
+			validator = validator.addError(
+				fmt.Errorf("missing required parameter: name"))
 		} else if nameValue != nil {
 			customerData["name"] = *nameValue
 		}
@@ -126,10 +128,12 @@ func FetchCustomer(
 		validator := NewValidator(&r)
 
 		// Validate required customer_id parameter with empty string check
-		if customerIdValue, err := extractValueGeneric[string](&r, "customer_id", true); err != nil {
+		customerIdValue, err := extractValueGeneric[string](&r, "customer_id", true)
+		if err != nil {
 			validator = validator.addError(err)
 		} else if customerIdValue != nil && *customerIdValue == "" {
-			validator = validator.addError(fmt.Errorf("missing required parameter: customer_id"))
+			validator = validator.addError(
+				fmt.Errorf("missing required parameter: customer_id"))
 		} else if customerIdValue != nil {
 			params["customer_id"] = *customerIdValue
 		}
@@ -207,10 +211,12 @@ func EditCustomer(
 		validator := NewValidator(&r)
 
 		// Validate required customer_id parameter with empty string check
-		if customerIdValue, err := extractValueGeneric[string](&r, "customer_id", true); err != nil {
+		customerIdValue, err := extractValueGeneric[string](&r, "customer_id", true)
+		if err != nil {
 			validator = validator.addError(err)
 		} else if customerIdValue != nil && *customerIdValue == "" {
-			validator = validator.addError(fmt.Errorf("missing required parameter: customer_id"))
+			validator = validator.addError(
+				fmt.Errorf("missing required parameter: customer_id"))
 		} else if customerIdValue != nil {
 			params["customer_id"] = *customerIdValue
 		}
@@ -239,13 +245,15 @@ func EditCustomer(
 
 	return mcpgo.NewTool(
 		"edit_customer",
-		"Use this tool to update customer details such as name, contact, email, and notes.",
+		"Use this tool to update customer details such as name, contact, "+
+			"email, and notes.",
 		parameters,
 		handler,
 	)
 }
 
-// FetchAllCustomers returns a tool that fetches multiple customers with filtering and pagination
+// FetchAllCustomers returns a tool that fetches multiple customers with
+// filtering and pagination
 func FetchAllCustomers(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
