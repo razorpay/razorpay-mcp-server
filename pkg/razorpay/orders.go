@@ -53,6 +53,14 @@ func CreateOrder(
 				"payment (only if partial_payment is true)"),
 			mcpgo.Min(100),
 		),
+		mcpgo.WithArray(
+			"transfers",
+			mcpgo.Description("Array of transfer objects for distributing "+
+				"payment amounts among multiple linked accounts. Each transfer "+
+				"object should contain: account (linked account ID), amount "+
+				"(in currency subunits), currency (ISO code), and optional fields "+
+				"like notes, linked_account_notes, on_hold, on_hold_until"),
+		),
 	}
 
 	handler := func(
@@ -72,7 +80,8 @@ func CreateOrder(
 			ValidateAndAddRequiredString(payload, "currency").
 			ValidateAndAddOptionalString(payload, "receipt").
 			ValidateAndAddOptionalMap(payload, "notes").
-			ValidateAndAddOptionalBool(payload, "partial_payment")
+			ValidateAndAddOptionalBool(payload, "partial_payment").
+			ValidateAndAddOptionalArray(payload, "transfers")
 
 		// Add first_payment_min_amount only if partial_payment is true
 		if payload["partial_payment"] == true {
