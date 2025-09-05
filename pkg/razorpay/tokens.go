@@ -47,15 +47,10 @@ func FetchSavedCardsWithContact(
 			validator = validator.addError(
 				fmt.Errorf("missing required parameter: contact"))
 		}
-
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
-
 		contact := *contactValue
-
-		// First, try to create a customer with fail_existing=0
-		// to get existing customer
 		customerData := map[string]interface{}{
 			"contact":       contact,
 			"email":         "",
@@ -71,13 +66,11 @@ func FetchSavedCardsWithContact(
 				)), nil
 		}
 
-		// Extract customer ID from the response
 		customerID, ok := customer["id"].(string)
 		if !ok {
 			return mcpgo.NewToolResultError("Customer ID not found in response"), nil
 		}
 
-		// Now fetch all tokens for this customer
 		url := fmt.Sprintf("/%s/customers/%s/tokens",
 			constants.VERSION_V1, customerID)
 
@@ -92,12 +85,10 @@ func FetchSavedCardsWithContact(
 				)), nil
 		}
 
-		// Create a combined response with customer info and all saved payment methods
 		result := map[string]interface{}{
 			"customer":              customer,
 			"saved_payment_methods": tokensResponse,
 		}
-
 		return mcpgo.NewToolResultJSON(result)
 	}
 
