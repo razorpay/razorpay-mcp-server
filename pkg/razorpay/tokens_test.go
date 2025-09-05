@@ -366,8 +366,8 @@ func Test_FetchSavedCardsWithContact_ClientContextScenarios(t *testing.T) {
 		expectedErrMsg := "no client found in context"
 		if !strings.Contains(result.Text, expectedErrMsg) {
 			t.Errorf(
-				"Expected error message to contain '%s', got '%s'", 
-				expectedErrMsg, 
+				"Expected error message to contain '%s', got '%s'",
+				expectedErrMsg,
 				result.Text,
 			)
 		}
@@ -402,8 +402,8 @@ func Test_FetchSavedCardsWithContact_ClientContextScenarios(t *testing.T) {
 		expectedErrMsg := "invalid client type in context"
 		if !strings.Contains(result.Text, expectedErrMsg) {
 			t.Errorf(
-				"Expected error message to contain '%s', got '%s'", 
-				expectedErrMsg, 
+				"Expected error message to contain '%s', got '%s'",
+				expectedErrMsg,
 				result.Text,
 			)
 		}
