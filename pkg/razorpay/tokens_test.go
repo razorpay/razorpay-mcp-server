@@ -218,8 +218,9 @@ func Test_FetchSavedCardsWithContact(t *testing.T) {
 					},
 				)
 			},
-			ExpectError:    true,
-			ExpectedErrMsg: "Failed to create/fetch customer with contact invalid_contact: Contact number is invalid",
+			ExpectError: true,
+			ExpectedErrMsg: "Failed to create/fetch customer with " +
+				"contact invalid_contact: Contact number is invalid",
 		},
 		{
 			Name: "tokens API failure after successful customer creation",
@@ -240,8 +241,9 @@ func Test_FetchSavedCardsWithContact(t *testing.T) {
 					},
 				)
 			},
-			ExpectError:    true,
-			ExpectedErrMsg: "Failed to fetch saved payment methods for customer cust_1Aa00000000003: Customer not found",
+			ExpectError: true,
+			ExpectedErrMsg: "Failed to fetch saved payment methods for " +
+				"customer cust_1Aa00000000003: Customer not found",
 		},
 		{
 			Name: "invalid customer response - missing customer ID",
@@ -338,7 +340,7 @@ func Test_FetchSavedCardsWithContact_ClientContextScenarios(t *testing.T) {
 	t.Run("no client in context and default is nil", func(t *testing.T) {
 		// Create tool with nil client
 		tool := FetchSavedCardsWithContact(obs, nil)
-		
+
 		// Create context without client
 		ctx := context.Background()
 		request := mcpgo.CallToolRequest{
@@ -348,19 +350,19 @@ func Test_FetchSavedCardsWithContact_ClientContextScenarios(t *testing.T) {
 		}
 
 		result, err := tool.GetHandler()(ctx, request)
-		
+
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		
+
 		if result == nil {
 			t.Fatal("Expected result, got nil")
 		}
-		
+
 		if result.Text == "" {
 			t.Fatal("Expected error message in result")
 		}
-		
+
 		expectedErrMsg := "no client found in context"
 		if !strings.Contains(result.Text, expectedErrMsg) {
 			t.Errorf("Expected error message to contain '%s', got '%s'", expectedErrMsg, result.Text)
@@ -370,7 +372,7 @@ func Test_FetchSavedCardsWithContact_ClientContextScenarios(t *testing.T) {
 	t.Run("invalid client type in context", func(t *testing.T) {
 		// Create tool with nil client
 		tool := FetchSavedCardsWithContact(obs, nil)
-		
+
 		// Create context with invalid client type
 		ctx := contextkey.WithClient(context.Background(), "invalid_client_type")
 		request := mcpgo.CallToolRequest{
@@ -380,23 +382,22 @@ func Test_FetchSavedCardsWithContact_ClientContextScenarios(t *testing.T) {
 		}
 
 		result, err := tool.GetHandler()(ctx, request)
-		
+
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		
+
 		if result == nil {
 			t.Fatal("Expected result, got nil")
 		}
-		
+
 		if result.Text == "" {
 			t.Fatal("Expected error message in result")
 		}
-		
+
 		expectedErrMsg := "invalid client type in context"
 		if !strings.Contains(result.Text, expectedErrMsg) {
 			t.Errorf("Expected error message to contain '%s', got '%s'", expectedErrMsg, result.Text)
 		}
 	})
 }
-
