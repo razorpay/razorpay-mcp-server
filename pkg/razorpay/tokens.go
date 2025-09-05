@@ -11,7 +11,8 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
-// FetchSavedCardsWithContact returns a tool that fetches saved cards using contact number
+// FetchSavedCardsWithContact returns a tool that fetches saved cards
+// using contact number
 func FetchSavedCardsWithContact(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
@@ -19,7 +20,8 @@ func FetchSavedCardsWithContact(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"contact",
-			mcpgo.Description("Contact number of the customer to fetch all saved payment methods for. "+
+			mcpgo.Description(
+				"Contact number of the customer to fetch all saved payment methods for. "+
 				"For example, 9876543210 or +919876543210"),
 			mcpgo.Required(),
 		),
@@ -52,7 +54,8 @@ func FetchSavedCardsWithContact(
 
 		contact := *contactValue
 
-		// First, try to create a customer with fail_existing=0 to get existing customer
+		// First, try to create a customer with fail_existing=0 
+		// to get existing customer
 		customerData := map[string]interface{}{
 			"contact":       contact,
 			"fail_existing": "0", // Get existing customer if exists
@@ -62,7 +65,9 @@ func FetchSavedCardsWithContact(
 		customer, err := client.Customer.Create(customerData, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("Failed to create/fetch customer with contact %s: %v", contact, err)), nil
+				fmt.Sprintf(
+					"Failed to create/fetch customer with contact %s: %v", contact, err
+				)), nil
 		}
 
 		// Extract customer ID from the response
@@ -79,7 +84,11 @@ func FetchSavedCardsWithContact(
 		tokensResponse, err := client.Request.Get(url, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("Failed to fetch saved payment methods for customer %s: %v", customerID, err)), nil
+				fmt.Sprintf(
+					"Failed to fetch saved payment methods for customer %s: %v", 
+					customerID, 
+					err
+				)), nil
 		}
 
 		// Create a combined response with customer info and all saved payment methods
@@ -93,10 +102,14 @@ func FetchSavedCardsWithContact(
 
 	return mcpgo.NewTool(
 		"fetch_saved_cards_with_contact",
-		"Get all saved payment methods (cards, UPI, wallets, etc.) for a contact number. "+
-			"This tool first finds or creates a customer with the given contact number, "+
-			"then fetches all saved payment tokens associated with that customer including "+
-			"credit/debit cards, UPI IDs, digital wallets, and other tokenized payment instruments.",
+		"Get all saved payment methods (cards, UPI, wallets, etc.)"+
+			" for a contact number. "+
+			"This tool first finds or creates a"+
+			" customer with the given contact number, "+
+			"then fetches all saved payment tokens "+
+			"associated with that customer including "+
+			"credit/debit cards, UPI IDs, digital wallets,"+
+			" and other tokenized payment instruments.",
 		parameters,
 		handler,
 	)
