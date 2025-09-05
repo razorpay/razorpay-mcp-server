@@ -54,7 +54,7 @@ func FetchSavedCardsWithContact(
 
 		// First, try to create a customer with fail_existing=0 to get existing customer
 		customerData := map[string]interface{}{
-			"name":          "Customer_" + contact, // Temporary name
+			// "name":          "Customer_" + contact, // Temporary name
 			"contact":       contact,
 			"fail_existing": "0", // Get existing customer if exists
 		}
