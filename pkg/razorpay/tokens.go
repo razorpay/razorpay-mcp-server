@@ -22,7 +22,7 @@ func FetchSavedCardsWithContact(
 			"contact",
 			mcpgo.Description(
 				"Contact number of the customer to fetch all saved payment methods for. "+
-				"For example, 9876543210 or +919876543210"),
+					"For example, 9876543210 or +919876543210"),
 			mcpgo.Required(),
 		),
 	}
@@ -54,11 +54,11 @@ func FetchSavedCardsWithContact(
 
 		contact := *contactValue
 
-		// First, try to create a customer with fail_existing=0 
+		// First, try to create a customer with fail_existing=0
 		// to get existing customer
 		customerData := map[string]interface{}{
 			"contact":       contact,
-			"email"  : 		 "",
+			"email":         "",
 			"fail_existing": "0", // Get existing customer if exists
 		}
 
@@ -86,9 +86,9 @@ func FetchSavedCardsWithContact(
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf(
-					"Failed to fetch saved payment methods for customer %s: %v", 
-					customerID, 
-					err
+					"Failed to fetch saved payment methods for customer %s: %v",
+					customerID,
+					err,
 				)), nil
 		}
 
