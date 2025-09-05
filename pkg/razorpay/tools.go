@@ -101,11 +101,16 @@ func NewToolSets(
 		AddReadTools(
 			FetchCustomer(obs, client),
 			FetchAllCustomers(obs, client),
-			FetchCustomerTokens(obs, client),
 		).
 		AddWriteTools(
 			CreateCustomer(obs, client),
 			EditCustomer(obs, client),
+		)
+
+	tokens := toolsets.NewToolset("tokens", "Razorpay Tokens related tools").
+		AddReadTools(
+			FetchToken(obs, client),
+			FetchAllTokens(obs, client),
 		)
 
 	// Add toolsets to the group
@@ -117,6 +122,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
 	toolsetGroup.AddToolset(customers)
+	toolsetGroup.AddToolset(tokens)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {

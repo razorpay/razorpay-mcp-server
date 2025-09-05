@@ -3,10 +3,8 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
-	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
@@ -316,61 +314,6 @@ func FetchAllCustomers(
 	return mcpgo.NewTool(
 		"fetch_all_customers",
 		"Fetch all customers with optional filtering and pagination",
-		parameters,
-		handler,
-	)
-}
-
-// FetchCustomerTokens creates a tool to fetch all tokens for a specific customer
-func FetchCustomerTokens(obs *observability.Observability, client *rzpsdk.Client) mcpgo.Tool {
-	parameters := []mcpgo.ToolParameter{
-		mcpgo.WithString(
-			"customer_id",
-			mcpgo.Description("The unique identifier of the customer for whom tokens are to be retrieved. Must start with 'cust_'"),
-			mcpgo.Required(),
-		),
-	}
-
-	handler := func(ctx context.Context, r mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
-		validator := NewValidator(&r)
-		params := make(map[string]interface{})
-
-		// Validate required customer_id parameter with empty string check
-		if customerIDValue, err := extractValueGeneric[string](&r, "customer_id", true); err != nil {
-			validator = validator.addError(err)
-		} else if customerIDValue != nil && *customerIDValue == "" {
-			validator = validator.addError(fmt.Errorf("missing required parameter: customer_id"))
-		} else if customerIDValue != nil {
-			// Validate customer_id format
-			if !strings.HasPrefix(*customerIDValue, "cust_") {
-				validator = validator.addError(fmt.Errorf("customer_id must start with 'cust_'"))
-			} else {
-				params["customer_id"] = *customerIDValue
-			}
-		}
-
-		if result, err := validator.HandleErrorsIfAny(); result != nil {
-			return result, err
-		}
-
-		customerID := params["customer_id"].(string)
-
-		// Create the API endpoint URL
-		url := fmt.Sprintf("/%s/customers/%s/tokens", constants.VERSION_V1, customerID)
-
-		// Make the API request
-		response, err := client.Request.Get(url, nil, nil)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("Failed to fetch customer tokens: %v", err)), nil
-		}
-
-		return mcpgo.NewToolResultJSON(response)
-	}
-
-	return mcpgo.NewTool(
-		"fetch_customer_tokens",
-		"Fetch all tokens for a specific customer. Returns active tokens that can be used for recurring payments",
 		parameters,
 		handler,
 	)
