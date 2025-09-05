@@ -58,6 +58,7 @@ func FetchSavedCardsWithContact(
 		// to get existing customer
 		customerData := map[string]interface{}{
 			"contact":       contact,
+			"email"  : 		 "",
 			"fail_existing": "0", // Get existing customer if exists
 		}
 
@@ -66,7 +67,7 @@ func FetchSavedCardsWithContact(
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf(
-					"Failed to create/fetch customer with contact %s: %v", contact, err
+					"Failed to create/fetch customer with contact %s: %v", contact, err,
 				)), nil
 		}
 
