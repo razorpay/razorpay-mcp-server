@@ -865,7 +865,7 @@ func Test_InitiatePayment(t *testing.T) {
 	}
 }
 
-func Test_SendOtp(t *testing.T) {
+func Test_ResendOtp(t *testing.T) {
 	successResponse := map[string]interface{}{
 		"status": "success",
 		"next": []interface{}{
@@ -964,7 +964,78 @@ func Test_SendOtp(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			runToolTest(t, tc, SendOtp, "Send OTP")
+			runToolTest(t, tc, ResendOtp, "Resend OTP")
+		})
+	}
+}
+
+func Test_SubmitOtp(t *testing.T) {
+	successResponse := map[string]interface{}{
+		"razorpay_payment_id": "pay_29QQoUBi66xm2f",
+		"razorpay_order_id":   "order_9A33XWu170gUtm",
+		"razorpay_signature":  "signature_abc123",
+		"status":              "captured",
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful OTP submission",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     "/v1/payments/pay_29QQoUBi66xm2f/otp_submit",
+						Method:   "POST",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"payment_id":    "pay_29QQoUBi66xm2f",
+				"status":        "success",
+				"message":       "OTP verified successfully.",
+				"response_data": successResponse,
+			},
+		},
+		{
+			Name:    "missing payment_id parameter",
+			Request: map[string]interface{}{
+				// Missing payment_id parameter
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
+		},
+		{
+			Name: "API error response",
+			Request: map[string]interface{}{
+				"payment_id": "pay_invalid",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   "/v1/payments/pay_invalid/otp_submit",
+						Method: "POST",
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "Invalid payment ID",
+							},
+						},
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "OTP generation failed",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, SubmitOtp, "Submit OTP")
 		})
 	}
 }

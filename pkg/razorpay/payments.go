@@ -516,7 +516,6 @@ func ResendOtp(
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
 
-		
 		// Get client from context or use default
 		client, err := getClientFromContextOrDefault(ctx, client)
 		if err != nil {
@@ -569,8 +568,8 @@ func ResendOtp(
 	}
 
 	return mcpgo.NewTool(
-		"send_otp",
-		"Sends OTP for payment authentication. Makes a POST request to the provided URL for OTP generation and returns the response with next step instructions.", //nolint:lll
+		"resend_otp",
+		"Re-Sends OTP for payment authentication. Makes a POST request to the provided URL for OTP generation and returns the response with next step instructions.", //nolint:lll
 		parameters,
 		handler,
 	)
@@ -611,7 +610,7 @@ func SubmitOtp(
 
 		paymentId := params["payment_id"].(string)
 		data := map[string]interface{}{
-			"otp" : "123456",
+			"otp": "123456",
 		}
 		otpResponse, err := client.Payment.OtpSubmit(paymentId, data, nil)
 
@@ -631,16 +630,12 @@ func SubmitOtp(
 	}
 
 	return mcpgo.NewTool(
-		"send_otp",
-		"Sends OTP for payment authentication. Makes a POST request to the provided URL for OTP generation and returns the response with next step instructions.", //nolint:lll
+		"submit_otp",
+		"Submit the OTP for payment authentication. Makes a POST request to the provided URL for OTP submission and returns the response with next step instructions.",
 		parameters,
 		handler,
 	)
 }
-
-
-
-
 
 // extractOtpSubmitURL extracts the OTP submit URL from the payment response
 func extractOtpSubmitURL(responseData interface{}) string {
