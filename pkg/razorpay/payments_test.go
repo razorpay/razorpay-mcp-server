@@ -628,20 +628,12 @@ func Test_InitiatePayment(t *testing.T) {
 		{
 			Name: "successful initiate payment with all parameters",
 			Request: map[string]interface{}{
-				"amount":      10000,
-				"currency":    "INR",
-				"method":      "card",
-				"token_id":    "token_KWbKaXtNPdYHWJ",
-				"order_id":    "order_9A33XWu170gUtm",
-				"email":       "gaurav.kumar@example.com",
-				"contact":     "9090909090",
-				"cvv":         "123",
-				"ip":          "192.168.0.103",
-				"user_agent":  "Mozilla/5.0",
-				"description": "Test payment",
-				"notes": map[string]interface{}{
-					"note_key": "value1",
-				},
+				"amount":   10000,
+				"currency": "INR",
+				"token":    "token_KWbKaXtNPdYHWJ",
+				"order_id": "order_9A33XWu170gUtm",
+				"email":    "gaurav.kumar@example.com",
+				"contact":  "9090909090",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -670,7 +662,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Name: "successful initiate payment with defaults",
 			Request: map[string]interface{}{
 				"amount":   10000,
-				"token_id": "token_KWbKaXtNPdYHWJ",
+				"token":    "token_KWbKaXtNPdYHWJ",
 				"order_id": "order_9A33XWu170gUtm",
 				"email":    "test@example.com",
 			},
@@ -700,7 +692,7 @@ func Test_InitiatePayment(t *testing.T) {
 		{
 			Name: "missing amount parameter",
 			Request: map[string]interface{}{
-				"token_id": "token_KWbKaXtNPdYHWJ",
+				"token":    "token_KWbKaXtNPdYHWJ",
 				"order_id": "order_9A33XWu170gUtm",
 				"email":    "test@example.com",
 			},
@@ -711,10 +703,10 @@ func Test_InitiatePayment(t *testing.T) {
 			ExpectedErrMsg: "missing required parameter: amount",
 		},
 		{
-			Name: "missing email parameter - generates dummy email",
+			Name: "successful initiate payment with optional contact",
 			Request: map[string]interface{}{
 				"amount":   10000,
-				"token_id": "token_KWbKaXtNPdYHWJ",
+				"token":    "token_KWbKaXtNPdYHWJ",
 				"order_id": "order_9A33XWu170gUtm",
 				"contact":  "9090909090",
 			},
@@ -742,10 +734,10 @@ func Test_InitiatePayment(t *testing.T) {
 			},
 		},
 		{
-			Name: "missing email and contact - generates default dummy email",
+			Name: "successful initiate payment with required parameters only",
 			Request: map[string]interface{}{
 				"amount":   10000,
-				"token_id": "token_KWbKaXtNPdYHWJ",
+				"token":    "token_KWbKaXtNPdYHWJ",
 				"order_id": "order_9A33XWu170gUtm",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -772,7 +764,7 @@ func Test_InitiatePayment(t *testing.T) {
 			},
 		},
 		{
-			Name: "missing token_id parameter",
+			Name: "missing token parameter",
 			Request: map[string]interface{}{
 				"amount":   10000,
 				"order_id": "order_9A33XWu170gUtm",
@@ -782,14 +774,14 @@ func Test_InitiatePayment(t *testing.T) {
 				return mock.NewHTTPClient()
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: token_id",
+			ExpectedErrMsg: "missing required parameter: token",
 		},
 		{
 			Name: "missing order_id parameter",
 			Request: map[string]interface{}{
-				"amount":   10000,
-				"token_id": "token_KWbKaXtNPdYHWJ",
-				"email":    "test@example.com",
+				"amount": 10000,
+				"token":  "token_KWbKaXtNPdYHWJ",
+				"email":  "test@example.com",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient()
@@ -801,7 +793,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Name: "API error - invalid amount",
 			Request: map[string]interface{}{
 				"amount":   50,
-				"token_id": "token_KWbKaXtNPdYHWJ",
+				"token":    "token_KWbKaXtNPdYHWJ",
 				"order_id": "order_9A33XWu170gUtm",
 				"email":    "test@example.com",
 			},
@@ -827,8 +819,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount":   "invalid_amount",
 				"currency": 123,
-				"method":   456,
-				"token_id": 789,
+				"token":    789,
 				"order_id": 101,
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -837,15 +828,14 @@ func Test_InitiatePayment(t *testing.T) {
 			ExpectError: true,
 			ExpectedErrMsg: "invalid parameter type: amount\n- " +
 				"invalid parameter type: currency\n- " +
-				"invalid parameter type: method\n- " +
-				"invalid parameter type: token_id\n- " +
+				"invalid parameter type: token\n- " +
 				"invalid parameter type: order_id",
 		},
 		{
 			Name: "API error response",
 			Request: map[string]interface{}{
 				"amount":   10000,
-				"token_id": "invalid_token",
+				"token":    "invalid_token",
 				"order_id": "order_9A33XWu170gUtm",
 				"email":    "test@example.com",
 			},

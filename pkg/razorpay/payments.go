@@ -364,36 +364,8 @@ func extractNextActionDetails(payment map[string]interface{}) (string, string) {
 	return action, otpURL
 }
 
-// addOptionalPaymentParameters adds optional parameters to payment data
-func addOptionalPaymentParameters(
-	paymentData map[string]interface{},
-	params map[string]interface{},
-) {
-	if contact, exists := params["contact"]; exists && contact != "" {
-		paymentData["contact"] = contact
-	}
-	if cvv, exists := params["cvv"]; exists && cvv != "" {
-		// CVV goes inside card object for saved card payments
-		paymentData["card"] = map[string]interface{}{
-			"cvv": cvv,
-		}
-	}
-	if ip, exists := params["ip"]; exists && ip != "" {
-		paymentData["ip"] = ip
-	}
-	if userAgent, exists := params["user_agent"]; exists && userAgent != "" {
-		paymentData["user_agent"] = userAgent
-	}
-	if description, exists := params["description"]; exists && description != "" {
-		paymentData["description"] = description
-	}
-	if notes, exists := params["notes"]; exists && notes != nil {
-		paymentData["notes"] = notes
-	}
-}
-
 // InitiatePayment returns a tool that initiates a payment using order_id
-// and token_id
+// and token
 // This implements the S2S JSON v1 flow for creating payments
 func InitiatePayment(
 	obs *observability.Observability,
@@ -412,12 +384,7 @@ func InitiatePayment(
 			mcpgo.Description("Currency code for the payment. Default is 'INR'"),
 		),
 		mcpgo.WithString(
-			"method",
-			mcpgo.Description("Payment method to use. "+
-				"Options: 'card', 'upi'. Default is 'card'"),
-		),
-		mcpgo.WithString(
-			"token_id",
+			"token",
 			mcpgo.Description("Token ID of the saved payment method. "+
 				"Must start with 'token_'"),
 			mcpgo.Required(),
@@ -430,32 +397,11 @@ func InitiatePayment(
 		),
 		mcpgo.WithString(
 			"email",
-			mcpgo.Description("Customer's email address. If not provided, "+
-				"will generate a dummy email using contact number"),
+			mcpgo.Description("Customer's email address (optional)"),
 		),
 		mcpgo.WithString(
 			"contact",
 			mcpgo.Description("Customer's phone number"),
-		),
-		mcpgo.WithString(
-			"cvv",
-			mcpgo.Description("CVV for card payments when using saved cards"),
-		),
-		mcpgo.WithString(
-			"ip",
-			mcpgo.Description("Customer's IP address"),
-		),
-		mcpgo.WithString(
-			"user_agent",
-			mcpgo.Description("Customer's browser user agent"),
-		),
-		mcpgo.WithString(
-			"description",
-			mcpgo.Description("Description of the payment"),
-		),
-		mcpgo.WithObject(
-			"notes",
-			mcpgo.Description("Key-value pairs for additional information"),
 		),
 	}
 
@@ -474,57 +420,36 @@ func InitiatePayment(
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredInt(params, "amount").
 			ValidateAndAddOptionalString(params, "currency").
-			ValidateAndAddOptionalString(params, "method").
-			ValidateAndAddRequiredString(params, "token_id").
+			ValidateAndAddRequiredString(params, "token").
 			ValidateAndAddRequiredString(params, "order_id").
 			ValidateAndAddOptionalString(params, "email").
-			ValidateAndAddOptionalString(params, "contact").
-			ValidateAndAddOptionalString(params, "cvv").
-			ValidateAndAddOptionalString(params, "ip").
-			ValidateAndAddOptionalString(params, "user_agent").
-			ValidateAndAddOptionalString(params, "description").
-			ValidateAndAddOptionalMap(params, "notes")
+			ValidateAndAddOptionalString(params, "contact")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		// Set default values
+		// Set default currency
 		currency := "INR"
 		if c, exists := params["currency"]; exists && c != "" {
 			currency = c.(string)
-		}
-
-		method := "card"
-		if m, exists := params["method"]; exists && m != "" {
-			method = m.(string)
-		}
-
-		// Handle email - generate dummy if not provided
-		email := ""
-		if e, exists := params["email"]; exists && e != "" {
-			email = e.(string)
-		} else {
-			// Generate dummy email using contact number if available
-			if contact, exists := params["contact"]; exists && contact != "" {
-				email = contact.(string) + "@mcp.razorpay.com"
-			} else {
-				email = "user@mcp.razorpay.com"
-			}
 		}
 
 		// Prepare payment data for the S2S JSON v1 flow
 		paymentData := map[string]interface{}{
 			"amount":   params["amount"],
 			"currency": currency,
-			"method":   method,
-			"token_id": params["token_id"],
 			"order_id": params["order_id"],
-			"email":    email,
+			"token":    params["token"],
 		}
 
 		// Add optional parameters if provided
-		addOptionalPaymentParameters(paymentData, params)
+		if email, exists := params["email"]; exists && email != "" {
+			paymentData["email"] = email
+		}
+		if contact, exists := params["contact"]; exists && contact != "" {
+			paymentData["contact"] = contact
+		}
 
 		// Create payment using Razorpay SDK's CreatePaymentJson method
 		// This follows the S2S JSON v1 flow:
@@ -569,9 +494,8 @@ func InitiatePayment(
 	return mcpgo.NewTool(
 		"initiate_payment",
 		"Initiate a payment using the S2S JSON v1 flow with required parameters: "+
-			"amount, order_id, and token_id. Supports optional parameters "+
-			"like email, contact, CVV, IP, user agent, description, and notes. "+
-			"If email is not provided, generates a dummy email using contact number. "+
+			"amount, order_id, and token. Supports optional parameters "+
+			"like email and contact. "+
 			"Returns payment details including next action steps if required.", //nolint:lll
 		parameters,
 		handler,
