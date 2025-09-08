@@ -537,7 +537,10 @@ func InitiatePayment(
 				response["message"] = fmt.Sprintf(
 					"Payment initiated. Next action: %s. "+
 						"Use the provided URL for next step.", action)
+				response["next_step_instruction"] = "Call the 'send_otp' tool next in the process to complete the payment authentication."
 			}
+		} else {
+			response["next_step_instruction"] = "Payment initiated successfully. If OTP is required, call the 'send_otp' tool next in the process."
 		}
 
 		return mcpgo.NewToolResultJSON(response)
