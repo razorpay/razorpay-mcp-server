@@ -628,11 +628,20 @@ func Test_InitiatePayment(t *testing.T) {
 		{
 			Name: "successful initiate payment with all parameters",
 			Request: map[string]interface{}{
-				"amount":   10000,
-				"currency": "INR",
-				"method":   "card",
-				"token_id": "token_KWbKaXtNPdYHWJ",
-				"order_id": "order_9A33XWu170gUtm",
+				"amount":      10000,
+				"currency":    "INR",
+				"method":      "card",
+				"token_id":    "token_KWbKaXtNPdYHWJ",
+				"order_id":    "order_9A33XWu170gUtm",
+				"email":       "gaurav.kumar@example.com",
+				"contact":     "9090909090",
+				"cvv":         "123",
+				"ip":          "192.168.0.103",
+				"user_agent":  "Mozilla/5.0",
+				"description": "Test payment",
+				"notes": map[string]interface{}{
+					"note_key": "value1",
+				},
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -661,6 +670,7 @@ func Test_InitiatePayment(t *testing.T) {
 				"amount":   10000,
 				"token_id": "token_KWbKaXtNPdYHWJ",
 				"order_id": "order_9A33XWu170gUtm",
+				"email":    "test@example.com",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -688,6 +698,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"token_id": "token_KWbKaXtNPdYHWJ",
 				"order_id": "order_9A33XWu170gUtm",
+				"email":    "test@example.com",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient()
@@ -696,10 +707,24 @@ func Test_InitiatePayment(t *testing.T) {
 			ExpectedErrMsg: "missing required parameter: amount",
 		},
 		{
+			Name: "missing email parameter",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"token_id": "token_KWbKaXtNPdYHWJ",
+				"order_id": "order_9A33XWu170gUtm",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient()
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: email",
+		},
+		{
 			Name: "missing token_id parameter",
 			Request: map[string]interface{}{
 				"amount":   10000,
 				"order_id": "order_9A33XWu170gUtm",
+				"email":    "test@example.com",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient()
@@ -712,6 +737,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount":   10000,
 				"token_id": "token_KWbKaXtNPdYHWJ",
+				"email":    "test@example.com",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient()
@@ -725,6 +751,7 @@ func Test_InitiatePayment(t *testing.T) {
 				"amount":   50,
 				"token_id": "token_KWbKaXtNPdYHWJ",
 				"order_id": "order_9A33XWu170gUtm",
+				"email":    "test@example.com",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -768,6 +795,7 @@ func Test_InitiatePayment(t *testing.T) {
 				"amount":   10000,
 				"token_id": "invalid_token",
 				"order_id": "order_9A33XWu170gUtm",
+				"email":    "test@example.com",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(

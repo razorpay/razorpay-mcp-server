@@ -19,7 +19,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_payment_card_details`         | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card) | ✅ |
 | `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments) | ✅ |
 | `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update) | ✅ |
-| `initiate_payment`                   | Initiate a payment using S2S JSON v1 flow with order_id and token_id | [Payment](https://razorpay.com/docs/payments/server-integration/go/integration-steps/) | ✅ |
+| `initiate_payment`                   | Initiate a payment using S2S JSON v1 flow with order_id, token_id, and additional customer details | [Payment](https://razorpay.com/docs/payments/server-integration/go/integration-steps/) | ✅ |
 | `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard) | ✅ |
 | `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi) | ✅ |
 | `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard) | ✅ |

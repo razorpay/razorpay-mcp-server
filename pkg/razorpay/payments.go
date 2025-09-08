@@ -359,6 +359,34 @@ func extractNextActionDetails(payment map[string]interface{}) (string, string) {
 	return action, otpURL
 }
 
+// addOptionalPaymentParameters adds optional parameters to payment data
+func addOptionalPaymentParameters(
+	paymentData map[string]interface{},
+	params map[string]interface{},
+) {
+	if contact, exists := params["contact"]; exists && contact != "" {
+		paymentData["contact"] = contact
+	}
+	if cvv, exists := params["cvv"]; exists && cvv != "" {
+		// CVV goes inside card object for saved card payments
+		paymentData["card"] = map[string]interface{}{
+			"cvv": cvv,
+		}
+	}
+	if ip, exists := params["ip"]; exists && ip != "" {
+		paymentData["ip"] = ip
+	}
+	if userAgent, exists := params["user_agent"]; exists && userAgent != "" {
+		paymentData["user_agent"] = userAgent
+	}
+	if description, exists := params["description"]; exists && description != "" {
+		paymentData["description"] = description
+	}
+	if notes, exists := params["notes"]; exists && notes != nil {
+		paymentData["notes"] = notes
+	}
+}
+
 // InitiatePayment returns a tool that initiates a payment using order_id
 // and token_id
 // This implements the S2S JSON v1 flow for creating payments
@@ -395,6 +423,35 @@ func InitiatePayment(
 				"Must start with 'order_'"),
 			mcpgo.Required(),
 		),
+		mcpgo.WithString(
+			"email",
+			mcpgo.Description("Customer's email address"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"contact",
+			mcpgo.Description("Customer's phone number"),
+		),
+		mcpgo.WithString(
+			"cvv",
+			mcpgo.Description("CVV for card payments when using saved cards"),
+		),
+		mcpgo.WithString(
+			"ip",
+			mcpgo.Description("Customer's IP address"),
+		),
+		mcpgo.WithString(
+			"user_agent",
+			mcpgo.Description("Customer's browser user agent"),
+		),
+		mcpgo.WithString(
+			"description",
+			mcpgo.Description("Description of the payment"),
+		),
+		mcpgo.WithObject(
+			"notes",
+			mcpgo.Description("Key-value pairs for additional information"),
+		),
 	}
 
 	handler := func(
@@ -414,7 +471,14 @@ func InitiatePayment(
 			ValidateAndAddOptionalString(params, "currency").
 			ValidateAndAddOptionalString(params, "method").
 			ValidateAndAddRequiredString(params, "token_id").
-			ValidateAndAddRequiredString(params, "order_id")
+			ValidateAndAddRequiredString(params, "order_id").
+			ValidateAndAddRequiredString(params, "email").
+			ValidateAndAddOptionalString(params, "contact").
+			ValidateAndAddOptionalString(params, "cvv").
+			ValidateAndAddOptionalString(params, "ip").
+			ValidateAndAddOptionalString(params, "user_agent").
+			ValidateAndAddOptionalString(params, "description").
+			ValidateAndAddOptionalMap(params, "notes")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
@@ -438,7 +502,11 @@ func InitiatePayment(
 			"method":   method,
 			"token_id": params["token_id"],
 			"order_id": params["order_id"],
+			"email":    params["email"], // Required parameter
 		}
+
+		// Add optional parameters if provided
+		addOptionalPaymentParameters(paymentData, params)
 
 		// Create payment using Razorpay SDK's CreatePaymentJson method
 		// This follows the S2S JSON v1 flow:
@@ -477,8 +545,10 @@ func InitiatePayment(
 
 	return mcpgo.NewTool(
 		"initiate_payment",
-		"Initiate a payment using the S2S JSON v1 flow with order_id and token_id. "+
-			"This creates a payment and returns payment details including next action steps if required.", //nolint:lll
+		"Initiate a payment using the S2S JSON v1 flow with required parameters: "+
+			"amount, order_id, token_id, and email. Supports optional parameters "+
+			"like contact, CVV, IP, user agent, description, and notes. "+
+			"Returns payment details including next action steps if required.", //nolint:lll
 		parameters,
 		handler,
 	)
