@@ -329,3 +329,155 @@ func FetchAllPayments(
 		handler,
 	)
 }
+
+// InitiatePayment returns a tool that initiates a payment using order_id and
+// token_id
+func InitiatePayment(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"order_id",
+			mcpgo.Description("Unique identifier of the order for payment initiation. "+
+				"Must start with 'order_'"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"token_id",
+			mcpgo.Description("Unique identifier of the saved token/card to use "+
+				"for payment. Must start with 'token_'"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithNumber(
+			"amount",
+			mcpgo.Description("Payment amount in the smallest currency sub-unit "+
+				"(e.g., for ₹100, use 10000 paisa)"),
+			mcpgo.Required(),
+			mcpgo.Min(100),
+		),
+		mcpgo.WithString(
+			"currency",
+			mcpgo.Description("ISO code for the currency (default: INR)"),
+		),
+		mcpgo.WithString(
+			"method",
+			mcpgo.Description("Payment method (default: card)"),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		paymentData := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(paymentData, "order_id").
+			ValidateAndAddRequiredString(paymentData, "token_id").
+			ValidateAndAddRequiredInt(paymentData, "amount").
+			ValidateAndAddOptionalString(paymentData, "currency").
+			ValidateAndAddOptionalString(paymentData, "method")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		// Set default values
+		if _, exists := paymentData["currency"]; !exists {
+			paymentData["currency"] = "INR"
+		}
+		if _, exists := paymentData["method"]; !exists {
+			paymentData["method"] = "card"
+		}
+
+		// Rename token_id to token for API compatibility
+		if tokenID, exists := paymentData["token_id"]; exists {
+			paymentData["token"] = tokenID
+			delete(paymentData, "token_id")
+		}
+
+		obs.Logger.Infof(ctx, "Initiating payment", "order_id",
+			paymentData["order_id"], "amount", paymentData["amount"])
+
+		// Create payment using Razorpay SDK
+		payment, err := client.Payment.CreatePaymentJson(paymentData, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("payment initiation failed: %s", err.Error())), nil
+		}
+
+		// Build response with payment details
+		response := buildInitiatePaymentResponse(payment)
+
+		return mcpgo.NewToolResultJSON(response)
+	}
+
+	return mcpgo.NewTool(
+		"initiate_payment",
+		"Initiate a payment using order ID and saved token. "+
+			"Creates a payment request via Razorpay S2S JSON v1 flow.", //nolint:lll
+		parameters,
+		handler,
+	)
+}
+
+// buildInitiatePaymentResponse extracts payment details and builds response
+func buildInitiatePaymentResponse(
+	payment map[string]interface{},
+) map[string]interface{} {
+	// Extract payment ID from response
+	var paymentID string
+	if id, exists := payment["razorpay_payment_id"]; exists && id != nil {
+		paymentID = id.(string)
+	}
+
+	// Extract OTP generation URL if present
+	otpURL, action := extractNextAction(payment)
+
+	// Prepare structured response
+	response := map[string]interface{}{
+		"razorpay_payment_id": paymentID,
+		"status":              "payment_initiated",
+		"payment_details":     payment,
+	}
+
+	if action != "" {
+		response["action"] = action
+	}
+	if otpURL != "" {
+		response["url"] = otpURL
+		response["next_step"] = "Use the provided URL for OTP generation if required"
+	}
+
+	return response
+}
+
+// extractNextAction extracts action and URL from payment response
+func extractNextAction(payment map[string]interface{}) (string, string) {
+	var otpURL, action string
+
+	if nextArray, exists := payment["next"]; exists && nextArray != nil {
+		if nextSlice, ok := nextArray.([]interface{}); ok {
+			for _, item := range nextSlice {
+				if nextItem, ok := item.(map[string]interface{}); ok {
+					if nextAction, exists := nextItem["action"]; exists {
+						action = nextAction.(string)
+						if url, exists := nextItem["url"]; exists && url != nil {
+							otpURL = url.(string)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return otpURL, action
+}
