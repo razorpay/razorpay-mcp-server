@@ -27,6 +27,8 @@ func NewToolSets(
 			CapturePayment(obs, client),
 			UpdatePayment(obs, client),
 			InitiatePayment(obs, client),
+			SendOtp(obs, client),
+			VerifyOtp(obs, client),
 		)
 
 	paymentLinks := toolsets.NewToolset(
