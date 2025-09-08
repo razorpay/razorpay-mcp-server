@@ -607,6 +607,7 @@ func SubmitOtp(
 		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(params, "otp_string").
 			ValidateAndAddRequiredString(params, "payment_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
@@ -636,7 +637,8 @@ func SubmitOtp(
 
 	return mcpgo.NewTool(
 		"submit_otp",
-		"Submit the OTP for payment authentication. Makes a POST request to the provided URL for OTP submission and returns the response with next step instructions.",
+		"Submit the OTP for payment authentication. Makes a POST request to the "+
+			"provided URL for OTP submission and returns the response with next step instructions.", //nolint:lll
 		parameters,
 		handler,
 	)
