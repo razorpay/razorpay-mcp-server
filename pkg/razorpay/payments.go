@@ -1,13 +1,8 @@
 package razorpay
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -509,9 +504,9 @@ func SendOtp(
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
-			"url",
-			mcpgo.Description("The URL to hit for OTP generation. "+
-				"This should be a valid HTTP/HTTPS URL from the payment response."),
+			"payment_id",
+			mcpgo.Description("Unique identifier of the payment for which "+
+				"OTP needs to be generated. Must start with 'pay_'"),
 			mcpgo.Required(),
 		),
 	}
@@ -521,7 +516,7 @@ func SendOtp(
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
 		// Get client from context or use default
-		_, err := getClientFromContextOrDefault(ctx, client)
+		client, err := getClientFromContextOrDefault(ctx, client)
 		if err != nil {
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
@@ -529,88 +524,43 @@ func SendOtp(
 		params := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(params, "url")
+			ValidateAndAddRequiredString(params, "payment_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		url := params["url"].(string)
+		paymentId := params["payment_id"].(string)
 
-		obs.Logger.Infof(ctx, "Making POST request for OTP generation", "url", url)
-
-		// Create HTTP request using the SDK's authentication
-		req, err := http.NewRequest("POST", url, nil)
+		// Generate OTP using Razorpay SDK
+		otpResponse, err := client.Payment.OtpGenerate(paymentId, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to create HTTP request: %s", err.Error())), nil
+				fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
 		}
 
-		// Get authentication credentials from environment or use test defaults
-		keyID := os.Getenv("RAZORPAY_KEY_ID")
-		keySecret := os.Getenv("RAZORPAY_KEY_SECRET")
-		if keyID == "" || keySecret == "" {
-			// Use test credentials for testing
-			keyID = "rzp_test_key"
-			keySecret = "rzp_test_secret"
-		}
-		req.SetBasicAuth(keyID, keySecret)
-		req.Header.Set("Content-Type", "application/json")
-
-		// Make POST request to the provided URL
-		httpClient := &http.Client{}
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to make POST request: %s", err.Error())), nil
-		}
-		defer resp.Body.Close()
-
-		// Read response body
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to read response body: %s", err.Error())), nil
-		}
-
-		// Parse JSON response if possible
-		var responseData interface{}
-		if err := json.Unmarshal(body, &responseData); err != nil {
-			// If it's not JSON, return as string
-			responseData = string(body)
-		}
+		// Extract OTP submit URL from response
+		otpSubmitURL := extractOtpSubmitURL(otpResponse)
 
 		// Prepare response
 		response := map[string]interface{}{
-			"url":           url,
-			"status_code":   resp.StatusCode,
-			"response_data": responseData,
-			"content_type":  resp.Header.Get("Content-Type"),
+			"payment_id":    paymentId,
+			"status":        "success",
+			"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
+			"response_data": otpResponse,
 		}
 
-		// Check if the request was successful
-		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			response["status"] = "success"
-			response["message"] = "OTP sent successfully. Please enter the OTP " +
-				"received on your mobile number to complete the payment."
-
-			// Extract otp_submit URL from JSON response for next step
-			otpSubmitURL := extractOtpSubmitURL(responseData)
-			if otpSubmitURL != "" {
-				response["otp_submit_url"] = otpSubmitURL
-				response["next_step"] = fmt.Sprintf("Use 'verify_otp' tool with "+
-					"the OTP code received from user and url %s to complete payment.",
-					otpSubmitURL)
-				response["next_tool"] = "verify_otp"
-				response["next_tool_params"] = map[string]interface{}{
-					"url":        otpSubmitURL,
-					"otp_string": "{OTP_CODE_FROM_USER}",
-				}
+		// Add next step instructions if OTP submit URL is available
+		if otpSubmitURL != "" {
+			response["otp_submit_url"] = otpSubmitURL
+			response["next_step"] = fmt.Sprintf(
+				"Use 'verify_otp' tool with the OTP code received from user and url %s to complete payment.", //nolint:lll
+				otpSubmitURL)
+			response["next_tool"] = "verify_otp"
+			response["next_tool_params"] = map[string]interface{}{
+				"url":        otpSubmitURL,
+				"otp_string": "{OTP_CODE_FROM_USER}",
 			}
-		} else {
-			response["status"] = "error"
-			response["message"] = fmt.Sprintf("OTP generation failed with "+
-				"status code: %d", resp.StatusCode)
 		}
 
 		return mcpgo.NewToolResultJSON(response)
@@ -618,140 +568,7 @@ func SendOtp(
 
 	return mcpgo.NewTool(
 		"send_otp",
-		"Sends OTP for payment authentication. Makes a POST request to the "+
-			"provided URL for OTP generation and returns the response with "+
-			"next step instructions.", //nolint:lll
-		parameters,
-		handler,
-	)
-}
-
-// VerifyOtp returns a tool that verifies OTP for payment completion
-func VerifyOtp(
-	obs *observability.Observability,
-	client *rzpsdk.Client,
-) mcpgo.Tool {
-	parameters := []mcpgo.ToolParameter{
-		mcpgo.WithString(
-			"url",
-			mcpgo.Description("The URL to hit for OTP verification. "+
-				"This should be a valid HTTP/HTTPS URL from the OTP generation response."),
-			mcpgo.Required(),
-		),
-		mcpgo.WithString(
-			"otp_string",
-			mcpgo.Description("The OTP code to verify. "+
-				"This will be sent in the POST body."),
-			mcpgo.Required(),
-		),
-	}
-
-	handler := func(
-		ctx context.Context,
-		r mcpgo.CallToolRequest,
-	) (*mcpgo.ToolResult, error) {
-		// Get client from context or use default
-		_, err := getClientFromContextOrDefault(ctx, client)
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
-		}
-
-		params := make(map[string]interface{})
-
-		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(params, "url").
-			ValidateAndAddRequiredString(params, "otp_string")
-
-		if result, err := validator.HandleErrorsIfAny(); result != nil {
-			return result, err
-		}
-
-		url := params["url"].(string)
-		otpString := params["otp_string"].(string)
-
-		obs.Logger.Infof(ctx, "Making POST request for OTP verification", "url", url)
-
-		// Prepare request body with OTP data
-		requestBody := map[string]interface{}{
-			"otp": otpString,
-		}
-
-		// Convert request body to JSON
-		jsonBody, err := json.Marshal(requestBody)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to marshal request body: %s", err.Error())), nil
-		}
-
-		// Create HTTP request with OTP data
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to create HTTP request: %s", err.Error())), nil
-		}
-
-		// Get authentication credentials from environment or use test defaults
-		keyID := os.Getenv("RAZORPAY_KEY_ID")
-		keySecret := os.Getenv("RAZORPAY_KEY_SECRET")
-		if keyID == "" || keySecret == "" {
-			// Use test credentials for testing
-			keyID = "rzp_test_key"
-			keySecret = "rzp_test_secret"
-		}
-		req.SetBasicAuth(keyID, keySecret)
-		req.Header.Set("Content-Type", "application/json")
-
-		// Make POST request to the provided URL with OTP data
-		httpClient := &http.Client{}
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to make POST request: %s", err.Error())), nil
-		}
-		defer resp.Body.Close()
-
-		// Read response body
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("failed to read response body: %s", err.Error())), nil
-		}
-
-		// Parse JSON response if possible
-		var responseData interface{}
-		if err := json.Unmarshal(body, &responseData); err != nil {
-			// If it's not JSON, return as string
-			responseData = string(body)
-		}
-
-		// Prepare response
-		response := map[string]interface{}{
-			"url":           url,
-			"otp_sent":      otpString,
-			"status_code":   resp.StatusCode,
-			"response_data": responseData,
-			"content_type":  resp.Header.Get("Content-Type"),
-			"request_body":  requestBody,
-		}
-
-		// Check if the request was successful
-		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			response["status"] = "success"
-			response["message"] = "OTP verification completed successfully. " +
-				"Payment has been processed."
-		} else {
-			response["status"] = "error"
-			response["message"] = fmt.Sprintf("OTP verification failed with "+
-				"status code: %d", resp.StatusCode)
-		}
-
-		return mcpgo.NewToolResultJSON(response)
-	}
-
-	return mcpgo.NewTool(
-		"verify_otp",
-		"Verifies OTP for payment completion. Makes a POST request to the "+
-			"provided URL with the OTP code and returns the response.", //nolint:lll
+		"Sends OTP for payment authentication. Makes a POST request to the provided URL for OTP generation and returns the response with next step instructions.", //nolint:lll
 		parameters,
 		handler,
 	)

@@ -881,8 +881,7 @@ func Test_SendOtp(t *testing.T) {
 		{
 			Name: "successful OTP generation",
 			Request: map[string]interface{}{
-				"url": "https://api.razorpay.com/v1/payments/" +
-					"pay_29QQoUBi66xm2f/otp_generate",
+				"payment_id": "pay_29QQoUBi66xm2f",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -895,12 +894,10 @@ func Test_SendOtp(t *testing.T) {
 			},
 			ExpectError: false,
 			ExpectedResult: map[string]interface{}{
-				"url":            "https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_generate",
-				"status_code":    200,
-				"response_data":  successResponse,
-				"content_type":   "application/json",
+				"payment_id":     "pay_29QQoUBi66xm2f",
 				"status":         "success",
 				"message":        "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.",
+				"response_data":  successResponse,
 				"otp_submit_url": "https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit",
 				"next_step":      "Use 'verify_otp' tool with the OTP code received from user and url https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit to complete payment.",
 				"next_tool":      "verify_otp",
@@ -913,7 +910,7 @@ func Test_SendOtp(t *testing.T) {
 		{
 			Name: "OTP generation without next step",
 			Request: map[string]interface{}{
-				"url": "https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_generate",
+				"payment_id": "pay_29QQoUBi66xm2f",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -926,27 +923,25 @@ func Test_SendOtp(t *testing.T) {
 			},
 			ExpectError: false,
 			ExpectedResult: map[string]interface{}{
-				"url":           "https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_generate",
-				"status_code":   200,
-				"response_data": map[string]interface{}{"status": "success"},
-				"content_type":  "application/json",
+				"payment_id":    "pay_29QQoUBi66xm2f",
 				"status":        "success",
 				"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.",
+				"response_data": map[string]interface{}{"status": "success"},
 			},
 		},
 		{
-			Name:    "missing URL parameter",
+			Name:    "missing payment_id parameter",
 			Request: map[string]interface{}{
-				// Missing url parameter
+				// Missing payment_id parameter
 			},
 			MockHttpClient: nil,
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: url",
+			ExpectedErrMsg: "missing required parameter: payment_id",
 		},
 		{
 			Name: "API error response",
 			Request: map[string]interface{}{
-				"url": "https://api.razorpay.com/v1/payments/pay_invalid/otp_generate",
+				"payment_id": "pay_invalid",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -974,105 +969,3 @@ func Test_SendOtp(t *testing.T) {
 	}
 }
 
-func Test_VerifyOtp(t *testing.T) {
-	successResponse := map[string]interface{}{
-		"razorpay_payment_id": "pay_29QQoUBi66xm2f",
-		"razorpay_order_id":   "order_9A33XWu170gUtm",
-		"razorpay_signature":  "signature_abc123",
-		"status":              "captured",
-	}
-
-	tests := []RazorpayToolTestCase{
-		{
-			Name: "successful OTP verification",
-			Request: map[string]interface{}{
-				"url":        "https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit",
-				"otp_string": "123456",
-			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:     "/v1/payments/pay_29QQoUBi66xm2f/otp_submit",
-						Method:   "POST",
-						Response: successResponse,
-					},
-				)
-			},
-			ExpectError: false,
-			ExpectedResult: map[string]interface{}{
-				"url":           "https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit",
-				"otp_sent":      "123456",
-				"status_code":   200,
-				"response_data": successResponse,
-				"content_type":  "application/json",
-				"request_body": map[string]interface{}{
-					"otp": "123456",
-				},
-				"status":  "success",
-				"message": "OTP verification completed successfully. Payment has been processed.",
-			},
-		},
-		{
-			Name: "missing URL parameter",
-			Request: map[string]interface{}{
-				"otp_string": "123456",
-				// Missing url parameter
-			},
-			MockHttpClient: nil,
-			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: url",
-		},
-		{
-			Name: "missing OTP string parameter",
-			Request: map[string]interface{}{
-				"url": "https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit",
-				// Missing otp_string parameter
-			},
-			MockHttpClient: nil,
-			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: otp_string",
-		},
-		{
-			Name: "invalid OTP error",
-			Request: map[string]interface{}{
-				"url":        "https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit",
-				"otp_string": "999999",
-			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:   "/v1/payments/pay_29QQoUBi66xm2f/otp_submit",
-						Method: "POST",
-						Response: map[string]interface{}{
-							"error": map[string]interface{}{
-								"code":        "BAD_REQUEST_ERROR",
-								"description": "Invalid OTP",
-								"source":      "business",
-								"step":        "payment_authentication",
-								"reason":      "invalid_otp",
-							},
-						},
-					},
-				)
-			},
-			ExpectError:    true,
-			ExpectedErrMsg: "OTP verification failed",
-		},
-		{
-			Name: "invalid parameter types",
-			Request: map[string]interface{}{
-				"url":        123, // Invalid type
-				"otp_string": 456, // Invalid type
-			},
-			MockHttpClient: nil,
-			ExpectError:    true,
-			ExpectedErrMsg: "invalid parameter type: url\n- invalid parameter type: otp_string",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.Name, func(t *testing.T) {
-			runToolTest(t, tc, VerifyOtp, "Verify OTP")
-		})
-	}
-}
