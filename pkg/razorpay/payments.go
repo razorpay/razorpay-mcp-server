@@ -515,6 +515,7 @@ func ResendOtp(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
+
 		// Get client from context or use default
 		client, err := getClientFromContextOrDefault(ctx, client)
 		if err != nil {
