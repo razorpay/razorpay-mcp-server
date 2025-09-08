@@ -600,3 +600,197 @@ func Test_FetchAllPayments(t *testing.T) {
 		})
 	}
 }
+
+func Test_InitiatePayment(t *testing.T) {
+	initiatePaymentPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL+"/create/json",
+	)
+
+	successResponse := map[string]interface{}{
+		"razorpay_payment_id": "pay_29QQoUBi66xm2f",
+		"status":              "created",
+		"amount":              float64(10000),
+		"currency":            "INR",
+		"method":              "card",
+		"order_id":            "order_9A33XWu170gUtm",
+		"next": []interface{}{
+			map[string]interface{}{
+				"action": "otp_generate",
+				"url": "https://api.razorpay.com/v1/payments/" +
+					"pay_29QQoUBi66xm2f/otp_generate",
+			},
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful initiate payment with all parameters",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"currency": "INR",
+				"method":   "card",
+				"token_id": "token_KWbKaXtNPdYHWJ",
+				"order_id": "order_9A33XWu170gUtm",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_29QQoUBi66xm2f",
+				"payment_details":     successResponse,
+				"status":              "payment_initiated",
+				"action":              "otp_generate",
+				"url": "https://api.razorpay.com/v1/payments/" +
+					"pay_29QQoUBi66xm2f/otp_generate",
+				"message": "Payment initiated. Next action: otp_generate. " +
+					"Use the provided URL for next step.",
+			},
+		},
+		{
+			Name: "successful initiate payment with defaults",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"token_id": "token_KWbKaXtNPdYHWJ",
+				"order_id": "order_9A33XWu170gUtm",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_29QQoUBi66xm2f",
+				"payment_details":     successResponse,
+				"status":              "payment_initiated",
+				"action":              "otp_generate",
+				"url": "https://api.razorpay.com/v1/payments/" +
+					"pay_29QQoUBi66xm2f/otp_generate",
+				"message": "Payment initiated. Next action: otp_generate. " +
+					"Use the provided URL for next step.",
+			},
+		},
+		{
+			Name: "missing amount parameter",
+			Request: map[string]interface{}{
+				"token_id": "token_KWbKaXtNPdYHWJ",
+				"order_id": "order_9A33XWu170gUtm",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient()
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: amount",
+		},
+		{
+			Name: "missing token_id parameter",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"order_id": "order_9A33XWu170gUtm",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient()
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: token_id",
+		},
+		{
+			Name: "missing order_id parameter",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"token_id": "token_KWbKaXtNPdYHWJ",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient()
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: order_id",
+		},
+		{
+			Name: "API error - invalid amount",
+			Request: map[string]interface{}{
+				"amount":   50,
+				"token_id": "token_KWbKaXtNPdYHWJ",
+				"order_id": "order_9A33XWu170gUtm",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   initiatePaymentPath,
+						Method: "POST",
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "Amount must be at least 100",
+							},
+						},
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "initiating payment failed",
+		},
+		{
+			Name: "invalid parameter types",
+			Request: map[string]interface{}{
+				"amount":   "invalid_amount",
+				"currency": 123,
+				"method":   456,
+				"token_id": 789,
+				"order_id": 101,
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient()
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "invalid parameter type: amount\n- " +
+				"invalid parameter type: currency\n- " +
+				"invalid parameter type: method\n- " +
+				"invalid parameter type: token_id\n- " +
+				"invalid parameter type: order_id",
+		},
+		{
+			Name: "API error response",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"token_id": "invalid_token",
+				"order_id": "order_9A33XWu170gUtm",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   initiatePaymentPath,
+						Method: "POST",
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "Invalid token_id provided",
+							},
+						},
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "initiating payment failed",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, InitiatePayment, "Initiate Payment")
+		})
+	}
+}

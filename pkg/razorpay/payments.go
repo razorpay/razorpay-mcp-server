@@ -329,3 +329,157 @@ func FetchAllPayments(
 		handler,
 	)
 }
+
+// extractPaymentID extracts the payment ID from the payment response
+func extractPaymentID(payment map[string]interface{}) string {
+	if id, exists := payment["razorpay_payment_id"]; exists && id != nil {
+		return id.(string)
+	}
+	return ""
+}
+
+// extractNextActionDetails extracts action and URL from the payment response
+func extractNextActionDetails(payment map[string]interface{}) (string, string) {
+	var action, otpURL string
+	if nextArray, exists := payment["next"]; exists && nextArray != nil {
+		if nextSlice, ok := nextArray.([]interface{}); ok {
+			for _, item := range nextSlice {
+				if nextItem, ok := item.(map[string]interface{}); ok {
+					if actionVal, exists := nextItem["action"]; exists {
+						action = actionVal.(string)
+						if url, exists := nextItem["url"]; exists && url != nil {
+							otpURL = url.(string)
+						}
+						break
+					}
+				}
+			}
+		}
+	}
+	return action, otpURL
+}
+
+// InitiatePayment returns a tool that initiates a payment using order_id
+// and token_id
+// This implements the S2S JSON v1 flow for creating payments
+func InitiatePayment(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithNumber(
+			"amount",
+			mcpgo.Description("Payment amount in the smallest currency sub-unit "+
+				"(e.g., for ₹100, use 10000)"),
+			mcpgo.Required(),
+			mcpgo.Min(100),
+		),
+		mcpgo.WithString(
+			"currency",
+			mcpgo.Description("Currency code for the payment. Default is 'INR'"),
+		),
+		mcpgo.WithString(
+			"method",
+			mcpgo.Description("Payment method to use. "+
+				"Options: 'card', 'upi'. Default is 'card'"),
+		),
+		mcpgo.WithString(
+			"token_id",
+			mcpgo.Description("Token ID of the saved payment method. "+
+				"Must start with 'token_'"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"order_id",
+			mcpgo.Description("Order ID for which the payment is being initiated. "+
+				"Must start with 'order_'"),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		params := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredInt(params, "amount").
+			ValidateAndAddOptionalString(params, "currency").
+			ValidateAndAddOptionalString(params, "method").
+			ValidateAndAddRequiredString(params, "token_id").
+			ValidateAndAddRequiredString(params, "order_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		// Set default values
+		currency := "INR"
+		if c, exists := params["currency"]; exists && c != "" {
+			currency = c.(string)
+		}
+
+		method := "card"
+		if m, exists := params["method"]; exists && m != "" {
+			method = m.(string)
+		}
+
+		// Prepare payment data for the S2S JSON v1 flow
+		paymentData := map[string]interface{}{
+			"amount":   params["amount"],
+			"currency": currency,
+			"method":   method,
+			"token_id": params["token_id"],
+			"order_id": params["order_id"],
+		}
+
+		// Create payment using Razorpay SDK's CreatePaymentJson method
+		// This follows the S2S JSON v1 flow:
+		// https://api.razorpay.com/v1/payments/create/json
+		payment, err := client.Payment.CreatePaymentJson(paymentData, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
+		}
+
+		// Extract payment ID and next action details
+		paymentID := extractPaymentID(payment)
+		action, otpURL := extractNextActionDetails(payment)
+
+		// Prepare response
+		response := map[string]interface{}{
+			"razorpay_payment_id": paymentID,
+			"payment_details":     payment,
+			"status":              "payment_initiated",
+			"message":             "Payment initiated successfully using S2S JSON v1 flow", //nolint:lll
+		}
+
+		// Add action and URL if available
+		if action != "" {
+			response["action"] = action
+			if otpURL != "" {
+				response["url"] = otpURL
+				response["message"] = fmt.Sprintf(
+					"Payment initiated. Next action: %s. "+
+						"Use the provided URL for next step.", action)
+			}
+		}
+
+		return mcpgo.NewToolResultJSON(response)
+	}
+
+	return mcpgo.NewTool(
+		"initiate_payment",
+		"Initiate a payment using the S2S JSON v1 flow with order_id and token_id. "+
+			"This creates a payment and returns payment details including next action steps if required.", //nolint:lll
+		parameters,
+		handler,
+	)
+}
