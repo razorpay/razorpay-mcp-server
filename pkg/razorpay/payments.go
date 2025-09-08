@@ -582,6 +582,11 @@ func SubmitOtp(
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
+			"otp_string",
+			mcpgo.Description("OTP string received from the user"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
 			"payment_id",
 			mcpgo.Description("Unique identifier of the payment for which "+
 				"OTP needs to be submitted. Must start with 'pay_'"),
@@ -610,7 +615,7 @@ func SubmitOtp(
 
 		paymentId := params["payment_id"].(string)
 		data := map[string]interface{}{
-			"otp": "123456",
+			"otp": params["otp_string"].(string),
 		}
 		otpResponse, err := client.Payment.OtpSubmit(paymentId, data, nil)
 
