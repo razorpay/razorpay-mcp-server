@@ -30,6 +30,18 @@ jobs:
           echo "📊 Coverage Summary:"
           go tool cover -func=coverage.out | tail -10
           
+      - name: Check coverage meets minimum threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}' | sed 's/%//')
+          echo "Current coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 75" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below required 75%"
+            echo "This step will fail the build as expected!"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE}% meets the 75% requirement"
+          fi
+          
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

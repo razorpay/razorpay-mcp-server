@@ -6,18 +6,22 @@ coverage:
   precision: 2
   round: down
   range: "75...100"
-
+  
   status:
+    # Ensure status checks are enabled
+    changes: false  # Don't require changes to run status checks
     project:
       default:
         target: "75%"        # Target coverage - fail if below 75%
-        threshold: "1%"      # Allow 1% drop from target before failing
+        threshold: "0%"      # No drop allowed - strict enforcement
         if_not_found: failure
+        removed_code_behavior: off  # Don't ignore removed code
     patch:
       default:
-        target: "75%"        # New code must have at least 75% coverage
-        threshold: "1%"      # Allow 1% drop from target before failing
-        if_not_found: success
+        target: "75%"        # New code must have at least 75% coverage  
+        threshold: "0%"      # No drop allowed - strict enforcement
+        if_not_found: failure
+        removed_code_behavior: off  # Don't ignore removed code
 
 comment:
   layout: "reach,diff,flags,tree"
