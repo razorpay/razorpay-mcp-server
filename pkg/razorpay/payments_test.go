@@ -865,6 +865,123 @@ func Test_InitiatePayment(t *testing.T) {
 	}
 }
 
+func Test_SendOtp(t *testing.T) {
+	sendOtpPathFmt := fmt.Sprintf(
+		"/%s%s/%%s/otp_generate",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	successResponse := map[string]interface{}{
+		"status": "success",
+		"next": []interface{}{
+			map[string]interface{}{
+				"action": "otp_submit",
+				"url": "https://api.razorpay.com/v1/payments/" +
+					"pay_29QQoUBi66xm2f/otp_submit",
+			},
+		},
+	}
+
+	paymentNotFoundResponse := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "The id provided does not exist",
+		},
+	}
+
+	otpLimitExceededResponse := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "OTP generation limit exceeded",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful OTP generation",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(sendOtpPathFmt, "pay_29QQoUBi66xm2f"),
+						Method:   "POST",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"payment_id":    "pay_29QQoUBi66xm2f",
+				"status":        "success",
+				"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
+				"response_data": successResponse,
+			},
+		},
+		{
+			Name: "payment not found",
+			Request: map[string]interface{}{
+				"payment_id": "pay_invalid",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(sendOtpPathFmt, "pay_invalid"),
+						Method:   "POST",
+						Response: paymentNotFoundResponse,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "OTP generation failed: " +
+				"The id provided does not exist",
+		},
+		{
+			Name: "OTP generation limit exceeded",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(sendOtpPathFmt, "pay_29QQoUBi66xm2f"),
+						Method:   "POST",
+						Response: otpLimitExceededResponse,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "OTP generation failed: OTP generation limit exceeded",
+		},
+		{
+			Name:    "missing payment_id parameter",
+			Request: map[string]interface{}{
+				// Missing payment_id parameter
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
+		},
+		{
+			Name: "invalid parameter type",
+			Request: map[string]interface{}{
+				"payment_id": 123,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: payment_id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, SendOtp, "Send OTP")
+		})
+	}
+}
+
 func Test_ResendOtp(t *testing.T) {
 	resendOtpPathFmt := fmt.Sprintf(
 		"/%s%s/%%s/otp/resend",
@@ -920,8 +1037,8 @@ func Test_ResendOtp(t *testing.T) {
 				"response_data": successResponse,
 				"otp_submit_url": "https://api.razorpay.com/v1/payments/" +
 					"pay_29QQoUBi66xm2f/otp_submit",
-				"next_step": "Use 'verify_otp' tool with the OTP code received from user and url https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit to complete payment.", //nolint:lll
-				"next_tool": "verify_otp",
+				"next_step": "Use 'submit_otp' tool with the OTP code received from user and url https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit to complete payment.", //nolint:lll
+				"next_tool": "submit_otp",
 				"next_tool_params": map[string]interface{}{
 					"url": "https://api.razorpay.com/v1/payments/" +
 						"pay_29QQoUBi66xm2f/otp_submit",
@@ -966,7 +1083,7 @@ func Test_ResendOtp(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "OTP generation failed: " +
+			ExpectedErrMsg: "OTP resend failed: " +
 				"The id provided does not exist",
 		},
 		{
@@ -984,7 +1101,7 @@ func Test_ResendOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP generation failed: OTP generation limit exceeded",
+			ExpectedErrMsg: "OTP resend failed: OTP generation limit exceeded",
 		},
 		{
 			Name:    "missing payment_id parameter",
@@ -1081,7 +1198,7 @@ func Test_SubmitOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP generation failed: Invalid OTP provided",
+			ExpectedErrMsg: "OTP verification failed: Invalid OTP provided",
 		},
 		{
 			Name: "payment not found",
@@ -1099,7 +1216,7 @@ func Test_SubmitOtp(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "OTP generation failed: " +
+			ExpectedErrMsg: "OTP verification failed: " +
 				"The id provided does not exist",
 		},
 		{

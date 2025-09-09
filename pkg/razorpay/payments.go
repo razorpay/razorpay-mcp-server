@@ -530,10 +530,10 @@ func SendOtp(
 			return result, err
 		}
 
-		paymentId := params["payment_id"].(string)
+		paymentID := params["payment_id"].(string)
 
 		// Generate OTP using Razorpay SDK
-		otpResponse, err := client.Payment.OtpGenerate(paymentId, nil, nil)
+		otpResponse, err := client.Payment.OtpGenerate(paymentID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
@@ -541,7 +541,7 @@ func SendOtp(
 
 		// Prepare response
 		response := map[string]interface{}{
-			"payment_id":    paymentId,
+			"payment_id":    paymentID,
 			"status":        "success",
 			"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
 			"response_data": otpResponse,
@@ -552,7 +552,8 @@ func SendOtp(
 
 	return mcpgo.NewTool(
 		"send_otp",
-		"Send OTP for payment authentication. Makes a POST request to the provided URL for OTP generation and returns the response with next step instructions.",
+		"Generate and send an OTP to the customer's registered mobile number "+
+			"for payment authentication.",
 		parameters,
 		handler,
 	)
@@ -592,13 +593,13 @@ func ResendOtp(
 			return result, err
 		}
 
-		paymentId := params["payment_id"].(string)
+		paymentID := params["payment_id"].(string)
 
-		// Generate OTP using Razorpay SDK
-		otpResponse, err := client.Payment.OtpResend(paymentId, nil, nil)
+		// Resend OTP using Razorpay SDK
+		otpResponse, err := client.Payment.OtpResend(paymentID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
+				fmt.Sprintf("OTP resend failed: %s", err.Error())), nil
 		}
 
 		// Extract OTP submit URL from response
@@ -606,7 +607,7 @@ func ResendOtp(
 
 		// Prepare response
 		response := map[string]interface{}{
-			"payment_id":    paymentId,
+			"payment_id":    paymentID,
 			"status":        "success",
 			"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
 			"response_data": otpResponse,
@@ -616,9 +617,9 @@ func ResendOtp(
 		if otpSubmitURL != "" {
 			response["otp_submit_url"] = otpSubmitURL
 			response["next_step"] = fmt.Sprintf(
-				"Use 'verify_otp' tool with the OTP code received from user and url %s to complete payment.", //nolint:lll
+				"Use 'submit_otp' tool with the OTP code received from user and url %s to complete payment.", //nolint:lll
 				otpSubmitURL)
-			response["next_tool"] = "verify_otp"
+			response["next_tool"] = "submit_otp"
 			response["next_tool_params"] = map[string]interface{}{
 				"url":        otpSubmitURL,
 				"otp_string": "{OTP_CODE_FROM_USER}",
@@ -630,13 +631,14 @@ func ResendOtp(
 
 	return mcpgo.NewTool(
 		"resend_otp",
-		"Re-Sends OTP for payment authentication. Makes a POST request to the provided URL for OTP generation and returns the response with next step instructions.", //nolint:lll
+		"Resend OTP to the customer's registered mobile number if the previous "+
+			"OTP was not received or has expired.",
 		parameters,
 		handler,
 	)
 }
 
-// SendOtp returns a tool that sends OTP for payment authentication
+// SubmitOtp returns a tool that submits OTP for payment verification
 func SubmitOtp(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
@@ -675,20 +677,20 @@ func SubmitOtp(
 			return result, err
 		}
 
-		paymentId := params["payment_id"].(string)
+		paymentID := params["payment_id"].(string)
 		data := map[string]interface{}{
 			"otp": params["otp_string"].(string),
 		}
-		otpResponse, err := client.Payment.OtpSubmit(paymentId, data, nil)
+		otpResponse, err := client.Payment.OtpSubmit(paymentID, data, nil)
 
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
+				fmt.Sprintf("OTP verification failed: %s", err.Error())), nil
 		}
 
 		// Prepare response
 		response := map[string]interface{}{
-			"payment_id":    paymentId,
+			"payment_id":    paymentID,
 			"status":        "success",
 			"message":       "OTP verified successfully.",
 			"response_data": otpResponse,
@@ -698,8 +700,8 @@ func SubmitOtp(
 
 	return mcpgo.NewTool(
 		"submit_otp",
-		"Submit the OTP for payment authentication. Makes a POST request to the "+
-			"provided URL for OTP submission and returns the response with next step instructions.", //nolint:lll
+		"Verify and submit the OTP received by the customer to complete "+
+			"the payment authentication process.",
 		parameters,
 		handler,
 	)
