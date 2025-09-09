@@ -359,6 +359,83 @@ func extractNextActionDetails(payment map[string]interface{}) (string, string) {
 	return action, otpURL
 }
 
+// buildInitiatePaymentResponse constructs the response for initiate payment
+func buildInitiatePaymentResponse(
+	payment map[string]interface{},
+	paymentID, action, otpURL string,
+) map[string]interface{} {
+	response := map[string]interface{}{
+		"razorpay_payment_id": paymentID,
+		"payment_details":     payment,
+		"status":              "payment_initiated",
+		"message": "Payment initiated successfully using " +
+			"S2S JSON v1 flow",
+	}
+
+	if action != "" {
+		response["action"] = action
+		if otpURL != "" {
+			response["url"] = otpURL
+			response["message"] = fmt.Sprintf(
+				"Payment initiated. Next action: %s. "+
+					"Use the provided URL for next step.", action)
+		}
+		addNextStepInstructions(response, paymentID)
+	} else {
+		addFallbackNextStepInstructions(response, paymentID)
+	}
+
+	return response
+}
+
+// addNextStepInstructions adds next step guidance to the response
+func addNextStepInstructions(
+	response map[string]interface{},
+	paymentID string,
+) {
+	if paymentID != "" {
+		response["next_step"] = "Use 'send_otp' tool with the payment_id to " +
+			"generate OTP for authentication."
+		response["next_tool"] = "send_otp"
+		response["next_tool_params"] = map[string]interface{}{
+			"payment_id": paymentID,
+		}
+	}
+}
+
+// addFallbackNextStepInstructions adds fallback next step guidance
+func addFallbackNextStepInstructions(
+	response map[string]interface{},
+	paymentID string,
+) {
+	if paymentID != "" {
+		response["next_step"] = "Use 'send_otp' tool with the payment_id if " +
+			"OTP authentication is required."
+		response["next_tool"] = "send_otp"
+		response["next_tool_params"] = map[string]interface{}{
+			"payment_id": paymentID,
+		}
+	}
+}
+
+// addContactAndEmailToPaymentData adds contact and email to payment data
+func addContactAndEmailToPaymentData(
+	paymentData map[string]interface{},
+	params map[string]interface{},
+) {
+	// Add contact if provided
+	if contact, exists := params["contact"]; exists && contact != "" {
+		paymentData["contact"] = contact
+	}
+
+	// Add email if provided, otherwise generate from contact
+	if email, exists := params["email"]; exists && email != "" {
+		paymentData["email"] = email
+	} else if contact, exists := paymentData["contact"]; exists && contact != "" {
+		paymentData["email"] = contact.(string) + "@mcp.razorpay.com"
+	}
+}
+
 // InitiatePayment returns a tool that initiates a payment using order_id
 // and token
 // This implements the S2S JSON v1 flow for creating payments
@@ -438,16 +515,8 @@ func InitiatePayment(
 			"token":    params["token"],
 		}
 
-		if contact, exists := params["contact"]; exists && contact != "" {
-			paymentData["contact"] = contact
-		}
-
-		// Add optional parameters if provided
-		if email, exists := params["email"]; exists && email != "" {
-			paymentData["email"] = email
-		} else if contact, exists := paymentData["contact"]; exists && contact != "" {
-			paymentData["email"] = contact.(string) + "@mcp.razorpay.com"
-		}
+		// Add contact and email parameters
+		addContactAndEmailToPaymentData(paymentData, params)
 
 		// Create payment using Razorpay SDK's CreatePaymentJson method
 		// This follows the S2S JSON v1 flow:
@@ -462,40 +531,8 @@ func InitiatePayment(
 		paymentID := extractPaymentID(payment)
 		action, otpURL := extractNextActionDetails(payment)
 
-		// Prepare response
-		response := map[string]interface{}{
-			"razorpay_payment_id": paymentID,
-			"payment_details":     payment,
-			"status":              "payment_initiated",
-			"message":             "Payment initiated successfully using S2S JSON v1 flow", //nolint:lll
-		}
-
-		// Add action and URL if available
-		if action != "" {
-			response["action"] = action
-			if otpURL != "" {
-				response["url"] = otpURL
-				response["message"] = fmt.Sprintf(
-					"Payment initiated. Next action: %s. "+
-						"Use the provided URL for next step.", action)
-				if paymentID != "" {
-					response["next_step"] = "Use 'send_otp' tool with the payment_id to " +
-						"generate OTP for authentication."
-					response["next_tool"] = "send_otp"
-					response["next_tool_params"] = map[string]interface{}{
-						"payment_id": paymentID,
-					}
-				}
-			}
-		} else if paymentID != "" {
-			response["next_step"] = "Use 'send_otp' tool with the payment_id if " +
-				"OTP authentication is required."
-			response["next_tool"] = "send_otp"
-			response["next_tool_params"] = map[string]interface{}{
-				"payment_id": paymentID,
-			}
-		}
-
+		// Build and return response
+		response := buildInitiatePaymentResponse(payment, paymentID, action, otpURL)
 		return mcpgo.NewToolResultJSON(response)
 	}
 
