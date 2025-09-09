@@ -26,6 +26,9 @@ func NewToolSets(
 		AddWriteTools(
 			CapturePayment(obs, client),
 			UpdatePayment(obs, client),
+			InitiatePayment(obs, client),
+			ResendOtp(obs, client),
+			SubmitOtp(obs, client),
 		)
 
 	paymentLinks := toolsets.NewToolset(

@@ -600,3 +600,429 @@ func Test_FetchAllPayments(t *testing.T) {
 		})
 	}
 }
+
+func Test_InitiatePayment(t *testing.T) {
+	initiatePaymentPath := fmt.Sprintf(
+		"/%s%s/create/json",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	successPaymentResp := map[string]interface{}{
+		"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+		"status":              "created",
+		"amount":              float64(10000),
+		"currency":            "INR",
+		"order_id":            "order_MT48CvBhIC98MQ",
+		"next": []interface{}{
+			map[string]interface{}{
+				"action": "otp_generate",
+				"url": "https://api.razorpay.com/v1/payments/" +
+					"pay_MT48CvBhIC98MQ/otp_generate",
+			},
+		},
+	}
+
+	successPaymentWithRedirectResp := map[string]interface{}{
+		"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+		"status":              "created",
+		"amount":              float64(10000),
+		"currency":            "INR",
+		"order_id":            "order_MT48CvBhIC98MQ",
+		"next": []interface{}{
+			map[string]interface{}{
+				"action": "redirect",
+				"url": "https://api.razorpay.com/v1/payments/" +
+					"pay_MT48CvBhIC98MQ/authenticate",
+			},
+		},
+	}
+
+	successPaymentWithoutNextResp := map[string]interface{}{
+		"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+		"status":              "captured",
+		"amount":              float64(10000),
+		"currency":            "INR",
+		"order_id":            "order_MT48CvBhIC98MQ",
+	}
+
+	paymentErrorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Invalid token",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful payment initiation with OTP",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"currency": "INR",
+				"token":    "token_MT48CvBhIC98MQ",
+				"order_id": "order_MT48CvBhIC98MQ",
+				"email":    "test@example.com",
+				"contact":  "9876543210",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaymentResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details":     successPaymentResp,
+				"status":              "payment_initiated",
+				"message": "Payment initiated. OTP authentication is available. " +
+					"Use the 'submit_otp' tool to submit OTP received by the " +
+					"customer for authentication.",
+				"available_actions": []interface{}{
+					map[string]interface{}{
+						"action": "otp_generate",
+						"url": "https://api.razorpay.com/v1/payments/" +
+							"pay_MT48CvBhIC98MQ/otp_generate",
+					},
+				},
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			Name: "successful payment initiation with redirect",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"token":    "token_MT48CvBhIC98MQ",
+				"order_id": "order_MT48CvBhIC98MQ",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaymentWithRedirectResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details":     successPaymentWithRedirectResp,
+				"status":              "payment_initiated",
+				"message": "Payment initiated. Redirect authentication is available. " +
+					"Use the redirect URL provided in available_actions.",
+				"available_actions": []interface{}{
+					map[string]interface{}{
+						"action": "redirect",
+						"url": "https://api.razorpay.com/v1/payments/" +
+							"pay_MT48CvBhIC98MQ/authenticate",
+					},
+				},
+			},
+		},
+		{
+			Name: "successful payment initiation without next actions",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"token":    "token_MT48CvBhIC98MQ",
+				"order_id": "order_MT48CvBhIC98MQ",
+				"contact":  "9876543210",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaymentWithoutNextResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details":     successPaymentWithoutNextResp,
+				"status":              "payment_initiated",
+				"message": "Payment initiated successfully using " +
+					"S2S JSON v1 flow",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			Name: "payment initiation with API error",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"token":    "token_invalid",
+				"order_id": "order_MT48CvBhIC98MQ",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: paymentErrorResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "initiating payment failed:",
+		},
+		{
+			Name: "missing required amount parameter",
+			Request: map[string]interface{}{
+				"token":    "token_MT48CvBhIC98MQ",
+				"order_id": "order_MT48CvBhIC98MQ",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: amount",
+		},
+		{
+			Name: "missing required token parameter",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"order_id": "order_MT48CvBhIC98MQ",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: token",
+		},
+		{
+			Name: "missing required order_id parameter",
+			Request: map[string]interface{}{
+				"amount": 10000,
+				"token":  "token_MT48CvBhIC98MQ",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: order_id",
+		},
+		{
+			Name: "invalid amount parameter type",
+			Request: map[string]interface{}{
+				"amount":   "not_a_number",
+				"token":    "token_MT48CvBhIC98MQ",
+				"order_id": "order_MT48CvBhIC98MQ",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: amount",
+		},
+		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				"amount": "not_a_number",
+				"token":  123,
+				"email":  456,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- invalid parameter type: amount\n- " +
+				"invalid parameter type: token\n- " +
+				"missing required parameter: order_id\n- " +
+				"invalid parameter type: email",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, InitiatePayment, "Payment Initiation")
+		})
+	}
+}
+
+func Test_SubmitOtp(t *testing.T) {
+	submitOtpPathFmt := fmt.Sprintf(
+		"/%s%s/%%s/otp/submit",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	successOtpSubmitResp := map[string]interface{}{
+		"id":                "pay_MT48CvBhIC98MQ",
+		"entity":            "payment",
+		"amount":            float64(10000),
+		"currency":          "INR",
+		"status":            "authorized",
+		"order_id":          "order_MT48CvBhIC98MQ",
+		"description":       "Test payment",
+		"method":            "card",
+		"amount_refunded":   float64(0),
+		"refund_status":     nil,
+		"captured":          false,
+		"email":             "test@example.com",
+		"contact":           "9876543210",
+		"fee":               float64(236),
+		"tax":               float64(36),
+		"error_code":        nil,
+		"error_description": nil,
+		"created_at":        float64(1234567890),
+	}
+
+	otpVerificationFailedResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Invalid OTP provided",
+			"field":       "otp",
+		},
+	}
+
+	paymentNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Payment not found",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful OTP submission",
+			Request: map[string]interface{}{
+				"payment_id": "pay_MT48CvBhIC98MQ",
+				"otp_string": "123456",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(submitOtpPathFmt, "pay_MT48CvBhIC98MQ"),
+						Method:   "POST",
+						Response: successOtpSubmitResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"payment_id":    "pay_MT48CvBhIC98MQ",
+				"status":        "success",
+				"message":       "OTP verified successfully.",
+				"response_data": successOtpSubmitResp,
+			},
+		},
+		{
+			Name: "OTP verification failed - invalid OTP",
+			Request: map[string]interface{}{
+				"payment_id": "pay_MT48CvBhIC98MQ",
+				"otp_string": "000000",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(submitOtpPathFmt, "pay_MT48CvBhIC98MQ"),
+						Method:   "POST",
+						Response: otpVerificationFailedResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "OTP verification failed: Invalid OTP provided",
+		},
+		{
+			Name: "payment not found",
+			Request: map[string]interface{}{
+				"payment_id": "pay_invalid",
+				"otp_string": "123456",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(submitOtpPathFmt, "pay_invalid"),
+						Method:   "POST",
+						Response: paymentNotFoundResp,
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "OTP verification failed: Payment not found",
+		},
+		{
+			Name: "missing payment_id parameter",
+			Request: map[string]interface{}{
+				"otp_string": "123456",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
+		},
+		{
+			Name: "missing otp_string parameter",
+			Request: map[string]interface{}{
+				"payment_id": "pay_MT48CvBhIC98MQ",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: otp_string",
+		},
+		{
+			Name:           "missing both required parameters",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: otp_string",
+		},
+		{
+			Name: "empty otp_string",
+			Request: map[string]interface{}{
+				"payment_id": "pay_MT48CvBhIC98MQ",
+				"otp_string": "",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   fmt.Sprintf(submitOtpPathFmt, "pay_MT48CvBhIC98MQ"),
+						Method: "POST",
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "Authentication failed",
+							},
+						},
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "OTP verification failed: Authentication failed",
+		},
+		{
+			Name: "empty payment_id",
+			Request: map[string]interface{}{
+				"payment_id": "",
+				"otp_string": "123456",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   fmt.Sprintf(submitOtpPathFmt, ""),
+						Method: "POST",
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "",
+							},
+						},
+					},
+				)
+			},
+			ExpectError:    true,
+			ExpectedErrMsg: "OTP verification failed:",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, SubmitOtp, "OTP Submission")
+		})
+	}
+}
