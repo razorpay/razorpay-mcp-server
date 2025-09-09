@@ -3,6 +3,7 @@ package razorpay
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -376,6 +377,7 @@ func buildInitiatePaymentResponse(
 		var actionTypes []string
 		hasOTP := false
 		hasRedirect := false
+		hasOtpUrl := ""
 
 		for _, action := range actions {
 			if actionType, exists := action["action"]; exists {
@@ -383,6 +385,7 @@ func buildInitiatePaymentResponse(
 				actionTypes = append(actionTypes, actionStr)
 				if actionStr == "otp_generate" {
 					hasOTP = true
+					hasOtpUrl = action["url"].(string)
 				} else if actionStr == "redirect" {
 					hasRedirect = true
 				}
@@ -403,6 +406,8 @@ func buildInitiatePaymentResponse(
 			response["message"] = fmt.Sprintf(
 				"Payment initiated. Available actions: %v", actionTypes)
 		}
+		response["has_otp"] = hasOTP
+		response["has_otp_url"] = hasOtpUrl
 	} else {
 		addFallbackNextStepInstructions(response, paymentID)
 	}
@@ -556,6 +561,20 @@ func InitiatePayment(
 
 		// Build structured response using the helper function
 		response := buildInitiatePaymentResponse(payment, paymentID, actions)
+
+		if response["has_otp"] == true {
+			// get the url of payment_details['next'][]
+			// hit a post api on
+			has_otp_url := response["has_otp_url"].(string)
+
+			// Make POST request
+			resp, err := http.Post(has_otp_url, "application/json", nil)
+			if err != nil {
+				return mcpgo.NewToolResultError(
+					fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
+			}
+			defer resp.Body.Close()
+		}
 
 		return mcpgo.NewToolResultJSON(response)
 	}
