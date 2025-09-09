@@ -445,6 +445,8 @@ func InitiatePayment(
 		// Add optional parameters if provided
 		if email, exists := params["email"]; exists && email != "" {
 			paymentData["email"] = email
+		} else {
+			paymentData["email"] = paymentData["contact"].(string) + "@mcp.razorpay.com"
 		}
 
 		// Create payment using Razorpay SDK's CreatePaymentJson method
