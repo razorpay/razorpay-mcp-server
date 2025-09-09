@@ -23,8 +23,21 @@ jobs:
       - name: Run coverage
         run: |
          go test -race -covermode=atomic -coverprofile=coverage.out ./...
+      
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          echo "Current coverage: ${COVERAGE}%"
+          # Use awk to compare decimal values
+          RESULT=$(echo "$COVERAGE" | awk '{if ($1 >= 75) print "PASS"; else print "FAIL"}')
+          if [ "$RESULT" = "FAIL" ]; then
+            echo "❌ Coverage ${COVERAGE}% is below required 75%"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE}% meets the 75% requirement"
+          fi
+      
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
            token: ${{ secrets.CODECOV_TOKEN }}
-           fail_ci_if_error: true
