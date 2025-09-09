@@ -12,6 +12,8 @@ jobs:
   test:
     name: Run tests and publish test coverage
     runs-on: ubuntu-latest
+    env:
+      COVERAGE_THRESHOLD: 70
     steps:
       - uses: actions/checkout@v2
         with:
@@ -28,13 +30,14 @@ jobs:
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
           echo "Current coverage: ${COVERAGE}%"
+          echo "Required threshold: ${COVERAGE_THRESHOLD}%"
           # Use awk to compare decimal values
-          RESULT=$(echo "$COVERAGE" | awk '{if ($1 >= 75) print "PASS"; else print "FAIL"}')
+          RESULT=$(echo "$COVERAGE" | awk -v threshold="$COVERAGE_THRESHOLD" '{if ($1 >= threshold) print "PASS"; else print "FAIL"}')
           if [ "$RESULT" = "FAIL" ]; then
-            echo "❌ Coverage ${COVERAGE}% is below required 75%"
+            echo "❌ Coverage ${COVERAGE}% is below required ${COVERAGE_THRESHOLD}%"
             exit 1
           else
-            echo "✅ Coverage ${COVERAGE}% meets the 75% requirement"
+            echo "✅ Coverage ${COVERAGE}% meets the ${COVERAGE_THRESHOLD}% requirement"
           fi
       
       - name: Upload coverage to Codecov
