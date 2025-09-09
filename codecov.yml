@@ -9,12 +9,13 @@ coverage:
   status:
     project:
       default:
-        target: 60%
+        target: auto
         threshold: 1%
+        base: auto
         if_not_found: success
     patch:
       default:
-        target: 60%
+        target: 75%
         threshold: 1%
         if_not_found: success
 
