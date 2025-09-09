@@ -438,12 +438,13 @@ func InitiatePayment(
 			"token":    params["token"],
 		}
 
+		if contact, exists := params["contact"]; exists && contact != "" {
+			paymentData["contact"] = contact
+		}
+
 		// Add optional parameters if provided
 		if email, exists := params["email"]; exists && email != "" {
 			paymentData["email"] = email
-		}
-		if contact, exists := params["contact"]; exists && contact != "" {
-			paymentData["contact"] = contact
 		}
 
 		// Create payment using Razorpay SDK's CreatePaymentJson method
