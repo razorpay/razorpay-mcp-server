@@ -618,7 +618,11 @@ func SendOtp(
 			},
 		}
 
-		return mcpgo.NewToolResultJSON(response)
+		result, err := mcpgo.NewToolResultJSON(response)
+		if err != nil {
+			return mcpgo.NewToolResultError(fmt.Sprintf("JSON marshal error: %v", err)), nil
+		}
+		return result, nil
 	}
 
 	return mcpgo.NewTool(
@@ -705,7 +709,11 @@ func ResendOtp(
 			}
 		}
 
-		return mcpgo.NewToolResultJSON(response)
+		result, err := mcpgo.NewToolResultJSON(response)
+		if err != nil {
+			return mcpgo.NewToolResultError(fmt.Sprintf("JSON marshal error: %v", err)), nil
+		}
+		return result, nil
 	}
 
 	return mcpgo.NewTool(
@@ -774,7 +782,11 @@ func SubmitOtp(
 			"message":       "OTP verified successfully.",
 			"response_data": otpResponse,
 		}
-		return mcpgo.NewToolResultJSON(response)
+		result, err := mcpgo.NewToolResultJSON(response)
+		if err != nil {
+			return mcpgo.NewToolResultError(fmt.Sprintf("JSON marshal error: %v", err)), nil
+		}
+		return result, nil
 	}
 
 	return mcpgo.NewTool(
