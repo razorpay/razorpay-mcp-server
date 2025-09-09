@@ -1,17 +1,25 @@
+codecov:
+  require_ci_to_pass: yes
+  strict_yaml_branch: feat/code_cov_pipeline_addition  # Force Codecov to use YAML from this branch
+
 coverage:
+  precision: 2
+  round: down
+  range: "75...100"
+
   status:
     project:
-      default:   # default is the status check's name, not default settings
-        target: auto 
-        threshold: 5
-        base: auto 
-        flags: 
-          - unit
-        paths: 
-          - "src"
-       # advanced settings
-        branches: 
-          - master
-        if_ci_failed: error #success, failure, error, ignore
-        informational: false
-        only_pulls: false
+      default:
+        target: "75%"        # Target coverage - fail if below 75%
+        threshold: "1%"      # Allow 1% drop from target before failing
+        if_not_found: failure
+    patch:
+      default:
+        target: "75%"        # New code must have at least 75% coverage
+        threshold: "1%"      # Allow 1% drop from target before failing
+        if_not_found: success
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
