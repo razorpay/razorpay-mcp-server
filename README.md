@@ -19,9 +19,9 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_payment_card_details`         | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card) | ✅ |
 | `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments) | ✅ |
 | `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update) | ✅ |
-| `initiate_payment`                   | Initiate a payment using saved payment method with order and customer details | [Payment](https://razorpay.com/docs/payments/server-integration/go/integration-steps/) | ✅ |
-| `resend_otp`                        | Resend OTP if the previous one was not received or expired | [Payment](https://razorpay.com/docs/api/payments/otp-resend) | ✅ |
-| `submit_otp`                        | Verify and submit OTP to complete payment authentication | [Payment](https://razorpay.com/docs/api/payments/otp-submit) | ✅ |
+| `initiate_payment`                   | Initiate a payment using saved payment method with order and customer details | [Payment](https://github.com/razorpay/razorpay-go/blob/master/documents/payment.md) | ✅ |
+| `resend_otp`                        | Resend OTP if the previous one was not received or expired | [Payment](https://github.com/razorpay/razorpay-go/blob/master/documents/payment.md) | ✅ |
+| `submit_otp`                        | Verify and submit OTP to complete payment authentication | [Payment](https://github.com/razorpay/razorpay-go/blob/master/documents/payment.md) | ✅ |
 | `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard) | ✅ |
 | `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi) | ✅ |
 | `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard) | ✅ |
