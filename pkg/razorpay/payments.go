@@ -338,31 +338,26 @@ func extractPaymentID(payment map[string]interface{}) string {
 	return ""
 }
 
-// extractNextActionDetails extracts action and URL from the payment response
-func extractNextActionDetails(payment map[string]interface{}) (string, string) {
-	var action, otpURL string
+// extractNextActions extracts all available actions from the payment response
+func extractNextActions(payment map[string]interface{}) []map[string]interface{} {
+	var actions []map[string]interface{}
 	if nextArray, exists := payment["next"]; exists && nextArray != nil {
 		if nextSlice, ok := nextArray.([]interface{}); ok {
 			for _, item := range nextSlice {
 				if nextItem, ok := item.(map[string]interface{}); ok {
-					if actionVal, exists := nextItem["action"]; exists {
-						action = actionVal.(string)
-						if url, exists := nextItem["url"]; exists && url != nil {
-							otpURL = url.(string)
-						}
-						break
-					}
+					actions = append(actions, nextItem)
 				}
 			}
 		}
 	}
-	return action, otpURL
+	return actions
 }
 
 // buildInitiatePaymentResponse constructs the response for initiate payment
 func buildInitiatePaymentResponse(
 	payment map[string]interface{},
-	paymentID, action, otpURL string,
+	paymentID string,
+	actions []map[string]interface{},
 ) map[string]interface{} {
 	response := map[string]interface{}{
 		"razorpay_payment_id": paymentID,
@@ -372,15 +367,37 @@ func buildInitiatePaymentResponse(
 			"S2S JSON v1 flow",
 	}
 
-	if action != "" {
-		response["action"] = action
-		if otpURL != "" {
-			response["url"] = otpURL
-			response["message"] = fmt.Sprintf(
-				"Payment initiated. Next action: %s. "+
-					"Use the provided URL for next step.", action)
+	if len(actions) > 0 {
+		response["available_actions"] = actions
+
+		// Add guidance based on available actions
+		var actionTypes []string
+		hasOTP := false
+		hasRedirect := false
+
+		for _, action := range actions {
+			if actionType, exists := action["action"]; exists {
+				actionStr := actionType.(string)
+				actionTypes = append(actionTypes, actionStr)
+				if actionStr == "otp_generate" {
+					hasOTP = true
+				} else if actionStr == "redirect" {
+					hasRedirect = true
+				}
+			}
 		}
-		addNextStepInstructions(response, paymentID)
+
+		if hasOTP {
+			response["message"] = "Payment initiated. OTP authentication is available. " +
+				"Use the 'send_otp' tool to generate OTP for authentication."
+			addNextStepInstructions(response, paymentID)
+		} else if hasRedirect {
+			response["message"] = "Payment initiated. Redirect authentication is available. " +
+				"Use the redirect URL provided in available_actions."
+		} else {
+			response["message"] = fmt.Sprintf(
+				"Payment initiated. Available actions: %v", actionTypes)
+		}
 	} else {
 		addFallbackNextStepInstructions(response, paymentID)
 	}
@@ -527,12 +544,12 @@ func InitiatePayment(
 				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
 		}
 
-		// Extract payment ID and next action details
+		// Extract payment ID and all available actions
 		paymentID := extractPaymentID(payment)
-		action, otpURL := extractNextActionDetails(payment)
+		actions := extractNextActions(payment)
 
 		// Build and return response
-		response := buildInitiatePaymentResponse(payment, paymentID, action, otpURL)
+		response := buildInitiatePaymentResponse(payment, paymentID, actions)
 		return mcpgo.NewToolResultJSON(response)
 	}
 
