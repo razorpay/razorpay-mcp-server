@@ -20,7 +20,6 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments) | ✅ |
 | `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update) | ✅ |
 | `initiate_payment`                   | Initiate a payment using saved payment method with order and customer details | [Payment](https://razorpay.com/docs/payments/server-integration/go/integration-steps/) | ✅ |
-| `send_otp`                          | Generate and send OTP to customer's mobile number for payment authentication | [Payment](https://razorpay.com/docs/api/payments/otp-generate) | ✅ |
 | `resend_otp`                        | Resend OTP if the previous one was not received or expired | [Payment](https://razorpay.com/docs/api/payments/otp-resend) | ✅ |
 | `submit_otp`                        | Verify and submit OTP to complete payment authentication | [Payment](https://razorpay.com/docs/api/payments/otp-submit) | ✅ |
 | `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard) | ✅ |
