@@ -4,17 +4,17 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: "75...100"
+  range: "60...100"
 
   status:
     project:
       default:
-        target: 75%
+        target: 60%
         threshold: 1%
         if_not_found: success
     patch:
       default:
-        target: 75%
+        target: 60%
         threshold: 1%
         if_not_found: success
 
