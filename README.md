@@ -182,7 +182,6 @@ Add the following to your VS Code settings (JSON):
 
 Learn more about MCP servers in VS Code's [agent mode documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
 
-
 ## Authentication
 
 The Remote MCP Server uses merchant token-based authentication. To generate your merchant token:
