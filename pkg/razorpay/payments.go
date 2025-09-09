@@ -445,8 +445,8 @@ func InitiatePayment(
 		// Add optional parameters if provided
 		if email, exists := params["email"]; exists && email != "" {
 			paymentData["email"] = email
-		} else {
-			paymentData["email"] = paymentData["contact"].(string) + "@mcp.razorpay.com"
+		} else if contact, exists := paymentData["contact"]; exists && contact != "" {
+			paymentData["email"] = contact.(string) + "@mcp.razorpay.com"
 		}
 
 		// Create payment using Razorpay SDK's CreatePaymentJson method
@@ -478,12 +478,22 @@ func InitiatePayment(
 				response["message"] = fmt.Sprintf(
 					"Payment initiated. Next action: %s. "+
 						"Use the provided URL for next step.", action)
-				response["next_step_instruction"] = "Call the 'send_otp' tool next " +
-					"in the process to complete the payment authentication."
+				if paymentID != "" {
+					response["next_step"] = "Use 'send_otp' tool with the payment_id to " +
+						"generate OTP for authentication."
+					response["next_tool"] = "send_otp"
+					response["next_tool_params"] = map[string]interface{}{
+						"payment_id": paymentID,
+					}
+				}
 			}
-		} else {
-			response["next_step_instruction"] = "Payment initiated successfully. " +
-				"If OTP is required, call the 'send_otp' tool next in the process."
+		} else if paymentID != "" {
+			response["next_step"] = "Use 'send_otp' tool with the payment_id if " +
+				"OTP authentication is required."
+			response["next_tool"] = "send_otp"
+			response["next_tool_params"] = map[string]interface{}{
+				"payment_id": paymentID,
+			}
 		}
 
 		return mcpgo.NewToolResultJSON(response)
@@ -494,7 +504,7 @@ func InitiatePayment(
 		"Initiate a payment using the S2S JSON v1 flow with required parameters: "+
 			"amount, order_id, and token. Supports optional parameters "+
 			"like email and contact. "+
-			"Returns payment details including next action steps if required.", //nolint:lll
+			"Returns payment details including next action steps if required.",
 		parameters,
 		handler,
 	)
@@ -544,10 +554,18 @@ func SendOtp(
 
 		// Prepare response
 		response := map[string]interface{}{
-			"payment_id":    paymentID,
-			"status":        "success",
-			"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
+			"payment_id": paymentID,
+			"status":     "success",
+			"message": "OTP sent successfully. Please enter the OTP received on your " +
+				"mobile number to complete the payment.",
 			"response_data": otpResponse,
+			"next_step": "Use 'submit_otp' tool with the OTP code received from user " +
+				"to complete payment authentication.",
+			"next_tool": "submit_otp",
+			"next_tool_params": map[string]interface{}{
+				"payment_id": paymentID,
+				"otp_string": "{OTP_CODE_FROM_USER}",
+			},
 		}
 
 		return mcpgo.NewToolResultJSON(response)
@@ -610,21 +628,29 @@ func ResendOtp(
 
 		// Prepare response
 		response := map[string]interface{}{
-			"payment_id":    paymentID,
-			"status":        "success",
-			"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
+			"payment_id": paymentID,
+			"status":     "success",
+			"message": "OTP sent successfully. Please enter the OTP received on your " +
+				"mobile number to complete the payment.",
 			"response_data": otpResponse,
 		}
 
 		// Add next step instructions if OTP submit URL is available
 		if otpSubmitURL != "" {
 			response["otp_submit_url"] = otpSubmitURL
-			response["next_step"] = fmt.Sprintf(
-				"Use 'submit_otp' tool with the OTP code received from user and url %s to complete payment.", //nolint:lll
-				otpSubmitURL)
+			response["next_step"] = "Use 'submit_otp' tool with the OTP code received " +
+				"from user to complete payment authentication."
 			response["next_tool"] = "submit_otp"
 			response["next_tool_params"] = map[string]interface{}{
-				"url":        otpSubmitURL,
+				"payment_id": paymentID,
+				"otp_string": "{OTP_CODE_FROM_USER}",
+			}
+		} else {
+			response["next_step"] = "Use 'submit_otp' tool with the OTP code received " +
+				"from user to complete payment authentication."
+			response["next_tool"] = "submit_otp"
+			response["next_tool_params"] = map[string]interface{}{
+				"payment_id": paymentID,
 				"otp_string": "{OTP_CODE_FROM_USER}",
 			}
 		}

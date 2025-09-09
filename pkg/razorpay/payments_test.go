@@ -654,8 +654,12 @@ func Test_InitiatePayment(t *testing.T) {
 					"pay_29QQoUBi66xm2f/otp_generate",
 				"message": "Payment initiated. Next action: otp_generate. " +
 					"Use the provided URL for next step.",
-				"next_step_instruction": "Call the 'send_otp' tool next " +
-					"in the process to complete the payment authentication.",
+				"next_step": "Use 'send_otp' tool with the payment_id to " +
+					"generate OTP for authentication.",
+				"next_tool": "send_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_29QQoUBi66xm2f",
+				},
 			},
 		},
 		{
@@ -685,8 +689,12 @@ func Test_InitiatePayment(t *testing.T) {
 					"pay_29QQoUBi66xm2f/otp_generate",
 				"message": "Payment initiated. Next action: otp_generate. " +
 					"Use the provided URL for next step.",
-				"next_step_instruction": "Call the 'send_otp' tool next " +
-					"in the process to complete the payment authentication.",
+				"next_step": "Use 'send_otp' tool with the payment_id to " +
+					"generate OTP for authentication.",
+				"next_tool": "send_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_29QQoUBi66xm2f",
+				},
 			},
 		},
 		{
@@ -729,8 +737,12 @@ func Test_InitiatePayment(t *testing.T) {
 					"pay_29QQoUBi66xm2f/otp_generate",
 				"message": "Payment initiated. Next action: otp_generate. " +
 					"Use the provided URL for next step.",
-				"next_step_instruction": "Call the 'send_otp' tool next " +
-					"in the process to complete the payment authentication.",
+				"next_step": "Use 'send_otp' tool with the payment_id to " +
+					"generate OTP for authentication.",
+				"next_tool": "send_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_29QQoUBi66xm2f",
+				},
 			},
 		},
 		{
@@ -759,8 +771,12 @@ func Test_InitiatePayment(t *testing.T) {
 					"pay_29QQoUBi66xm2f/otp_generate",
 				"message": "Payment initiated. Next action: otp_generate. " +
 					"Use the provided URL for next step.",
-				"next_step_instruction": "Call the 'send_otp' tool next " +
-					"in the process to complete the payment authentication.",
+				"next_step": "Use 'send_otp' tool with the payment_id to " +
+					"generate OTP for authentication.",
+				"next_tool": "send_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_29QQoUBi66xm2f",
+				},
 			},
 		},
 		{
@@ -914,10 +930,18 @@ func Test_SendOtp(t *testing.T) {
 			},
 			ExpectError: false,
 			ExpectedResult: map[string]interface{}{
-				"payment_id":    "pay_29QQoUBi66xm2f",
-				"status":        "success",
-				"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"status":     "success",
+				"message": "OTP sent successfully. Please enter the OTP received on your " +
+					"mobile number to complete the payment.",
 				"response_data": successResponse,
+				"next_step": "Use 'submit_otp' tool with the OTP code received from user " +
+					"to complete payment authentication.",
+				"next_tool": "submit_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_29QQoUBi66xm2f",
+					"otp_string": "{OTP_CODE_FROM_USER}",
+				},
 			},
 		},
 		{
@@ -1031,17 +1055,18 @@ func Test_ResendOtp(t *testing.T) {
 			},
 			ExpectError: false,
 			ExpectedResult: map[string]interface{}{
-				"payment_id":    "pay_29QQoUBi66xm2f",
-				"status":        "success",
-				"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"status":     "success",
+				"message": "OTP sent successfully. Please enter the OTP received on your " +
+					"mobile number to complete the payment.",
 				"response_data": successResponse,
 				"otp_submit_url": "https://api.razorpay.com/v1/payments/" +
 					"pay_29QQoUBi66xm2f/otp_submit",
-				"next_step": "Use 'submit_otp' tool with the OTP code received from user and url https://api.razorpay.com/v1/payments/pay_29QQoUBi66xm2f/otp_submit to complete payment.", //nolint:lll
+				"next_step": "Use 'submit_otp' tool with the OTP code received from user " +
+					"to complete payment authentication.",
 				"next_tool": "submit_otp",
 				"next_tool_params": map[string]interface{}{
-					"url": "https://api.razorpay.com/v1/payments/" +
-						"pay_29QQoUBi66xm2f/otp_submit",
+					"payment_id": "pay_29QQoUBi66xm2f",
 					"otp_string": "{OTP_CODE_FROM_USER}",
 				},
 			},
@@ -1062,10 +1087,18 @@ func Test_ResendOtp(t *testing.T) {
 			},
 			ExpectError: false,
 			ExpectedResult: map[string]interface{}{
-				"payment_id":    "pay_29QQoUBi66xm2f",
-				"status":        "success",
-				"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"status":     "success",
+				"message": "OTP sent successfully. Please enter the OTP received on your " +
+					"mobile number to complete the payment.",
 				"response_data": map[string]interface{}{"status": "success"},
+				"next_step": "Use 'submit_otp' tool with the OTP code received from user " +
+					"to complete payment authentication.",
+				"next_tool": "submit_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_29QQoUBi66xm2f",
+					"otp_string": "{OTP_CODE_FROM_USER}",
+				},
 			},
 		},
 		{
