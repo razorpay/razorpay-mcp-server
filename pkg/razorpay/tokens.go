@@ -53,7 +53,6 @@ func FetchSavedCardsWithContact(
 		contact := *contactValue
 		customerData := map[string]interface{}{
 			"contact":       contact,
-			"email":         "",
 			"fail_existing": "0", // Get existing customer if exists
 		}
 

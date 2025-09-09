@@ -608,21 +608,6 @@ func Test_InitiatePayment(t *testing.T) {
 		constants.PAYMENT_URL,
 	)
 
-	successPaymentResp := map[string]interface{}{
-		"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
-		"status":              "created",
-		"amount":              float64(10000),
-		"currency":            "INR",
-		"order_id":            "order_MT48CvBhIC98MQ",
-		"next": []interface{}{
-			map[string]interface{}{
-				"action": "otp_generate",
-				"url": "https://api.razorpay.com/v1/payments/" +
-					"pay_MT48CvBhIC98MQ/otp_generate",
-			},
-		},
-	}
-
 	successPaymentWithRedirectResp := map[string]interface{}{
 		"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
 		"status":              "created",
@@ -655,7 +640,7 @@ func Test_InitiatePayment(t *testing.T) {
 
 	tests := []RazorpayToolTestCase{
 		{
-			Name: "successful payment initiation with OTP",
+			Name: "successful payment initiation without next actions",
 			Request: map[string]interface{}{
 				"amount":   10000,
 				"currency": "INR",
@@ -669,27 +654,20 @@ func Test_InitiatePayment(t *testing.T) {
 					mock.Endpoint{
 						Path:     initiatePaymentPath,
 						Method:   "POST",
-						Response: successPaymentResp,
+						Response: successPaymentWithoutNextResp,
 					},
 				)
 			},
 			ExpectError: false,
 			ExpectedResult: map[string]interface{}{
 				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
-				"payment_details":     successPaymentResp,
+				"payment_details":     successPaymentWithoutNextResp,
 				"status":              "payment_initiated",
-				"message": "Payment initiated. OTP authentication is available. " +
-					"Use the 'submit_otp' tool to submit OTP received by the " +
-					"customer for authentication.",
-				"available_actions": []interface{}{
-					map[string]interface{}{
-						"action": "otp_generate",
-						"url": "https://api.razorpay.com/v1/payments/" +
-							"pay_MT48CvBhIC98MQ/otp_generate",
-					},
-				},
+				"message": "Payment initiated successfully using " +
+					"S2S JSON v1 flow",
 				"next_step": "Use 'resend_otp' to regenerate OTP or " +
-					"'submit_otp' to proceed to enter OTP.",
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
 				"next_tool": "resend_otp",
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
@@ -729,7 +707,7 @@ func Test_InitiatePayment(t *testing.T) {
 			},
 		},
 		{
-			Name: "successful payment initiation without next actions",
+			Name: "successful payment initiation with contact only",
 			Request: map[string]interface{}{
 				"amount":   10000,
 				"token":    "token_MT48CvBhIC98MQ",

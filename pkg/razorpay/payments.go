@@ -3,6 +3,10 @@ package razorpay
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -355,12 +359,58 @@ func extractNextActions(
 	return actions
 }
 
+// OTPResponse represents the response from OTP generation API
+
+// sendOtp sends an OTP to the customer and returns the response
+func sendOtp(otpUrl string) error {
+	if otpUrl == "" {
+		return fmt.Errorf("OTP URL is empty")
+	}
+	// Validate URL is safe and from Razorpay domain for security
+	parsedURL, err := url.Parse(otpUrl)
+	if err != nil {
+		return fmt.Errorf("invalid OTP URL: %s", err.Error())
+	}
+
+	if parsedURL.Scheme != "https" {
+		return fmt.Errorf("OTP URL must use HTTPS")
+	}
+
+	if !strings.Contains(parsedURL.Host, "razorpay.com") {
+		return fmt.Errorf("OTP URL must be from Razorpay domain")
+	}
+
+	// Create a secure HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest("POST", otpUrl, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create OTP request: %s", err.Error())
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("OTP generation failed: %s", err.Error())
+	}
+	defer resp.Body.Close()
+
+	// Validate HTTP response status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("OTP generation failed with HTTP status: %d",
+			resp.StatusCode)
+	}
+	return nil
+}
+
 // buildInitiatePaymentResponse constructs the response for initiate payment
 func buildInitiatePaymentResponse(
 	payment map[string]interface{},
 	paymentID string,
 	actions []map[string]interface{},
-) map[string]interface{} {
+) (map[string]interface{}, string) {
 	response := map[string]interface{}{
 		"razorpay_payment_id": paymentID,
 		"payment_details":     payment,
@@ -368,6 +418,7 @@ func buildInitiatePaymentResponse(
 		"message": "Payment initiated successfully using " +
 			"S2S JSON v1 flow",
 	}
+	otpUrl := ""
 
 	if len(actions) > 0 {
 		response["available_actions"] = actions
@@ -383,7 +434,10 @@ func buildInitiatePaymentResponse(
 				actionTypes = append(actionTypes, actionStr)
 				if actionStr == "otp_generate" {
 					hasOTP = true
-				} else if actionStr == "redirect" {
+					otpUrl = action["url"].(string)
+				}
+
+				if actionStr == "redirect" {
 					hasRedirect = true
 				}
 			}
@@ -407,7 +461,7 @@ func buildInitiatePaymentResponse(
 		addFallbackNextStepInstructions(response, paymentID)
 	}
 
-	return response
+	return response, otpUrl
 }
 
 // addNextStepInstructions adds next step guidance to the response
@@ -555,7 +609,16 @@ func InitiatePayment(
 		actions := extractNextActions(payment)
 
 		// Build structured response using the helper function
-		response := buildInitiatePaymentResponse(payment, paymentID, actions)
+		response, otpUrl := buildInitiatePaymentResponse(payment, paymentID, actions)
+
+		// Only send OTP if there's an OTP URL
+		if otpUrl != "" {
+			err = sendOtp(otpUrl)
+			if err != nil {
+				return mcpgo.NewToolResultError(
+					fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
+			}
+		}
 
 		return mcpgo.NewToolResultJSON(response)
 	}
