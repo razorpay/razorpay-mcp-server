@@ -688,9 +688,9 @@ func Test_InitiatePayment(t *testing.T) {
 							"pay_MT48CvBhIC98MQ/otp_generate",
 					},
 				},
-				"next_step": "Use 'send_otp' tool with the payment_id to " +
-					"generate OTP for authentication.",
-				"next_tool": "send_otp",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP.",
+				"next_tool": "resend_otp",
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
 				},
@@ -752,9 +752,10 @@ func Test_InitiatePayment(t *testing.T) {
 				"status":              "payment_initiated",
 				"message": "Payment initiated successfully using " +
 					"S2S JSON v1 flow",
-				"next_step": "Use 'send_otp' tool with the payment_id if " +
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
 					"OTP authentication is required.",
-				"next_tool": "send_otp",
+				"next_tool": "resend_otp",
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
 				},

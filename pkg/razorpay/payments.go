@@ -416,9 +416,9 @@ func addNextStepInstructions(
 	paymentID string,
 ) {
 	if paymentID != "" {
-		response["next_step"] = "Use 'send_otp' tool with the payment_id to " +
-			"generate OTP for authentication."
-		response["next_tool"] = "send_otp"
+		response["next_step"] = "Use 'resend_otp' to regenerate OTP or " +
+			"'submit_otp' to proceed to enter OTP."
+		response["next_tool"] = "resend_otp"
 		response["next_tool_params"] = map[string]interface{}{
 			"payment_id": paymentID,
 		}
@@ -431,9 +431,10 @@ func addFallbackNextStepInstructions(
 	paymentID string,
 ) {
 	if paymentID != "" {
-		response["next_step"] = "Use 'send_otp' tool with the payment_id if " +
+		response["next_step"] = "Use 'resend_otp' to regenerate OTP or " +
+			"'submit_otp' to proceed to enter OTP if " +
 			"OTP authentication is required."
-		response["next_tool"] = "send_otp"
+		response["next_tool"] = "resend_otp"
 		response["next_tool_params"] = map[string]interface{}{
 			"payment_id": paymentID,
 		}
