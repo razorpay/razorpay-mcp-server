@@ -617,7 +617,8 @@ func Test_InitiatePayment(t *testing.T) {
 		"next": []interface{}{
 			map[string]interface{}{
 				"action": "otp_generate",
-				"url":    "https://api.razorpay.com/v1/payments/pay_MT48CvBhIC98MQ/otp_generate",
+				"url": "https://api.razorpay.com/v1/payments/" +
+					"pay_MT48CvBhIC98MQ/otp_generate",
 			},
 		},
 	}
@@ -631,7 +632,8 @@ func Test_InitiatePayment(t *testing.T) {
 		"next": []interface{}{
 			map[string]interface{}{
 				"action": "redirect",
-				"url":    "https://api.razorpay.com/v1/payments/pay_MT48CvBhIC98MQ/authenticate",
+				"url": "https://api.razorpay.com/v1/payments/" +
+					"pay_MT48CvBhIC98MQ/authenticate",
 			},
 		},
 	}
@@ -677,14 +679,17 @@ func Test_InitiatePayment(t *testing.T) {
 				"payment_details":     successPaymentResp,
 				"status":              "payment_initiated",
 				"message": "Payment initiated. OTP authentication is available. " +
-					"Use the 'submit_otp' tool to submit OTP received by the customer for authentication.",
+					"Use the 'submit_otp' tool to submit OTP received by the " +
+					"customer for authentication.",
 				"available_actions": []interface{}{
 					map[string]interface{}{
 						"action": "otp_generate",
-						"url":    "https://api.razorpay.com/v1/payments/pay_MT48CvBhIC98MQ/otp_generate",
+						"url": "https://api.razorpay.com/v1/payments/" +
+							"pay_MT48CvBhIC98MQ/otp_generate",
 					},
 				},
-				"next_step": "Use 'send_otp' tool with the payment_id to generate OTP for authentication.",
+				"next_step": "Use 'send_otp' tool with the payment_id to " +
+					"generate OTP for authentication.",
 				"next_tool": "send_otp",
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
@@ -717,7 +722,8 @@ func Test_InitiatePayment(t *testing.T) {
 				"available_actions": []interface{}{
 					map[string]interface{}{
 						"action": "redirect",
-						"url":    "https://api.razorpay.com/v1/payments/pay_MT48CvBhIC98MQ/authenticate",
+						"url": "https://api.razorpay.com/v1/payments/" +
+							"pay_MT48CvBhIC98MQ/authenticate",
 					},
 				},
 			},
@@ -744,9 +750,11 @@ func Test_InitiatePayment(t *testing.T) {
 				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
 				"payment_details":     successPaymentWithoutNextResp,
 				"status":              "payment_initiated",
-				"message":             "Payment initiated successfully using S2S JSON v1 flow",
-				"next_step":           "Use 'send_otp' tool with the payment_id if OTP authentication is required.",
-				"next_tool":           "send_otp",
+				"message": "Payment initiated successfully using " +
+					"S2S JSON v1 flow",
+				"next_step": "Use 'send_otp' tool with the payment_id if " +
+					"OTP authentication is required.",
+				"next_tool": "send_otp",
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
 				},
@@ -822,7 +830,8 @@ func Test_InitiatePayment(t *testing.T) {
 			MockHttpClient: nil,
 			ExpectError:    true,
 			ExpectedErrMsg: "Validation errors:\n- invalid parameter type: amount\n- " +
-				"invalid parameter type: token\n- missing required parameter: order_id\n- " +
+				"invalid parameter type: token\n- " +
+				"missing required parameter: order_id\n- " +
 				"invalid parameter type: email",
 		},
 	}

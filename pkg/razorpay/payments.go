@@ -339,7 +339,9 @@ func extractPaymentID(payment map[string]interface{}) string {
 }
 
 // extractNextActions extracts all available actions from the payment response
-func extractNextActions(payment map[string]interface{}) []map[string]interface{} {
+func extractNextActions(
+	payment map[string]interface{},
+) []map[string]interface{} {
 	var actions []map[string]interface{}
 	if nextArray, exists := payment["next"]; exists && nextArray != nil {
 		if nextSlice, ok := nextArray.([]interface{}); ok {
@@ -387,14 +389,17 @@ func buildInitiatePaymentResponse(
 			}
 		}
 
-		if hasOTP {
-			response["message"] = "Payment initiated. OTP authentication is available. " +
-				"Use the 'submit_otp' tool to submit OTP received by the customer for authentication."
+		switch {
+		case hasOTP:
+			response["message"] = "Payment initiated. OTP authentication is " +
+				"available. " +
+				"Use the 'submit_otp' tool to submit OTP received by the customer " +
+				"for authentication."
 			addNextStepInstructions(response, paymentID)
-		} else if hasRedirect {
-			response["message"] = "Payment initiated. Redirect authentication is available. " +
-				"Use the redirect URL provided in available_actions."
-		} else {
+		case hasRedirect:
+			response["message"] = "Payment initiated. Redirect authentication is " +
+				"available. Use the redirect URL provided in available_actions."
+		default:
 			response["message"] = fmt.Sprintf(
 				"Payment initiated. Available actions: %v", actionTypes)
 		}
@@ -565,82 +570,6 @@ func InitiatePayment(
 	)
 }
 
-// SendOtp returns a tool that sends OTP for payment authentication
-func SendOtp(
-	obs *observability.Observability,
-	client *rzpsdk.Client,
-) mcpgo.Tool {
-	parameters := []mcpgo.ToolParameter{
-		mcpgo.WithString(
-			"payment_id",
-			mcpgo.Description("Unique identifier of the payment for which "+
-				"OTP needs to be generated. Must start with 'pay_'"),
-			mcpgo.Required(),
-		),
-	}
-
-	handler := func(
-		ctx context.Context,
-		r mcpgo.CallToolRequest,
-	) (*mcpgo.ToolResult, error) {
-		// Get client from context or use default
-		client, err := getClientFromContextOrDefault(ctx, client)
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
-		}
-
-		params := make(map[string]interface{})
-
-		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(params, "payment_id")
-
-		if result, err := validator.HandleErrorsIfAny(); result != nil {
-			return result, err
-		}
-
-		paymentID := params["payment_id"].(string)
-
-		// Generate OTP using Razorpay SDK
-		otpResponse, err := client.Payment.OtpGenerate(paymentID, nil, map[string]string{
-			"Authorization": "",
-		})
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
-		}
-
-		// Prepare response
-		response := map[string]interface{}{
-			"payment_id": paymentID,
-			"status":     "success",
-			"message": "OTP sent successfully. Please enter the OTP received on your " +
-				"mobile number to complete the payment.",
-			"response_data": otpResponse,
-			"next_step": "Use 'submit_otp' tool with the OTP code received from user " +
-				"to complete payment authentication.",
-			"next_tool": "submit_otp",
-			"next_tool_params": map[string]interface{}{
-				"payment_id": paymentID,
-				"otp_string": "{OTP_CODE_FROM_USER}",
-			},
-		}
-
-		result, err := mcpgo.NewToolResultJSON(response)
-		if err != nil {
-			return mcpgo.NewToolResultError(fmt.Sprintf("JSON marshal error: %v", err)), nil
-		}
-		return result, nil
-	}
-
-	return mcpgo.NewTool(
-		"send_otp",
-		"Generate and send an OTP to the customer's registered mobile number "+
-			"for payment authentication.",
-		parameters,
-		handler,
-	)
-}
-
 // ResendOtp returns a tool that sends OTP for payment authentication
 func ResendOtp(
 	obs *observability.Observability,
@@ -718,7 +647,8 @@ func ResendOtp(
 
 		result, err := mcpgo.NewToolResultJSON(response)
 		if err != nil {
-			return mcpgo.NewToolResultError(fmt.Sprintf("JSON marshal error: %v", err)), nil
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("JSON marshal error: %v", err)), nil
 		}
 		return result, nil
 	}
@@ -791,7 +721,8 @@ func SubmitOtp(
 		}
 		result, err := mcpgo.NewToolResultJSON(response)
 		if err != nil {
-			return mcpgo.NewToolResultError(fmt.Sprintf("JSON marshal error: %v", err)), nil
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("JSON marshal error: %v", err)), nil
 		}
 		return result, nil
 	}
