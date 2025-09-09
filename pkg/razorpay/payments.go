@@ -498,6 +498,67 @@ func InitiatePayment(
 }
 
 // SendOtp returns a tool that sends OTP for payment authentication
+func SendOtp(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"payment_id",
+			mcpgo.Description("Unique identifier of the payment for which "+
+				"OTP needs to be generated. Must start with 'pay_'"),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		params := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(params, "payment_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		paymentId := params["payment_id"].(string)
+
+		// Generate OTP using Razorpay SDK
+		otpResponse, err := client.Payment.OtpGenerate(paymentId, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
+		}
+
+		// Prepare response
+		response := map[string]interface{}{
+			"payment_id":    paymentId,
+			"status":        "success",
+			"message":       "OTP sent successfully. Please enter the OTP received on your mobile number to complete the payment.", //nolint:lll
+			"response_data": otpResponse,
+		}
+
+		return mcpgo.NewToolResultJSON(response)
+	}
+
+	return mcpgo.NewTool(
+		"send_otp",
+		"Send OTP for payment authentication. Makes a POST request to the provided URL for OTP generation and returns the response with next step instructions.",
+		parameters,
+		handler,
+	)
+}
+
+// ResendOtp returns a tool that sends OTP for payment authentication
 func ResendOtp(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
