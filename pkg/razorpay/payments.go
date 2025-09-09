@@ -618,11 +618,6 @@ func InitiatePayment(
 				return mcpgo.NewToolResultError(
 					fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
 			}
-
-			// Mark that OTP was generated successfully
-			response["otp_generated"] = true
-			response["message"] = "Payment initiated and OTP sent successfully. " +
-				"Use 'submit_otp' tool to complete authentication."
 		}
 
 		return mcpgo.NewToolResultJSON(response)
