@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+*
+  pull_request:
+    branches:
+      - master
+jobs:
+  test:
+    name: Run tests and publish test coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.18'
+
+      - name: Run coverage
+        run: |
+         go test -race -covermode=atomic -coverprofile=coverage.out ./...
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+           token: ${{ secrets.CODECOV_TOKEN }}
