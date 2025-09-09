@@ -9,13 +9,13 @@ coverage:
   status:
     project:
       default:
-        target: 75%        # Hard threshold - fail if below 70%
-        threshold: 1%      # Allow 1% drop from target
+        target: 75%        # Target coverage - fail if below 74% (75% - 1%)
+        threshold: 1%      # Allow 1% drop from target before failing
         if_not_found: failure
     patch:
       default:
-        target: 75%        # New code must have 70% coverage
-        threshold: 1%
+        target: 75%        # New code must have at least 74% coverage
+        threshold: 1%      # Allow 1% drop from target before failing
         if_not_found: success
 
 comment:

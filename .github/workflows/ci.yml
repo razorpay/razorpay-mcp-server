@@ -38,11 +38,3 @@ jobs:
            name: codecov-umbrella
            fail_ci_if_error: true
            verbose: true
-           
-      - name: Codecov Status Check Info
-        run: |
-          echo "✅ Coverage uploaded successfully!"
-          echo "📋 Codecov will now post status checks:"
-          echo "   • codecov/project - Overall project coverage vs 70% threshold"
-          echo "   • codecov/patch - New code coverage vs 70% threshold"
-          echo "🔗 View detailed coverage at: https://codecov.io/gh/${{ github.repository }}"
