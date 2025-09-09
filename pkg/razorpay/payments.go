@@ -583,7 +583,9 @@ func SendOtp(
 		paymentID := params["payment_id"].(string)
 
 		// Generate OTP using Razorpay SDK
-		otpResponse, err := client.Payment.OtpGenerate(paymentID, nil, nil)
+		otpResponse, err := client.Payment.OtpGenerate(paymentID, nil, map[string]string{
+			"Authorization": "",
+		})
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
