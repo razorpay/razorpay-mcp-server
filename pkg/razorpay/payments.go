@@ -544,13 +544,7 @@ func InitiatePayment(
 				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
 		}
 
-		// Extract payment ID and all available actions
-		paymentID := extractPaymentID(payment)
-		actions := extractNextActions(payment)
-
-		// Build and return response
-		response := buildInitiatePaymentResponse(payment, paymentID, actions)
-		return mcpgo.NewToolResultJSON(response)
+		return mcpgo.NewToolResultJSON(payment)
 	}
 
 	return mcpgo.NewTool(
