@@ -2,6 +2,10 @@ codecov:
   require_ci_to_pass: yes
   strict_yaml_branch: feat/code_cov_pipeline_addition  # Force Codecov to use YAML from this branch
 
+# Don't ignore any files - calculate coverage exactly like local
+ignore:
+  - "none"  # Don't ignore anything
+
 coverage:
   precision: 2
   round: down
