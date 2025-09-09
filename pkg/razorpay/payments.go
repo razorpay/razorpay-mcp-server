@@ -389,7 +389,7 @@ func buildInitiatePaymentResponse(
 
 		if hasOTP {
 			response["message"] = "Payment initiated. OTP authentication is available. " +
-				"Use the 'send_otp' tool to generate OTP for authentication."
+				"Use the 'submit_otp' tool to submit OTP received by the customer for authentication."
 			addNextStepInstructions(response, paymentID)
 		} else if hasRedirect {
 			response["message"] = "Payment initiated. Redirect authentication is available. " +
@@ -544,7 +544,14 @@ func InitiatePayment(
 				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
 		}
 
-		return mcpgo.NewToolResultJSON(payment)
+		// Extract payment ID and next actions from the response
+		paymentID := extractPaymentID(payment)
+		actions := extractNextActions(payment)
+
+		// Build structured response using the helper function
+		response := buildInitiatePaymentResponse(payment, paymentID, actions)
+
+		return mcpgo.NewToolResultJSON(response)
 	}
 
 	return mcpgo.NewTool(

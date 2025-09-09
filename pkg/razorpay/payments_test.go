@@ -822,7 +822,7 @@ func Test_InitiatePayment(t *testing.T) {
 			MockHttpClient: nil,
 			ExpectError:    true,
 			ExpectedErrMsg: "Validation errors:\n- invalid parameter type: amount\n- " +
-				"missing required parameter: order_id\n- invalid parameter type: token\n- " +
+				"invalid parameter type: token\n- missing required parameter: order_id\n- " +
 				"invalid parameter type: email",
 		},
 	}
