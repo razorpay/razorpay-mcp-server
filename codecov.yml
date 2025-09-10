@@ -17,7 +17,6 @@ coverage:
         target: 75        # Target coverage - fail if below 75%
         threshold: 0      # No drop allowed - strict enforcement
         if_not_found: failure
-        removed_code_behavior: off  # Don't ignore removed code
     patch:
       default:
         target: 75        # Target coverage - fail if below 75%
