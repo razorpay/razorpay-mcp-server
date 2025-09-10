@@ -17,7 +17,7 @@ func NewToolSets(
 	toolsetGroup := toolsets.NewToolsetGroup(readOnly)
 
 	// Create toolsets
-	payments := toolsets.NewToolset("payments", "Razorpay Payments related tools").
+	payments := toolsets.NewToolset("payments", "Razorpay Payments related tools"). 
 		AddReadTools(
 			FetchPayment(obs, client),
 			FetchPaymentCardDetails(obs, client),
