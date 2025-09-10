@@ -2,25 +2,23 @@ codecov:
   require_ci_to_pass: yes
 
 ignore:
-  - "none"  # Don't ignore anything
+  - "none"
 
 coverage:
   precision: 2
   round: down
-  range: "75...100"
+  range: 75...100
   
   status:
-    # Ensure status checks are enabled
-    changes: true  # Don't require changes to run status checks
     project:
       default:
-        target: 75        # Target coverage - fail if below 75%
-        threshold: 0      # No drop allowed - strict enforcement
+        target: 75        # absolute minimum coverage required
+        threshold: 0      # no drop allowed
         if_not_found: failure
     patch:
       default:
-        target: 75        # Target coverage - fail if below 75%
-        threshold: 0  
+        target: 75        # new code must also meet 75%
+        threshold: 0
         if_not_found: failure
 
 comment:
