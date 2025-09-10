@@ -12,12 +12,12 @@ coverage:
   status:
     project:
       default:
-        target: 75        # absolute minimum coverage required
-        threshold: 0      # no drop allowed
+        target: 75       
+        threshold: 0     
         if_not_found: failure
     patch:
       default:
-        target: 75        # new code must also meet 75%
+        target: 100        
         threshold: 0
         if_not_found: failure
 
