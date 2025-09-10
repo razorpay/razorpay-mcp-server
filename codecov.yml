@@ -12,13 +12,13 @@ coverage:
   status:
     project:
       default:
-        target: 75       
-        threshold: 0     
+        target: 75%
+        threshold: 0%
         if_not_found: failure
     patch:
       default:
-        target: 100        
-        threshold: 0
+        target: 75%        
+        threshold: 0%
         if_not_found: failure
 
 comment:

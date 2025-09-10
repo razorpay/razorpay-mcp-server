@@ -24,11 +24,6 @@ github.com/razorpay/razorpay-mcp-server/cmd/razorpay-mcp-server/stdio.go:103.20,
 github.com/razorpay/razorpay-mcp-server/cmd/razorpay-mcp-server/stdio.go:106.21,107.17 1 0
 github.com/razorpay/razorpay-mcp-server/cmd/razorpay-mcp-server/stdio.go:107.17,110.4 2 0
 github.com/razorpay/razorpay-mcp-server/cmd/razorpay-mcp-server/stdio.go:111.3,111.13 1 0
-github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:19.41,22.27 2 0
-github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:22.27,24.3 1 0
-github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:25.2,25.22 1 0
-github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:29.46,30.38 1 0
-github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:30.38,32.3 1 0
 github.com/razorpay/razorpay-mcp-server/pkg/mcpgo/server.go:19.78,26.27 2 0
 github.com/razorpay/razorpay-mcp-server/pkg/mcpgo/server.go:26.27,28.3 1 0
 github.com/razorpay/razorpay-mcp-server/pkg/mcpgo/server.go:31.2,41.3 2 0
@@ -182,6 +177,11 @@ github.com/razorpay/razorpay-mcp-server/pkg/mcpgo/tool.go:470.16,472.3 1 0
 github.com/razorpay/razorpay-mcp-server/pkg/mcpgo/tool.go:474.2,478.8 1 0
 github.com/razorpay/razorpay-mcp-server/pkg/mcpgo/tool.go:482.49,488.2 1 0
 github.com/razorpay/razorpay-mcp-server/pkg/mcpgo/tool.go:491.50,497.2 1 0
+github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:19.41,22.27 2 0
+github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:22.27,24.3 1 0
+github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:25.2,25.22 1 0
+github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:29.46,30.38 1 0
+github.com/razorpay/razorpay-mcp-server/pkg/observability/observability.go:30.38,32.3 1 0
 github.com/razorpay/razorpay-mcp-server/pkg/toolsets/toolsets.go:27.59,34.2 1 0
 github.com/razorpay/razorpay-mcp-server/pkg/toolsets/toolsets.go:37.51,43.2 1 0
 github.com/razorpay/razorpay-mcp-server/pkg/toolsets/toolsets.go:46.63,47.17 1 0
