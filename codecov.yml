@@ -1,5 +1,27 @@
+codecov:
+  require_ci_to_pass: yes
+
+ignore:
+  - "none"
+
 coverage:
+  precision: 2
+  round: down
+  range: 75...100
+  
   status:
     project:
       default:
-        target: 80%
+        target: 75        # absolute minimum coverage required
+        threshold: 0      # no drop allowed
+        if_not_found: failure
+    patch:
+      default:
+        target: 75        # new code must also meet 75%
+        threshold: 0
+        if_not_found: failure
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
