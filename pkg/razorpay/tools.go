@@ -119,3 +119,8 @@ func NewToolSets(
 
 	return toolsetGroup, nil
 }
+
+// AddTwoNumbers adds two integers and returns their sum
+func AddTwoNumbers(a, b int) int {
+	return a + b
+}
