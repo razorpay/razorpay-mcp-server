@@ -11,9 +11,9 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
-// FetchSavedCardsWithContact returns a tool that fetches saved cards
+// FetchSavedPaymentMethodsWithContact returns a tool that fetches saved cards
 // using contact number
-func FetchSavedCardsWithContact(
+func FetchSavedPaymentMethodsWithContact(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
@@ -92,7 +92,7 @@ func FetchSavedCardsWithContact(
 	}
 
 	return mcpgo.NewTool(
-		"fetch_saved_cards_with_contact",
+		"fetch_saved_payment_methods_with_contact",
 		"Get all saved payment methods (cards, UPI, wallets, etc.)"+
 			" for a contact number. "+
 			"This tool first finds or creates a"+

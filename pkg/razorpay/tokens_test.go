@@ -15,7 +15,7 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
 )
 
-func Test_FetchSavedCardsWithContact(t *testing.T) {
+func Test_FetchSavedPaymentMethodsWithContact(t *testing.T) {
 	// URL patterns for mocking
 	createCustomerPath := fmt.Sprintf(
 		"/%s%s",
@@ -327,19 +327,21 @@ func Test_FetchSavedCardsWithContact(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			runToolTest(t, tc, FetchSavedCardsWithContact, "Saved Cards")
+			runToolTest(t, tc, FetchSavedPaymentMethodsWithContact, "Saved Cards")
 		})
 	}
 }
 
-// Test_FetchSavedCardsWithContact_ClientContextScenarios tests scenarios
-// related to client context handling for 100% code coverage
-func Test_FetchSavedCardsWithContact_ClientContextScenarios(t *testing.T) {
+// Test_FetchSavedPaymentMethodsWithContact_ClientContextScenarios tests
+// scenarios related to client context handling for 100% code coverage
+func Test_FetchSavedPaymentMethodsWithContact_ClientContextScenarios(
+	t *testing.T,
+) {
 	obs := CreateTestObservability()
 
 	t.Run("no client in context and default is nil", func(t *testing.T) {
 		// Create tool with nil client
-		tool := FetchSavedCardsWithContact(obs, nil)
+		tool := FetchSavedPaymentMethodsWithContact(obs, nil)
 
 		// Create context without client
 		ctx := context.Background()
@@ -375,7 +377,7 @@ func Test_FetchSavedCardsWithContact_ClientContextScenarios(t *testing.T) {
 
 	t.Run("invalid client type in context", func(t *testing.T) {
 		// Create tool with nil client
-		tool := FetchSavedCardsWithContact(obs, nil)
+		tool := FetchSavedPaymentMethodsWithContact(obs, nil)
 
 		// Create context with invalid client type
 		ctx := contextkey.WithClient(context.Background(), "invalid_client_type")
