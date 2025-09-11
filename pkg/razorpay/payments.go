@@ -850,7 +850,9 @@ func extractOtpSubmitURL(responseData interface{}) string {
 
 		submitURL, exists := nextItem["url"]
 		if exists && submitURL != nil {
-			return submitURL.(string)
+			if urlStr, ok := submitURL.(string); ok {
+				return urlStr
+			}
 		}
 	}
 
