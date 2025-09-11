@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/razorpay/razorpay-go/constants"
@@ -890,6 +891,489 @@ func Test_InitiatePayment(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			runToolTest(t, tc, InitiatePayment, "Payment Initiation")
+		})
+	}
+}
+
+func Test_sendOtp(t *testing.T) {
+	tests := []struct {
+		name        string
+		otpUrl      string
+		expected    map[string]interface{}
+		expectError bool
+	}{
+		{
+			name:   "empty OTP URL",
+			otpUrl: "",
+			expected: map[string]interface{}{
+				"error": map[string]interface{}{
+					"description": "OTP URL is empty",
+					"code":        "BAD_REQUEST_ERROR",
+				},
+			},
+			expectError: true,
+		},
+		{
+			name:        "invalid OTP URL format",
+			otpUrl:      "not-a-valid-url",
+			expectError: true, // Will contain "Invalid OTP URL" in description
+		},
+		{
+			name:   "non-HTTPS URL",
+			otpUrl: "http://api.razorpay.com/v1/payments/pay_123/otp",
+			expected: map[string]interface{}{
+				"error": map[string]interface{}{
+					"description": "OTP URL must use HTTPS",
+					"code":        "BAD_REQUEST_ERROR",
+				},
+			},
+			expectError: true,
+		},
+		{
+			name:   "non-Razorpay domain",
+			otpUrl: "https://api.example.com/v1/payments/pay_123/otp",
+			expected: map[string]interface{}{
+				"error": map[string]interface{}{
+					"description": "OTP URL must be from Razorpay domain",
+					"code":        "BAD_REQUEST_ERROR",
+				},
+			},
+			expectError: true,
+		},
+		{
+			name:        "valid Razorpay URL but API error",
+			otpUrl:      "https://api.razorpay.com/v1/payments/pay_123/otp",
+			expectError: false, // Will get a response (404 but still a response)
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := sendOtp(tt.otpUrl)
+
+			if tt.expectError {
+				// Check if error structure exists
+				if errorMap, exists := result["error"]; exists {
+					actualError := errorMap.(map[string]interface{})
+
+					// Check error code
+					if actualError["code"] != "BAD_REQUEST_ERROR" {
+						t.Errorf("Expected error code BAD_REQUEST_ERROR, got %v", actualError["code"])
+					}
+
+					// For specific test cases, check exact description
+					if tt.expected != nil {
+						expectedError := tt.expected["error"].(map[string]interface{})
+						if tt.name == "invalid OTP URL format" {
+							if !strings.Contains(actualError["description"].(string), "Invalid OTP URL") {
+								t.Errorf("Expected description to contain 'Invalid OTP URL', got %v", actualError["description"])
+							}
+						} else if tt.name != "valid Razorpay URL but API error" {
+							if actualError["description"] != expectedError["description"] {
+								t.Errorf("Expected error description %v, got %v", expectedError["description"], actualError["description"])
+							}
+						}
+					}
+				} else {
+					t.Errorf("Expected error in response, but got %+v", result)
+				}
+			} else {
+				// For non-error cases, just ensure we got a response
+				if len(result) == 0 {
+					t.Errorf("Expected non-empty response")
+				}
+			}
+		})
+	}
+}
+
+func Test_addNextStepInstructions(t *testing.T) {
+	tests := []struct {
+		name      string
+		paymentID string
+		expected  map[string]interface{}
+	}{
+		{
+			name:      "with valid payment ID",
+			paymentID: "pay_MT48CvBhIC98MQ",
+			expected: map[string]interface{}{
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			name:      "with empty payment ID",
+			paymentID: "",
+			expected:  map[string]interface{}{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			response := make(map[string]interface{})
+			addNextStepInstructions(response, tt.paymentID)
+
+			// Check if the response matches expected
+			for key, expectedValue := range tt.expected {
+				if actualValue, exists := response[key]; !exists {
+					t.Errorf("Expected key %s not found in response", key)
+				} else {
+					// Handle nested maps
+					if expectedMap, isMap := expectedValue.(map[string]interface{}); isMap {
+						actualMap := actualValue.(map[string]interface{})
+						for nestedKey, nestedExpectedValue := range expectedMap {
+							if actualNestedValue := actualMap[nestedKey]; actualNestedValue != nestedExpectedValue {
+								t.Errorf("Expected %s.%s = %v, got %v", key, nestedKey, nestedExpectedValue, actualNestedValue)
+							}
+						}
+					} else if actualValue != expectedValue {
+						t.Errorf("Expected %s = %v, got %v", key, expectedValue, actualValue)
+					}
+				}
+			}
+
+			// Ensure no extra keys are added when payment ID is empty
+			if tt.paymentID == "" && len(response) != 0 {
+				t.Errorf("Expected empty response for empty payment ID, got %+v", response)
+			}
+		})
+	}
+}
+
+func Test_addFallbackNextStepInstructions(t *testing.T) {
+	tests := []struct {
+		name      string
+		paymentID string
+		expected  map[string]interface{}
+	}{
+		{
+			name:      "with valid payment ID",
+			paymentID: "pay_MT48CvBhIC98MQ",
+			expected: map[string]interface{}{
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			name:      "with empty payment ID",
+			paymentID: "",
+			expected:  map[string]interface{}{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			response := make(map[string]interface{})
+			addFallbackNextStepInstructions(response, tt.paymentID)
+
+			// Check if the response matches expected
+			for key, expectedValue := range tt.expected {
+				if actualValue, exists := response[key]; !exists {
+					t.Errorf("Expected key %s not found in response", key)
+				} else {
+					// Handle nested maps
+					if expectedMap, isMap := expectedValue.(map[string]interface{}); isMap {
+						actualMap := actualValue.(map[string]interface{})
+						for nestedKey, nestedExpectedValue := range expectedMap {
+							if actualNestedValue := actualMap[nestedKey]; actualNestedValue != nestedExpectedValue {
+								t.Errorf("Expected %s.%s = %v, got %v", key, nestedKey, nestedExpectedValue, actualNestedValue)
+							}
+						}
+					} else if actualValue != expectedValue {
+						t.Errorf("Expected %s = %v, got %v", key, expectedValue, actualValue)
+					}
+				}
+			}
+
+			// Ensure no extra keys are added when payment ID is empty
+			if tt.paymentID == "" && len(response) != 0 {
+				t.Errorf("Expected empty response for empty payment ID, got %+v", response)
+			}
+		})
+	}
+}
+
+func Test_extractPaymentID(t *testing.T) {
+	tests := []struct {
+		name     string
+		payment  map[string]interface{}
+		expected string
+	}{
+		{
+			name: "with razorpay_payment_id",
+			payment: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+			},
+			expected: "pay_MT48CvBhIC98MQ",
+		},
+		{
+			name: "without razorpay_payment_id field",
+			payment: map[string]interface{}{
+				"id": "pay_MT48CvBhIC98MQ",
+			},
+			expected: "",
+		},
+		{
+			name: "with both fields - razorpay_payment_id takes priority",
+			payment: map[string]interface{}{
+				"razorpay_payment_id": "pay_priority",
+				"id":                  "pay_secondary",
+			},
+			expected: "pay_priority",
+		},
+		{
+			name:     "with empty payment",
+			payment:  map[string]interface{}{},
+			expected: "",
+		},
+		{
+			name:     "with nil payment",
+			payment:  nil,
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractPaymentID(tt.payment)
+			if result != tt.expected {
+				t.Errorf("Expected %s, got %s", tt.expected, result)
+			}
+		})
+	}
+}
+
+func Test_extractOtpSubmitURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		payment  map[string]interface{}
+		expected string
+	}{
+		{
+			name: "with next actions containing otp_submit",
+			payment: map[string]interface{}{
+				"next": []interface{}{
+					map[string]interface{}{
+						"action": "otp_submit",
+						"url":    "https://api.razorpay.com/v1/payments/pay_123/otp/submit",
+					},
+				},
+			},
+			expected: "https://api.razorpay.com/v1/payments/pay_123/otp/submit",
+		},
+		{
+			name: "with next actions not containing otp_submit",
+			payment: map[string]interface{}{
+				"next": []interface{}{
+					map[string]interface{}{
+						"action": "redirect",
+						"url":    "https://api.razorpay.com/v1/payments/pay_123/authenticate",
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "with multiple next actions - find otp_submit",
+			payment: map[string]interface{}{
+				"next": []interface{}{
+					map[string]interface{}{
+						"action": "redirect",
+						"url":    "https://api.razorpay.com/v1/payments/pay_123/authenticate",
+					},
+					map[string]interface{}{
+						"action": "otp_submit",
+						"url":    "https://api.razorpay.com/v1/payments/pay_123/otp/submit",
+					},
+				},
+			},
+			expected: "https://api.razorpay.com/v1/payments/pay_123/otp/submit",
+		},
+		{
+			name: "with empty next actions",
+			payment: map[string]interface{}{
+				"next": []interface{}{},
+			},
+			expected: "",
+		},
+		{
+			name:     "without next field",
+			payment:  map[string]interface{}{},
+			expected: "",
+		},
+		{
+			name:     "with nil payment",
+			payment:  nil,
+			expected: "",
+		},
+		{
+			name: "with invalid next structure",
+			payment: map[string]interface{}{
+				"next": "invalid",
+			},
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractOtpSubmitURL(tt.payment)
+			if result != tt.expected {
+				t.Errorf("Expected %s, got %s", tt.expected, result)
+			}
+		})
+	}
+}
+
+func Test_ResendOtp(t *testing.T) {
+	resendOtpPath := fmt.Sprintf(
+		"/%s%s/%%s/otp/resend",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	successResponse := map[string]interface{}{
+		"next": []interface{}{
+			map[string]interface{}{
+				"action": "otp_submit",
+				"url":    "https://api.razorpay.com/v1/payments/pay_123/otp/submit",
+			},
+		},
+		"razorpay_payment_id": "pay_123",
+		"status":              "created",
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful OTP resend with submit URL",
+			Request: map[string]interface{}{
+				"payment_id": "pay_123",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(resendOtpPath, "pay_123"),
+						Method:   "POST",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"payment_id": "pay_123",
+				"status":     "success",
+				"message": "OTP sent successfully. Please enter the OTP received on your " +
+					"mobile number to complete the payment.",
+				"response_data":  successResponse,
+				"otp_submit_url": "https://api.razorpay.com/v1/payments/pay_123/otp/submit",
+				"next_step":      "Use 'submit_otp' tool with the OTP code received from user to complete payment authentication.",
+				"next_tool":      "submit_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_123",
+					"otp_string": "{OTP_CODE_FROM_USER}",
+				},
+			},
+		},
+		{
+			Name: "successful OTP resend without submit URL",
+			Request: map[string]interface{}{
+				"payment_id": "pay_456",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				responseWithoutOtpUrl := map[string]interface{}{
+					"razorpay_payment_id": "pay_456",
+					"status":              "created",
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(resendOtpPath, "pay_456"),
+						Method:   "POST",
+						Response: responseWithoutOtpUrl,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"payment_id": "pay_456",
+				"status":     "success",
+				"message": "OTP sent successfully. Please enter the OTP received on your " +
+					"mobile number to complete the payment.",
+				"response_data": map[string]interface{}{
+					"razorpay_payment_id": "pay_456",
+					"status":              "created",
+				},
+				"next_step": "Use 'submit_otp' tool with the OTP code received from user to complete payment authentication.",
+				"next_tool": "submit_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_456",
+					"otp_string": "{OTP_CODE_FROM_USER}",
+				},
+			},
+		},
+		{
+			Name: "OTP resend API error",
+			Request: map[string]interface{}{
+				"payment_id": "pay_invalid",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   fmt.Sprintf(resendOtpPath, "pay_invalid"),
+						Method: "POST",
+						Response: map[string]interface{}{
+							"error": map[string]interface{}{
+								"code":        "BAD_REQUEST_ERROR",
+								"description": "Payment not found",
+							},
+						},
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedResult: map[string]interface{}{
+				"error": "OTP resend failed: Payment not found",
+			},
+		},
+		{
+			Name:    "missing required payment_id parameter",
+			Request: map[string]interface{}{
+				// missing payment_id
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient()
+			},
+			ExpectError: true,
+			ExpectedResult: map[string]interface{}{
+				"error": "missing required parameter: payment_id",
+			},
+		},
+		{
+			Name: "invalid payment_id parameter type",
+			Request: map[string]interface{}{
+				"payment_id": 123, // should be string
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient()
+			},
+			ExpectError: true,
+			ExpectedResult: map[string]interface{}{
+				"error": "invalid parameter type: payment_id",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, ResendOtp, "OTP Resend")
 		})
 	}
 }
