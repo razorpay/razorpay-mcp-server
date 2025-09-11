@@ -675,6 +675,78 @@ func Test_InitiatePayment(t *testing.T) {
 			},
 		},
 		{
+			Name: "successful payment initiation with CVV",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"currency": "INR",
+				"token":    "token_MT48CvBhIC98MQ",
+				"order_id": "order_MT48CvBhIC98MQ",
+				"email":    "test@example.com",
+				"contact":  "9876543210",
+				"cvv":      "123",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaymentWithoutNextResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details":     successPaymentWithoutNextResp,
+				"status":              "payment_initiated",
+				"message": "Payment initiated successfully using " +
+					"S2S JSON v1 flow",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			Name: "successful payment initiation without CVV (empty string)",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"currency": "INR",
+				"token":    "token_MT48CvBhIC98MQ",
+				"order_id": "order_MT48CvBhIC98MQ",
+				"email":    "test@example.com",
+				"contact":  "9876543210",
+				"cvv":      "",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaymentWithoutNextResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details":     successPaymentWithoutNextResp,
+				"status":              "payment_initiated",
+				"message": "Payment initiated successfully using " +
+					"S2S JSON v1 flow",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
 			Name: "successful payment initiation with redirect",
 			Request: map[string]interface{}{
 				"amount":   10000,
