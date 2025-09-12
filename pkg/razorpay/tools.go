@@ -101,7 +101,7 @@ func NewToolSets(
 		)
 
 	// Add the single custom tool to an existing toolset
-	payments.AddReadTools(FetchSavedCardsWithContact(obs, client))
+	payments.AddReadTools(FetchSavedPaymentMethods(obs, client))
 
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)
