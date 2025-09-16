@@ -26,6 +26,9 @@ func NewToolSets(
 		AddWriteTools(
 			CapturePayment(obs, client),
 			UpdatePayment(obs, client),
+			InitiatePayment(obs, client),
+			ResendOtp(obs, client),
+			SubmitOtp(obs, client),
 		)
 
 	paymentLinks := toolsets.NewToolset(
@@ -96,6 +99,9 @@ func NewToolSets(
 		AddWriteTools(
 			CreateInstantSettlement(obs, client),
 		)
+
+	// Add the single custom tool to an existing toolset
+	payments.AddReadTools(FetchSavedPaymentMethods(obs, client))
 
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(payments)

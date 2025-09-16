@@ -19,6 +19,9 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_payment_card_details`         | Fetch card details used for a payment                  | [Payment](https://razorpay.com/docs/api/payments/fetch-payment-expanded-card) | ✅ |
 | `fetch_all_payments`                 | Fetch all payments with filtering and pagination       | [Payment](https://razorpay.com/docs/api/payments/fetch-all-payments) | ✅ |
 | `update_payment`                     | Update the notes field of a payment                    | [Payment](https://razorpay.com/docs/api/payments/update) | ✅ |
+| `initiate_payment`                   | Initiate a payment using saved payment method with order and customer details | [Payment](https://github.com/razorpay/razorpay-go/blob/master/documents/payment.md#create-payment-json) | ✅ |
+| `resend_otp`                        | Resend OTP if the previous one was not received or expired | [Payment](https://github.com/razorpay/razorpay-go/blob/master/documents/payment.md#otp-resend) | ✅ |
+| `submit_otp`                        | Verify and submit OTP to complete payment authentication | [Payment](https://github.com/razorpay/razorpay-go/blob/master/documents/payment.md#otp-submit) | ✅ |
 | `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard) | ✅ |
 | `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi) | ✅ |
 | `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard) | ✅ |
@@ -51,6 +54,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_instant_settlement_with_id`   | Fetch instant settlement with ID                       | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-with-id) | ✅ |
 | `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/) | ✅ |
 | `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id) | ✅ |
+| `fetch_tokens`     | Get all saved payment methods for a contact number     | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/cards/tokens/) | ✅ |
 
 
 ## Use Cases
@@ -177,7 +181,6 @@ Add the following to your VS Code settings (JSON):
 ```
 
 Learn more about MCP servers in VS Code's [agent mode documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
-
 
 ## Authentication
 
