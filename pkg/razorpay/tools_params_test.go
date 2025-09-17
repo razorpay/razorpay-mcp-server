@@ -734,3 +734,392 @@ func TestOptionalBoolBehavior(t *testing.T) {
 		assert.Empty(t, target)
 	})
 }
+
+// Test for extractValueGeneric function edge cases
+func TestExtractValueGeneric(t *testing.T) {
+	t.Run("invalid arguments type", func(t *testing.T) {
+		request := &mcpgo.CallToolRequest{
+			Arguments: "invalid_type", // Not a map
+		}
+		
+		result, err := extractValueGeneric[string](request, "test", false)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid arguments type", err.Error())
+		assert.Nil(t, result)
+	})
+
+	t.Run("json marshal error", func(t *testing.T) {
+		// Create a value that can't be marshaled to JSON
+		args := map[string]interface{}{
+			"test_param": make(chan int), // Channels can't be marshaled
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		result, err := extractValueGeneric[string](request, "test_param", false)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid parameter type: test_param", err.Error())
+		assert.Nil(t, result)
+	})
+
+	t.Run("json unmarshal error", func(t *testing.T) {
+		// Provide a value that can't be unmarshaled to the target type
+		args := map[string]interface{}{
+			"test_param": []interface{}{1, 2, 3}, // Array can't be unmarshaled to string
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+
+		result, err := extractValueGeneric[string](request, "test_param", false)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid parameter type: test_param", err.Error())
+		assert.Nil(t, result)
+	})
+}
+
+// Test for validateAndAddRequired function
+func TestValidateAndAddRequired(t *testing.T) {
+	t.Run("successful validation", func(t *testing.T) {
+		args := map[string]interface{}{
+			"test_param": "test_value",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddRequired[string](validator, params, "test_param")
+		
+		assert.False(t, result.HasErrors())
+		assert.Equal(t, "test_value", params["test_param"])
+	})
+
+	t.Run("validation error", func(t *testing.T) {
+		request := &mcpgo.CallToolRequest{
+			Arguments: "invalid_type",
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddRequired[string](validator, params, "test_param")
+		
+		assert.True(t, result.HasErrors())
+		assert.Empty(t, params)
+	})
+
+	t.Run("nil value after successful extraction", func(t *testing.T) {
+		// This edge case is hard to trigger directly, but we can simulate it
+		// by using a type that extractValueGeneric might return as nil
+		args := map[string]interface{}{
+			"test_param": nil,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddRequired[string](validator, params, "test_param")
+		
+		// This should result in an error because the parameter is required
+		assert.True(t, result.HasErrors())
+		assert.Empty(t, params)
+	})
+}
+
+// Test for validateAndAddOptional function
+func TestValidateAndAddOptional(t *testing.T) {
+	t.Run("successful validation", func(t *testing.T) {
+		args := map[string]interface{}{
+			"test_param": "test_value",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddOptional[string](validator, params, "test_param")
+		
+		assert.False(t, result.HasErrors())
+		assert.Equal(t, "test_value", params["test_param"])
+	})
+
+	t.Run("validation error", func(t *testing.T) {
+		request := &mcpgo.CallToolRequest{
+			Arguments: "invalid_type",
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddOptional[string](validator, params, "test_param")
+		
+		assert.True(t, result.HasErrors())
+		assert.Empty(t, params)
+	})
+
+	t.Run("nil value handling", func(t *testing.T) {
+		args := map[string]interface{}{
+			"test_param": nil,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddOptional[string](validator, params, "test_param")
+		
+		assert.False(t, result.HasErrors())
+		assert.Empty(t, params)
+	})
+}
+
+// Test for validateAndAddToPath function
+func TestValidateAndAddToPath(t *testing.T) {
+	t.Run("successful validation", func(t *testing.T) {
+		args := map[string]interface{}{
+			"test_param": "test_value",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		target := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddToPath[string](validator, target, "test_param", "target_key")
+		
+		assert.False(t, result.HasErrors())
+		assert.Equal(t, "test_value", target["target_key"])
+	})
+
+	t.Run("validation error", func(t *testing.T) {
+		request := &mcpgo.CallToolRequest{
+			Arguments: "invalid_type",
+		}
+		
+		target := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddToPath[string](validator, target, "test_param", "target_key")
+		
+		assert.True(t, result.HasErrors())
+		assert.Empty(t, target)
+	})
+
+	t.Run("nil value handling", func(t *testing.T) {
+		args := map[string]interface{}{
+			"test_param": nil,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		target := make(map[string]interface{})
+		validator := NewValidator(request)
+		
+		result := validateAndAddToPath[string](validator, target, "test_param", "target_key")
+		
+		assert.False(t, result.HasErrors())
+		assert.Empty(t, target)
+	})
+}
+
+// Test for ValidateAndAddPagination function
+func TestValidateAndAddPagination(t *testing.T) {
+	t.Run("all pagination parameters", func(t *testing.T) {
+		args := map[string]interface{}{
+			"count": 10,
+			"skip":  5,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddPagination(params)
+		
+		assert.False(t, validator.HasErrors())
+		assert.Equal(t, int64(10), params["count"])
+		assert.Equal(t, int64(5), params["skip"])
+	})
+
+	t.Run("missing pagination parameters", func(t *testing.T) {
+		args := map[string]interface{}{}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddPagination(params)
+		
+		assert.False(t, validator.HasErrors())
+		assert.Empty(t, params)
+	})
+
+	t.Run("invalid count type", func(t *testing.T) {
+		args := map[string]interface{}{
+			"count": "invalid",
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddPagination(params)
+		
+		assert.True(t, validator.HasErrors())
+	})
+}
+
+// Test for ValidateAndAddExpand function
+func TestValidateAndAddExpand(t *testing.T) {
+	t.Run("valid expand parameter", func(t *testing.T) {
+		args := map[string]interface{}{
+			"expand": []string{"payments", "customer"},
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddExpand(params)
+		
+		assert.False(t, validator.HasErrors())
+		// The function sets expand[] for each value, so check the last one
+		assert.Equal(t, "customer", params["expand[]"])
+	})
+
+	t.Run("missing expand parameter", func(t *testing.T) {
+		args := map[string]interface{}{}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddExpand(params)
+		
+		assert.False(t, validator.HasErrors())
+		assert.Empty(t, params)
+	})
+
+	t.Run("invalid expand type", func(t *testing.T) {
+		args := map[string]interface{}{
+			"expand": "invalid", // Should be []string, not string
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddExpand(params)
+		
+		assert.True(t, validator.HasErrors())
+	})
+}
+
+// Test for token validation functions edge cases
+func TestTokenValidationEdgeCases(t *testing.T) {
+	t.Run("validateTokenMaxAmount - int conversion", func(t *testing.T) {
+		token := map[string]interface{}{
+			"max_amount": 100, // int instead of float64
+		}
+		
+		request := &mcpgo.CallToolRequest{Arguments: map[string]interface{}{}}
+		validator := NewValidator(request).validateTokenMaxAmount(token)
+		
+		assert.False(t, validator.HasErrors())
+		assert.Equal(t, float64(100), token["max_amount"])
+	})
+
+	t.Run("validateTokenExpireAt - int conversion", func(t *testing.T) {
+		token := map[string]interface{}{
+			"expire_at": 1234567890, // int instead of float64
+		}
+		
+		request := &mcpgo.CallToolRequest{Arguments: map[string]interface{}{}}
+		validator := NewValidator(request).validateTokenExpireAt(token)
+		
+		assert.False(t, validator.HasErrors())
+		assert.Equal(t, float64(1234567890), token["expire_at"])
+	})
+
+	t.Run("validateTokenExpireAt - zero value", func(t *testing.T) {
+		token := map[string]interface{}{
+			"expire_at": 0,
+		}
+		
+		request := &mcpgo.CallToolRequest{Arguments: map[string]interface{}{}}
+		validator := NewValidator(request).validateTokenExpireAt(token)
+		
+		assert.True(t, validator.HasErrors())
+	})
+
+	t.Run("validateTokenMaxAmount - zero value", func(t *testing.T) {
+		token := map[string]interface{}{
+			"max_amount": 0,
+		}
+		
+		request := &mcpgo.CallToolRequest{Arguments: map[string]interface{}{}}
+		validator := NewValidator(request).validateTokenMaxAmount(token)
+		
+		assert.True(t, validator.HasErrors())
+	})
+}
+
+// Test for ValidateAndAddToken edge cases
+func TestValidateAndAddTokenEdgeCases(t *testing.T) {
+	t.Run("token extraction error", func(t *testing.T) {
+		request := &mcpgo.CallToolRequest{
+			Arguments: "invalid_type",
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddToken(params, "token")
+		
+		assert.True(t, validator.HasErrors())
+		assert.Empty(t, params)
+	})
+
+	t.Run("nil token value", func(t *testing.T) {
+		args := map[string]interface{}{
+			"token": nil,
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddToken(params, "token")
+		
+		assert.False(t, validator.HasErrors())
+		assert.Empty(t, params)
+	})
+
+	t.Run("token validation errors", func(t *testing.T) {
+		args := map[string]interface{}{
+			"token": map[string]interface{}{
+				"max_amount": -100, // Invalid value
+			},
+		}
+		request := &mcpgo.CallToolRequest{
+			Arguments: args,
+		}
+		
+		params := make(map[string]interface{})
+		validator := NewValidator(request).ValidateAndAddToken(params, "token")
+		
+		assert.True(t, validator.HasErrors())
+		assert.Empty(t, params)
+	})
+}
