@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
@@ -325,5 +326,136 @@ func (v *Validator) ValidateAndAddOptionalBool(
 	}
 
 	params[name] = *value
+	return v
+}
+
+// validateTokenMaxAmount validates the max_amount field in token.
+// max_amount is required and must be a positive number representing
+// the maximum amount that can be debited from the customer's account.
+func (v *Validator) validateTokenMaxAmount(
+	token map[string]interface{}) *Validator {
+	if maxAmount, exists := token["max_amount"]; exists {
+		switch amt := maxAmount.(type) {
+		case float64:
+			if amt <= 0 {
+				return v.addError(errors.New("token.max_amount must be greater than 0"))
+			}
+		case int:
+			if amt <= 0 {
+				return v.addError(errors.New("token.max_amount must be greater than 0"))
+			}
+			token["max_amount"] = float64(amt) // Convert int to float64
+		default:
+			return v.addError(errors.New("token.max_amount must be a number"))
+		}
+	} else {
+		return v.addError(errors.New("token.max_amount is required"))
+	}
+	return v
+}
+
+// validateTokenExpireAt validates the expire_at field in token.
+// expire_at is optional and defaults to today + 60 days if not provided.
+// If provided, it must be a positive Unix timestamp indicating when the
+// mandate/token should expire.
+func (v *Validator) validateTokenExpireAt(
+	token map[string]interface{}) *Validator {
+	if expireAt, exists := token["expire_at"]; exists {
+		switch exp := expireAt.(type) {
+		case float64:
+			if exp <= 0 {
+				return v.addError(errors.New("token.expire_at must be greater than 0"))
+			}
+		case int:
+			if exp <= 0 {
+				return v.addError(errors.New("token.expire_at must be greater than 0"))
+			}
+			token["expire_at"] = float64(exp) // Convert int to float64
+		default:
+			return v.addError(errors.New("token.expire_at must be a number"))
+		}
+	} else {
+		// Set default value to today + 60 days
+		defaultExpireAt := time.Now().AddDate(0, 0, 60).Unix()
+		token["expire_at"] = float64(defaultExpireAt)
+	}
+	return v
+}
+
+// validateTokenFrequency validates the frequency field in token.
+// frequency is required and must be one of the allowed values:
+// "as_presented", "monthly", "one_time", "yearly", "weekly", "daily".
+func (v *Validator) validateTokenFrequency(
+	token map[string]interface{}) *Validator {
+	if frequency, exists := token["frequency"]; exists {
+		if freqStr, ok := frequency.(string); ok {
+			validFrequencies := []string{
+				"as_presented", "monthly", "one_time", "yearly", "weekly", "daily"}
+			for _, validFreq := range validFrequencies {
+				if freqStr == validFreq {
+					return v
+				}
+			}
+			return v.addError(errors.New(
+				"token.frequency must be one of: as_presented, " +
+					"monthly, one_time, yearly, weekly, daily"))
+		}
+		return v.addError(errors.New("token.frequency must be a string"))
+	}
+	return v.addError(errors.New("token.frequency is required"))
+}
+
+// validateTokenType validates the type field in token.
+// type is required and must be "single_block_multiple_debit" for SBMD mandates.
+func (v *Validator) validateTokenType(token map[string]interface{}) *Validator {
+	if tokenType, exists := token["type"]; exists {
+		if typeStr, ok := tokenType.(string); ok {
+			validTypes := []string{"single_block_multiple_debit"}
+			for _, validType := range validTypes {
+				if typeStr == validType {
+					return v
+				}
+			}
+			return v.addError(errors.New(
+				"token.type must be one of: single_block_multiple_debit"))
+		}
+		return v.addError(errors.New("token.type must be a string"))
+	}
+	return v.addError(errors.New("token.type is required"))
+}
+
+// ValidateAndAddToken validates and adds a token object with proper structure.
+// The token object is used for mandate orders and must contain:
+//   - max_amount: positive number (maximum debit amount)
+//   - expire_at: optional Unix timestamp (mandate expiry,
+//     defaults to today + 60 days)
+//   - frequency: string (debit frequency: as_presented, monthly, one_time,
+//     yearly, weekly, daily)
+//   - type: string (mandate type: single_block_multiple_debit)
+func (v *Validator) ValidateAndAddToken(
+	params map[string]interface{}, name string) *Validator {
+	value, err := extractValueGeneric[map[string]interface{}](
+		v.request, name, false)
+	if err != nil {
+		return v.addError(err)
+	}
+
+	if value == nil {
+		return v
+	}
+
+	token := *value
+
+	// Validate all token fields
+	v.validateTokenMaxAmount(token).
+		validateTokenExpireAt(token).
+		validateTokenFrequency(token).
+		validateTokenType(token)
+
+	if v.HasErrors() {
+		return v
+	}
+
+	params[name] = token
 	return v
 }

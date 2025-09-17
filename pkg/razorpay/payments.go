@@ -427,6 +427,8 @@ func buildInitiatePaymentResponse(
 		var actionTypes []string
 		hasOTP := false
 		hasRedirect := false
+		hasUPICollect := false
+		hasUPIIntent := false
 
 		for _, action := range actions {
 			if actionType, exists := action["action"]; exists {
@@ -439,6 +441,14 @@ func buildInitiatePaymentResponse(
 
 				if actionStr == "redirect" {
 					hasRedirect = true
+				}
+
+				if actionStr == "upi_collect" {
+					hasUPICollect = true
+				}
+
+				if actionStr == "upi_intent" {
+					hasUPIIntent = true
 				}
 			}
 		}
@@ -453,6 +463,12 @@ func buildInitiatePaymentResponse(
 		case hasRedirect:
 			response["message"] = "Payment initiated. Redirect authentication is " +
 				"available. Use the redirect URL provided in available_actions."
+		case hasUPICollect:
+			response["message"] = fmt.Sprintf(
+				"Payment initiated. Available actions: %v", actionTypes)
+		case hasUPIIntent:
+			response["message"] = fmt.Sprintf(
+				"Payment initiated. Available actions: %v", actionTypes)
 		default:
 			response["message"] = fmt.Sprintf(
 				"Payment initiated. Available actions: %v", actionTypes)
@@ -513,6 +529,140 @@ func addContactAndEmailToPaymentData(
 	}
 }
 
+// addAdditionalPaymentParameters adds additional parameters for UPI collect
+// and other flows
+func addAdditionalPaymentParameters(
+	paymentData map[string]interface{},
+	params map[string]interface{},
+) {
+	// Note: customer_id is now handled explicitly in buildPaymentData
+
+	// Add method if provided
+	if method, exists := params["method"]; exists && method != "" {
+		paymentData["method"] = method
+	}
+
+	// Add save if provided
+	if save, exists := params["save"]; exists {
+		paymentData["save"] = save
+	}
+
+	// Add UPI parameters if provided
+	if upiParams, exists := params["upi"]; exists && upiParams != nil {
+		if upiMap, ok := upiParams.(map[string]interface{}); ok {
+			paymentData["upi"] = upiMap
+		}
+	}
+}
+
+// processUPIParameters handles VPA and UPI intent parameter processing
+func processUPIParameters(params map[string]interface{}) {
+	vpa, hasVPA := params["vpa"]
+	upiIntent, hasUPIIntent := params["upi_intent"]
+
+	// Handle VPA parameter (UPI collect flow)
+	if hasVPA && vpa != "" {
+		// Set method to UPI
+		params["method"] = "upi"
+		// Set UPI parameters for collect flow
+		params["upi"] = map[string]interface{}{
+			"flow":        "collect",
+			"expiry_time": "6",
+			"vpa":         vpa,
+		}
+	}
+
+	// Handle UPI intent parameter (UPI intent flow)
+	if hasUPIIntent && upiIntent == true {
+		// Set method to UPI
+		params["method"] = "upi"
+		// Set UPI parameters for intent flow
+		params["upi"] = map[string]interface{}{
+			"flow": "intent",
+		}
+	}
+}
+
+// createOrGetCustomer creates or gets a customer if contact is provided
+func createOrGetCustomer(
+	client *rzpsdk.Client,
+	params map[string]interface{},
+) (map[string]interface{}, error) {
+	contactValue, exists := params["contact"]
+	if !exists || contactValue == "" {
+		return nil, nil
+	}
+
+	contact := contactValue.(string)
+	customerData := map[string]interface{}{
+		"contact":       contact,
+		"fail_existing": "0", // Get existing customer if exists
+	}
+
+	// Create/get customer using Razorpay SDK
+	customer, err := client.Customer.Create(customerData, nil)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Failed to create/fetch customer with contact %s: %v",
+			contact,
+			err,
+		)
+	}
+	return customer, nil
+}
+
+// buildPaymentData constructs the payment data for the API call
+func buildPaymentData(
+	params map[string]interface{},
+	currency string,
+	customerId string,
+) *map[string]interface{} {
+	paymentData := map[string]interface{}{
+		"amount":   params["amount"],
+		"currency": currency,
+		"order_id": params["order_id"],
+	}
+	if customerId != "" {
+		paymentData["customer_id"] = customerId
+	}
+
+	// Add token if provided (required for saved payment methods,
+	// optional for UPI collect)
+	if token, exists := params["token"]; exists && token != "" {
+		paymentData["token"] = token
+	}
+
+	// Add contact and email parameters
+	addContactAndEmailToPaymentData(paymentData, params)
+
+	// Add additional parameters for UPI collect and other flows
+	addAdditionalPaymentParameters(paymentData, params)
+
+	return &paymentData
+}
+
+// processPaymentResult processes the payment creation result
+func processPaymentResult(
+	payment map[string]interface{},
+) (map[string]interface{}, error) {
+	// Extract payment ID and next actions from the response
+	paymentID := extractPaymentID(payment)
+	actions := extractNextActions(payment)
+
+	// Build structured response using the helper function
+	response, otpUrl := buildInitiatePaymentResponse(payment, paymentID, actions)
+
+	// Only send OTP if there's an OTP URL
+	if otpUrl != "" {
+		err := sendOtp(otpUrl)
+		if err != nil {
+			return nil, fmt.Errorf("OTP generation failed: %s", err.Error())
+		}
+	}
+
+	return response, nil
+}
+
 // InitiatePayment returns a tool that initiates a payment using order_id
 // and token
 // This implements the S2S JSON v1 flow for creating payments
@@ -536,7 +686,6 @@ func InitiatePayment(
 			"token",
 			mcpgo.Description("Token ID of the saved payment method. "+
 				"Must start with 'token_'"),
-			mcpgo.Required(),
 		),
 		mcpgo.WithString(
 			"order_id",
@@ -551,6 +700,27 @@ func InitiatePayment(
 		mcpgo.WithString(
 			"contact",
 			mcpgo.Description("Customer's phone number"),
+		),
+		mcpgo.WithString(
+			"customer_id",
+			mcpgo.Description("Customer ID for the payment. "+
+				"Must start with 'cust_'"),
+		),
+		mcpgo.WithBoolean(
+			"save",
+			mcpgo.Description("Whether to save the payment method for future use"),
+		),
+		mcpgo.WithString(
+			"vpa",
+			mcpgo.Description("Virtual Payment Address (VPA) for UPI payment. "+
+				"When provided, automatically sets method='upi' and UPI parameters "+
+				"with flow='collect' and expiry_time='6' (e.g., '9876543210@ptsbi')"),
+		),
+		mcpgo.WithBoolean(
+			"upi_intent",
+			mcpgo.Description("Enable UPI intent flow. "+
+				"When set to true, automatically sets method='upi' and UPI parameters "+
+				"with flow='intent'. The API will return a UPI URL in the response."),
 		),
 	}
 
@@ -569,10 +739,14 @@ func InitiatePayment(
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredInt(params, "amount").
 			ValidateAndAddOptionalString(params, "currency").
-			ValidateAndAddRequiredString(params, "token").
+			ValidateAndAddOptionalString(params, "token").
 			ValidateAndAddRequiredString(params, "order_id").
 			ValidateAndAddOptionalString(params, "email").
-			ValidateAndAddOptionalString(params, "contact")
+			ValidateAndAddOptionalString(params, "contact").
+			ValidateAndAddOptionalString(params, "customer_id").
+			ValidateAndAddOptionalBool(params, "save").
+			ValidateAndAddOptionalString(params, "vpa").
+			ValidateAndAddOptionalBool(params, "upi_intent")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
@@ -584,16 +758,32 @@ func InitiatePayment(
 			currency = c.(string)
 		}
 
-		// Prepare payment data for the S2S JSON v1 flow
-		paymentData := map[string]interface{}{
-			"amount":   params["amount"],
-			"currency": currency,
-			"order_id": params["order_id"],
-			"token":    params["token"],
+		// Process UPI parameters (VPA for collect flow, upi_intent for intent flow)
+		processUPIParameters(params)
+
+		// Handle customer ID
+		var customerID string
+		if custID, exists := params["customer_id"]; exists && custID != "" {
+			customerID = custID.(string)
+		} else {
+			// Create or get customer if contact is provided
+			customer, err := createOrGetCustomer(client, params)
+			if err != nil {
+				return mcpgo.NewToolResultError(err.Error()), nil
+			}
+			if customer != nil {
+				if id, ok := customer["id"].(string); ok {
+					customerID = id
+				}
+			}
 		}
 
-		// Add contact and email parameters
-		addContactAndEmailToPaymentData(paymentData, params)
+		// Build payment data
+		paymentDataPtr := buildPaymentData(params, currency, customerID)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+		paymentData := *paymentDataPtr
 
 		// Create payment using Razorpay SDK's CreatePaymentJson method
 		// This follows the S2S JSON v1 flow:
@@ -604,20 +794,10 @@ func InitiatePayment(
 				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
 		}
 
-		// Extract payment ID and next actions from the response
-		paymentID := extractPaymentID(payment)
-		actions := extractNextActions(payment)
-
-		// Build structured response using the helper function
-		response, otpUrl := buildInitiatePaymentResponse(payment, paymentID, actions)
-
-		// Only send OTP if there's an OTP URL
-		if otpUrl != "" {
-			err = sendOtp(otpUrl)
-			if err != nil {
-				return mcpgo.NewToolResultError(
-					fmt.Sprintf("OTP generation failed: %s", err.Error())), nil
-			}
+		// Process payment result
+		response, err := processPaymentResult(payment)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
 		}
 
 		return mcpgo.NewToolResultJSON(response)
@@ -625,9 +805,15 @@ func InitiatePayment(
 
 	return mcpgo.NewTool(
 		"initiate_payment",
-		"Initiate a payment using the S2S JSON v1 flow with required parameters: "+
-			"amount, order_id, and token. Supports optional parameters "+
-			"like email and contact. "+
+		"Initiate a payment using the S2S JSON v1 flow. "+
+			"Required parameters: amount and order_id. "+
+			"For saved payment methods, provide token. "+
+			"For UPI collect flow, provide 'vpa' parameter "+
+			"which automatically sets UPI with flow='collect' and expiry_time='6'. "+
+			"For UPI intent flow, set 'upi_intent=true' parameter "+
+			"which automatically sets UPI with flow='intent' and API returns UPI URL. "+
+			"Supports additional parameters like customer_id, email, "+
+			"contact, and save. "+
 			"Returns payment details including next action steps if required.",
 		parameters,
 		handler,
@@ -830,7 +1016,9 @@ func extractOtpSubmitURL(responseData interface{}) string {
 
 		submitURL, exists := nextItem["url"]
 		if exists && submitURL != nil {
-			return submitURL.(string)
+			if urlStr, ok := submitURL.(string); ok {
+				return urlStr
+			}
 		}
 	}
 
