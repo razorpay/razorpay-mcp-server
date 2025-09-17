@@ -741,7 +741,7 @@ func TestExtractValueGeneric(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: "invalid_type", // Not a map
 		}
-		
+
 		result, err := extractValueGeneric[string](request, "test", false)
 		assert.Error(t, err)
 		assert.Equal(t, "invalid arguments type", err.Error())
@@ -788,12 +788,12 @@ func TestValidateAndAddRequired(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request)
-		
+
 		result := validateAndAddRequired[string](validator, params, "test_param")
-		
+
 		assert.False(t, result.HasErrors())
 		assert.Equal(t, "test_value", params["test_param"])
 	})
@@ -802,12 +802,12 @@ func TestValidateAndAddRequired(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: "invalid_type",
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request)
-		
+
 		result := validateAndAddRequired[string](validator, params, "test_param")
-		
+
 		assert.True(t, result.HasErrors())
 		assert.Empty(t, params)
 	})
@@ -821,12 +821,12 @@ func TestValidateAndAddRequired(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request)
-		
+
 		result := validateAndAddRequired[string](validator, params, "test_param")
-		
+
 		// This should result in an error because the parameter is required
 		assert.True(t, result.HasErrors())
 		assert.Empty(t, params)
@@ -842,12 +842,12 @@ func TestValidateAndAddOptional(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request)
-		
+
 		result := validateAndAddOptional[string](validator, params, "test_param")
-		
+
 		assert.False(t, result.HasErrors())
 		assert.Equal(t, "test_value", params["test_param"])
 	})
@@ -856,12 +856,12 @@ func TestValidateAndAddOptional(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: "invalid_type",
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request)
-		
+
 		result := validateAndAddOptional[string](validator, params, "test_param")
-		
+
 		assert.True(t, result.HasErrors())
 		assert.Empty(t, params)
 	})
@@ -873,12 +873,12 @@ func TestValidateAndAddOptional(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request)
-		
+
 		result := validateAndAddOptional[string](validator, params, "test_param")
-		
+
 		assert.False(t, result.HasErrors())
 		assert.Empty(t, params)
 	})
@@ -893,12 +893,13 @@ func TestValidateAndAddToPath(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		target := make(map[string]interface{})
 		validator := NewValidator(request)
-		
-		result := validateAndAddToPath[string](validator, target, "test_param", "target_key")
-		
+
+		result := validateAndAddToPath[string](
+			validator, target, "test_param", "target_key")
+
 		assert.False(t, result.HasErrors())
 		assert.Equal(t, "test_value", target["target_key"])
 	})
@@ -907,12 +908,13 @@ func TestValidateAndAddToPath(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: "invalid_type",
 		}
-		
+
 		target := make(map[string]interface{})
 		validator := NewValidator(request)
-		
-		result := validateAndAddToPath[string](validator, target, "test_param", "target_key")
-		
+
+		result := validateAndAddToPath[string](
+			validator, target, "test_param", "target_key")
+
 		assert.True(t, result.HasErrors())
 		assert.Empty(t, target)
 	})
@@ -924,12 +926,13 @@ func TestValidateAndAddToPath(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		target := make(map[string]interface{})
 		validator := NewValidator(request)
-		
-		result := validateAndAddToPath[string](validator, target, "test_param", "target_key")
-		
+
+		result := validateAndAddToPath[string](
+			validator, target, "test_param", "target_key")
+
 		assert.False(t, result.HasErrors())
 		assert.Empty(t, target)
 	})
@@ -945,10 +948,10 @@ func TestValidateAndAddPagination(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddPagination(params)
-		
+
 		assert.False(t, validator.HasErrors())
 		assert.Equal(t, int64(10), params["count"])
 		assert.Equal(t, int64(5), params["skip"])
@@ -959,10 +962,10 @@ func TestValidateAndAddPagination(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddPagination(params)
-		
+
 		assert.False(t, validator.HasErrors())
 		assert.Empty(t, params)
 	})
@@ -974,10 +977,10 @@ func TestValidateAndAddPagination(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddPagination(params)
-		
+
 		assert.True(t, validator.HasErrors())
 	})
 }
@@ -991,10 +994,10 @@ func TestValidateAndAddExpand(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddExpand(params)
-		
+
 		assert.False(t, validator.HasErrors())
 		// The function sets expand[] for each value, so check the last one
 		assert.Equal(t, "customer", params["expand[]"])
@@ -1005,10 +1008,10 @@ func TestValidateAndAddExpand(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddExpand(params)
-		
+
 		assert.False(t, validator.HasErrors())
 		assert.Empty(t, params)
 	})
@@ -1020,10 +1023,10 @@ func TestValidateAndAddExpand(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddExpand(params)
-		
+
 		assert.True(t, validator.HasErrors())
 	})
 }
@@ -1034,10 +1037,10 @@ func TestTokenValidationEdgeCases(t *testing.T) {
 		token := map[string]interface{}{
 			"max_amount": 100, // int instead of float64
 		}
-		
+
 		request := &mcpgo.CallToolRequest{Arguments: map[string]interface{}{}}
 		validator := NewValidator(request).validateTokenMaxAmount(token)
-		
+
 		assert.False(t, validator.HasErrors())
 		assert.Equal(t, float64(100), token["max_amount"])
 	})
@@ -1046,10 +1049,10 @@ func TestTokenValidationEdgeCases(t *testing.T) {
 		token := map[string]interface{}{
 			"expire_at": 1234567890, // int instead of float64
 		}
-		
+
 		request := &mcpgo.CallToolRequest{Arguments: map[string]interface{}{}}
 		validator := NewValidator(request).validateTokenExpireAt(token)
-		
+
 		assert.False(t, validator.HasErrors())
 		assert.Equal(t, float64(1234567890), token["expire_at"])
 	})
@@ -1058,10 +1061,10 @@ func TestTokenValidationEdgeCases(t *testing.T) {
 		token := map[string]interface{}{
 			"expire_at": 0,
 		}
-		
+
 		request := &mcpgo.CallToolRequest{Arguments: map[string]interface{}{}}
 		validator := NewValidator(request).validateTokenExpireAt(token)
-		
+
 		assert.True(t, validator.HasErrors())
 	})
 
@@ -1069,10 +1072,10 @@ func TestTokenValidationEdgeCases(t *testing.T) {
 		token := map[string]interface{}{
 			"max_amount": 0,
 		}
-		
+
 		request := &mcpgo.CallToolRequest{Arguments: map[string]interface{}{}}
 		validator := NewValidator(request).validateTokenMaxAmount(token)
-		
+
 		assert.True(t, validator.HasErrors())
 	})
 }
@@ -1083,10 +1086,10 @@ func TestValidateAndAddTokenEdgeCases(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: "invalid_type",
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddToken(params, "token")
-		
+
 		assert.True(t, validator.HasErrors())
 		assert.Empty(t, params)
 	})
@@ -1098,10 +1101,10 @@ func TestValidateAndAddTokenEdgeCases(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddToken(params, "token")
-		
+
 		assert.False(t, validator.HasErrors())
 		assert.Empty(t, params)
 	})
@@ -1115,10 +1118,10 @@ func TestValidateAndAddTokenEdgeCases(t *testing.T) {
 		request := &mcpgo.CallToolRequest{
 			Arguments: args,
 		}
-		
+
 		params := make(map[string]interface{})
 		validator := NewValidator(request).ValidateAndAddToken(params, "token")
-		
+
 		assert.True(t, validator.HasErrors())
 		assert.Empty(t, params)
 	})
