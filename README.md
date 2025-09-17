@@ -116,7 +116,7 @@ Inside your cursor settings in MCP, add this config.
         "Authorization:${AUTH_HEADER}"
       ],
       "env": {
-        "AUTH_HEADER": "Bearer <Base64(key:secret)>"
+        "AUTH_HEADER": "Basic <Base64(key:secret)>"
       }
     }
   }
@@ -138,7 +138,7 @@ Add the following to your `claude_desktop_config.json`:
         "mcp-remote",
         "https://mcp.razorpay.com/mcp",
         "--header",
-        "Authorization: Bearer <Merchant Token>"
+        "Authorization: Basic <Merchant Token>"
       ]
     }
   }
@@ -172,7 +172,7 @@ Add the following to your VS Code settings (JSON):
           "mcp-remote",
           "https://mcp.razorpay.com/mcp",
           "--header",
-          "Authorization: Bearer ${input:merchant_token}"
+          "Authorization: Basic ${input:merchant_token}"
         ]
       }
     }
