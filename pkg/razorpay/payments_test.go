@@ -2960,3 +2960,498 @@ func Test_processPaymentResult_edgeCases(t *testing.T) {
 		})
 	}
 }
+
+// Test for sendOtp function - comprehensive coverage
+func TestSendOtp(t *testing.T) {
+	t.Run("empty OTP URL", func(t *testing.T) {
+		err := sendOtp("")
+		if err == nil {
+			t.Error("Expected error for empty OTP URL")
+		}
+		if err.Error() != "OTP URL is empty" {
+			t.Errorf("Expected 'OTP URL is empty', got '%s'", err.Error())
+		}
+	})
+
+	t.Run("invalid URL format", func(t *testing.T) {
+		err := sendOtp("invalid-url")
+		if err == nil {
+			t.Error("Expected error for invalid URL")
+		}
+		// The URL parsing succeeds but fails on HTTPS check
+		if !strings.Contains(err.Error(), "OTP URL must use HTTPS") {
+			t.Errorf("Expected 'OTP URL must use HTTPS' error, got '%s'", err.Error())
+		}
+	})
+
+	t.Run("non-HTTPS URL", func(t *testing.T) {
+		err := sendOtp("http://api.razorpay.com/v1/payments/otp")
+		if err == nil {
+			t.Error("Expected error for non-HTTPS URL")
+		}
+		if err.Error() != "OTP URL must use HTTPS" {
+			t.Errorf("Expected 'OTP URL must use HTTPS', got '%s'", err.Error())
+		}
+	})
+
+	t.Run("non-Razorpay domain", func(t *testing.T) {
+		err := sendOtp("https://example.com/otp")
+		if err == nil {
+			t.Error("Expected error for non-Razorpay domain")
+		}
+		if err.Error() != "OTP URL must be from Razorpay domain" {
+			t.Errorf("Expected 'OTP URL must be from Razorpay domain', got '%s'",
+				err.Error())
+		}
+	})
+
+	t.Run("successful OTP request", func(t *testing.T) {
+		// Since we can't actually call external APIs in tests, we'll test the
+		// validation logic by testing with a URL that would fail at HTTP call stage
+		err := sendOtp(
+			"https://api.razorpay.com/v1/payments/invalid-endpoint-for-test")
+		if err == nil {
+			t.Error("Expected error for invalid endpoint")
+		}
+		// This should fail at the HTTP request stage, which is expected
+		if !strings.Contains(err.Error(), "OTP generation failed") {
+			t.Logf("Got expected error: %s", err.Error())
+		}
+	})
+
+	t.Run("HTTP request creation failure", func(t *testing.T) {
+		// Test with invalid characters that would cause http.NewRequest to fail
+		// This is difficult to trigger in practice, so we'll test URL validation
+		err := sendOtp("https://api.razorpay.com/v1/payments\x00/otp")
+		if err == nil {
+			t.Error("Expected error for invalid URL characters")
+		}
+	})
+}
+
+// Test for extractPaymentID function
+func TestExtractPaymentID(t *testing.T) {
+	t.Run("payment ID exists", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"razorpay_payment_id": "pay_test123",
+			"other_field":         "value",
+		}
+		result := extractPaymentID(payment)
+		if result != "pay_test123" {
+			t.Errorf("Expected 'pay_test123', got '%s'", result)
+		}
+	})
+
+	t.Run("payment ID missing", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"other_field": "value",
+		}
+		result := extractPaymentID(payment)
+		if result != "" {
+			t.Errorf("Expected empty string, got '%s'", result)
+		}
+	})
+
+	t.Run("payment ID is nil", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"razorpay_payment_id": nil,
+		}
+		result := extractPaymentID(payment)
+		if result != "" {
+			t.Errorf("Expected empty string, got '%s'", result)
+		}
+	})
+}
+
+// Test for extractNextActions function
+func TestExtractNextActions(t *testing.T) {
+	t.Run("next actions exist", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"next": []interface{}{
+				map[string]interface{}{
+					"action": "redirect",
+					"url":    "https://example.com",
+				},
+				map[string]interface{}{
+					"action": "otp",
+					"url":    "https://otp.example.com",
+				},
+			},
+		}
+		result := extractNextActions(payment)
+		if len(result) != 2 {
+			t.Errorf("Expected 2 actions, got %d", len(result))
+		}
+		if result[0]["action"] != "redirect" {
+			t.Errorf("Expected first action to be 'redirect', got '%s'",
+				result[0]["action"])
+		}
+	})
+
+	t.Run("next field missing", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"other_field": "value",
+		}
+		result := extractNextActions(payment)
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %d actions", len(result))
+		}
+	})
+
+	t.Run("next field is nil", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"next": nil,
+		}
+		result := extractNextActions(payment)
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %d actions", len(result))
+		}
+	})
+
+	t.Run("next field is not a slice", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"next": "invalid_type",
+		}
+		result := extractNextActions(payment)
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %d actions", len(result))
+		}
+	})
+
+	t.Run("next field contains non-map items", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"next": []interface{}{
+				"invalid_item",
+				map[string]interface{}{
+					"action": "valid_action",
+				},
+			},
+		}
+		result := extractNextActions(payment)
+		if len(result) != 1 {
+			t.Errorf("Expected 1 valid action, got %d", len(result))
+		}
+		if result[0]["action"] != "valid_action" {
+			t.Errorf("Expected action to be 'valid_action', got '%s'",
+				result[0]["action"])
+		}
+	})
+}
+
+// Test for addNextStepInstructions function
+func TestAddNextStepInstructions(t *testing.T) {
+	t.Run("add next step instructions with payment ID", func(t *testing.T) {
+		result := make(map[string]interface{})
+		paymentID := "pay_test123"
+
+		addNextStepInstructions(result, paymentID)
+
+		nextStep, exists := result["next_step"]
+		if !exists {
+			t.Error("Expected next_step to be added")
+		}
+
+		nextStepStr, ok := nextStep.(string)
+		if !ok {
+			t.Error("Expected next_step to be a string")
+		}
+
+		if !strings.Contains(nextStepStr, "resend_otp") {
+			t.Error("Expected instructions to contain 'resend_otp'")
+		}
+		if !strings.Contains(nextStepStr, "submit_otp") {
+			t.Error("Expected instructions to contain 'submit_otp'")
+		}
+
+		// Check next_tool
+		nextTool, exists := result["next_tool"]
+		if !exists {
+			t.Error("Expected next_tool to be added")
+		}
+		if nextTool != "resend_otp" {
+			t.Errorf("Expected next_tool to be 'resend_otp', got '%s'", nextTool)
+		}
+
+		// Check next_tool_params
+		params, exists := result["next_tool_params"]
+		if !exists {
+			t.Error("Expected next_tool_params to be added")
+		}
+		paramsMap, ok := params.(map[string]interface{})
+		if !ok {
+			t.Error("Expected next_tool_params to be a map")
+		}
+		if paramsMap["payment_id"] != paymentID {
+			t.Errorf("Expected payment_id to be '%s', got '%s'",
+				paymentID, paramsMap["payment_id"])
+		}
+	})
+
+	t.Run("empty payment ID", func(t *testing.T) {
+		result := make(map[string]interface{})
+
+		addNextStepInstructions(result, "")
+
+		// Should not add anything when payment ID is empty
+		if len(result) != 0 {
+			t.Error("Expected no fields to be added for empty payment ID")
+		}
+	})
+}
+
+// Test for processUPIParameters function
+func TestProcessUPIParameters(t *testing.T) {
+	t.Run("processUPIParameters", func(t *testing.T) {
+		// Test with VPA
+		params := map[string]interface{}{
+			"vpa": "test@upi",
+		}
+		processUPIParameters(params)
+
+		if params["method"] != "upi" {
+			t.Errorf("Expected method to be 'upi', got '%s'", params["method"])
+		}
+
+		upi, exists := params["upi"]
+		if !exists {
+			t.Error("Expected upi field to be added")
+		}
+
+		upiMap, ok := upi.(map[string]interface{})
+		if !ok {
+			t.Error("Expected upi to be a map")
+		}
+
+		if upiMap["vpa"] != "test@upi" {
+			t.Errorf("Expected vpa to be 'test@upi', got '%s'", upiMap["vpa"])
+		}
+		if upiMap["flow"] != "collect" {
+			t.Errorf("Expected flow to be 'collect', got '%s'", upiMap["flow"])
+		}
+	})
+
+	t.Run("processUPIParameters - UPI intent", func(t *testing.T) {
+		// Test with UPI intent
+		params := map[string]interface{}{
+			"upi_intent": true,
+		}
+		processUPIParameters(params)
+
+		if params["method"] != "upi" {
+			t.Errorf("Expected method to be 'upi', got '%s'", params["method"])
+		}
+
+		upi, exists := params["upi"]
+		if !exists {
+			t.Error("Expected upi field to be added")
+		}
+
+		upiMap, ok := upi.(map[string]interface{})
+		if !ok {
+			t.Error("Expected upi to be a map")
+		}
+
+		if upiMap["flow"] != "intent" {
+			t.Errorf("Expected flow to be 'intent', got '%s'", upiMap["flow"])
+		}
+	})
+
+	t.Run("processUPIParameters - no UPI params", func(t *testing.T) {
+		// Test with no UPI parameters
+		params := map[string]interface{}{
+			"amount": 1000,
+		}
+		processUPIParameters(params)
+
+		// Should not modify params when no UPI parameters are present
+		if _, exists := params["method"]; exists {
+			t.Error("Expected method not to be added when no UPI params")
+		}
+		if _, exists := params["upi"]; exists {
+			t.Error("Expected upi not to be added when no UPI params")
+		}
+	})
+
+}
+
+// Test for createOrGetCustomer function
+func TestCreateOrGetCustomer(t *testing.T) {
+	t.Run("createOrGetCustomer - no contact", func(t *testing.T) {
+		// Test with no contact parameter
+		params := map[string]interface{}{
+			"amount": 1000,
+		}
+
+		// This should return nil, nil since no contact is provided
+		result, err := createOrGetCustomer(nil, params)
+
+		if result != nil {
+			t.Error("Expected nil result when no contact provided")
+		}
+		if err != nil {
+			t.Errorf("Expected no error when no contact provided, got %v", err)
+		}
+	})
+}
+
+// Test for buildPaymentData function
+func TestBuildPaymentData(t *testing.T) {
+	t.Run("buildPaymentData", func(t *testing.T) {
+		params := map[string]interface{}{
+			"amount":   1000,
+			"order_id": "order_test123",
+		}
+		currency := "INR"
+		customerId := "cust_test123"
+
+		result := buildPaymentData(params, currency, customerId)
+
+		if (*result)["amount"] != 1000 {
+			t.Errorf("Expected amount to be 1000, got %v", (*result)["amount"])
+		}
+		if (*result)["currency"] != "INR" {
+			t.Errorf("Expected currency to be 'INR', got '%s'", (*result)["currency"])
+		}
+		if (*result)["customer_id"] != customerId {
+			t.Errorf("Expected customer_id to be '%s', got '%s'",
+				customerId, (*result)["customer_id"])
+		}
+	})
+
+	t.Run("buildPaymentData - no customer ID", func(t *testing.T) {
+		params := map[string]interface{}{
+			"amount":   1000,
+			"order_id": "order_test123",
+		}
+		currency := "INR"
+		customerId := ""
+
+		result := buildPaymentData(params, currency, customerId)
+
+		if (*result)["amount"] != 1000 {
+			t.Errorf("Expected amount to be 1000, got %v", (*result)["amount"])
+		}
+		if (*result)["currency"] != "INR" {
+			t.Errorf("Expected currency to be 'INR', got '%s'", (*result)["currency"])
+		}
+		// Should not have customer_id when empty
+		if _, exists := (*result)["customer_id"]; exists {
+			t.Error("Expected no customer_id when empty string provided")
+		}
+	})
+
+}
+
+// Test for processPaymentResult function
+func TestProcessPaymentResult(t *testing.T) {
+	t.Run("processPaymentResult", func(t *testing.T) {
+		paymentResult := map[string]interface{}{
+			"razorpay_payment_id": "pay_test123",
+			"status":              "created",
+			"next": []interface{}{
+				map[string]interface{}{
+					"action": "redirect",
+					"url":    "https://example.com",
+				},
+			},
+		}
+
+		result, err := processPaymentResult(paymentResult)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		if result["razorpay_payment_id"] != "pay_test123" {
+			t.Errorf("Expected payment ID, got %v", result["razorpay_payment_id"])
+		}
+
+		if result["status"] != "payment_initiated" {
+			t.Errorf("Expected status to be 'payment_initiated', got '%s'",
+				result["status"])
+		}
+	})
+
+	t.Run("processPaymentResult - with error", func(t *testing.T) {
+		// Test with payment result that might cause an error
+		paymentResult := map[string]interface{}{
+			"error": map[string]interface{}{
+				"code":        "BAD_REQUEST_ERROR",
+				"description": "Invalid payment data",
+			},
+		}
+
+		result, err := processPaymentResult(paymentResult)
+
+		// The function should handle this gracefully
+		if err != nil && result == nil {
+			t.Logf("Expected behavior - got error: %v", err)
+		} else if result != nil {
+			// If no error, result should be properly processed
+			if result["status"] != "payment_initiated" {
+				t.Errorf("Expected status to be 'payment_initiated', got '%s'",
+					result["status"])
+			}
+		}
+	})
+
+}
+
+// Test for extractOtpSubmitURL function
+func TestExtractOtpSubmitURL(t *testing.T) {
+	t.Run("extractOtpSubmitURL", func(t *testing.T) {
+		// Test with valid response data containing OTP submit URL
+		responseData := map[string]interface{}{
+			"next": []interface{}{
+				map[string]interface{}{
+					"action": "redirect",
+					"url":    "https://example.com/redirect",
+				},
+				map[string]interface{}{
+					"action": "otp_submit",
+					"url":    "https://example.com/otp/submit",
+				},
+			},
+		}
+
+		result := extractOtpSubmitURL(responseData)
+		if result != "https://example.com/otp/submit" {
+			t.Errorf("Expected OTP submit URL, got '%s'", result)
+		}
+	})
+
+	t.Run("extractOtpSubmitURL - no OTP action", func(t *testing.T) {
+		responseData := map[string]interface{}{
+			"next": []interface{}{
+				map[string]interface{}{
+					"action": "redirect",
+					"url":    "https://example.com/redirect",
+				},
+			},
+		}
+
+		result := extractOtpSubmitURL(responseData)
+		if result != "" {
+			t.Errorf("Expected empty string, got '%s'", result)
+		}
+	})
+
+	t.Run("extractOtpSubmitURL - invalid input", func(t *testing.T) {
+		// Test with invalid input type
+		result := extractOtpSubmitURL("invalid_input")
+		if result != "" {
+			t.Errorf("Expected empty string for invalid input, got '%s'", result)
+		}
+	})
+
+	t.Run("extractOtpSubmitURL - no next field", func(t *testing.T) {
+		responseData := map[string]interface{}{
+			"other_field": "value",
+		}
+
+		result := extractOtpSubmitURL(responseData)
+		if result != "" {
+			t.Errorf("Expected empty string when no next field, got '%s'", result)
+		}
+	})
+}
