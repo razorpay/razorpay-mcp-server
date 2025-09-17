@@ -201,8 +201,15 @@ func WithObject(name string, opts ...PropertyOption) ToolParameter {
 // WithArray creates an array parameter with optional property options
 func WithArray(name string, opts ...PropertyOption) ToolParameter {
 	param := ToolParameter{
-		Name:   name,
-		Schema: map[string]interface{}{"type": "array"},
+		Name: name,
+		Schema: map[string]interface{}{
+			"type": "array",
+			// Default to array of strings to satisfy JSON Schema validators
+			// that require the "items" keyword for arrays. Callers can
+			// override this by providing an explicit items schema via
+			// PropertyOption that sets "items" on the schema map.
+			"items": map[string]interface{}{"type": "string"},
+		},
 	}
 	param.applyPropertyOptions(opts...)
 	return param
@@ -358,27 +365,42 @@ func convertSchemaToPropertyOptions(
 		propOpts = append(propOpts, mcp.Required())
 	}
 
-	// Skip type, description and required as they're handled separately
-	for k, v := range schema {
-		if k == "type" || k == "description" || k == "required" {
-			continue
-		}
+	// Capture type and add grouped options to reduce branching complexity
+	schemaType, _ := schema["type"].(string)
 
-		// Process property based on key
-		switch k {
-		case "minimum", "maximum":
-			propOpts = addNumberPropertyOptions(propOpts, schema)
-		case "minLength", "maxLength", "pattern":
-			propOpts = addStringPropertyOptions(propOpts, schema)
-		case "default":
-			propOpts = addDefaultValueOptions(propOpts, v)
-		case "enum":
-			propOpts = addEnumOptions(propOpts, v)
-		case "maxProperties", "minProperties":
-			propOpts = addObjectPropertyOptions(propOpts, schema)
-		case "minItems", "maxItems":
-			propOpts = addArrayPropertyOptions(propOpts, schema)
+	// Number-specific options
+	if schemaType == "number" || schemaType == "integer" {
+		propOpts = addNumberPropertyOptions(propOpts, schema)
+	}
+
+	// String-specific options
+	if schemaType == "string" {
+		propOpts = addStringPropertyOptions(propOpts, schema)
+	}
+
+	// Object-specific options
+	if schemaType == "object" {
+		propOpts = addObjectPropertyOptions(propOpts, schema)
+	}
+
+	// Array-specific options
+	if schemaType == "array" {
+		propOpts = addArrayPropertyOptions(propOpts, schema)
+
+		// Items schema passthrough if present
+		if itemsSchema, ok := schema["items"]; ok {
+			propOpts = append(propOpts, mcp.Items(itemsSchema))
 		}
+	}
+
+	// Default value, if present
+	if defaultValue, ok := schema["default"]; ok {
+		propOpts = addDefaultValueOptions(propOpts, defaultValue)
+	}
+
+	// Enum values, if present
+	if enumValues, ok := schema["enum"]; ok {
+		propOpts = addEnumOptions(propOpts, enumValues)
 	}
 
 	return propOpts
