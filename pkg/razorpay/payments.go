@@ -780,9 +780,6 @@ func InitiatePayment(
 
 		// Build payment data
 		paymentDataPtr := buildPaymentData(params, currency, customerID)
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
-		}
 		paymentData := *paymentDataPtr
 
 		// Create payment using Razorpay SDK's CreatePaymentJson method
