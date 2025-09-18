@@ -136,6 +136,321 @@ func Test_CreateOrder(t *testing.T) {
 			ExpectError:    true,
 			ExpectedErrMsg: "creating order failed: Razorpay API error: Bad request",
 		},
+		{
+			Name: "successful SBMD mandate order creation",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+					"frequency":  "as_presented",
+					"type":       "single_block_multiple_debit",
+				},
+				"receipt": "Receipt No. 1",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey... decaf.",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				sbmdOrderResp := map[string]interface{}{
+					"id":          "order_SBMD123456",
+					"amount":      float64(500000),
+					"currency":    "INR",
+					"customer_id": "cust_4xbQrmEoA5WJ01",
+					"method":      "upi",
+					"token": map[string]interface{}{
+						"max_amount": float64(500000),
+						"expire_at":  float64(2709971120),
+						"frequency":  "as_presented",
+						"type":       "single_block_multiple_debit",
+					},
+					"receipt": "Receipt No. 1",
+					"status":  "created",
+					"notes": map[string]interface{}{
+						"notes_key_1": "Tea, Earl Grey, Hot",
+						"notes_key_2": "Tea, Earl Grey... decaf.",
+					},
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createOrderPath,
+						Method:   "POST",
+						Response: sbmdOrderResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"id":          "order_SBMD123456",
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+					"frequency":  "as_presented",
+					"type":       "single_block_multiple_debit",
+				},
+				"receipt": "Receipt No. 1",
+				"status":  "created",
+				"notes": map[string]interface{}{
+					"notes_key_1": "Tea, Earl Grey, Hot",
+					"notes_key_2": "Tea, Earl Grey... decaf.",
+				},
+			},
+		},
+		{
+			Name: "mandate order with invalid token parameter type",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token":       "invalid_token_should_be_object",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: token",
+		},
+		{
+			Name: "mandate order with invalid method parameter type",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      123,
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+					"frequency":  "as_presented",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: method",
+		},
+		{
+			Name: "token validation - missing max_amount",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"expire_at": float64(2709971120),
+					"frequency": "as_presented",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.max_amount is required",
+		},
+		{
+			Name: "token validation - missing frequency",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.frequency is required",
+		},
+		{
+			Name: "token validation - invalid max_amount type",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": "invalid_string",
+					"expire_at":  float64(2709971120),
+					"frequency":  "as_presented",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.max_amount must be a number",
+		},
+		{
+			Name: "token validation - invalid max_amount value",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(-100),
+					"expire_at":  float64(2709971120),
+					"frequency":  "as_presented",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.max_amount must be greater than 0",
+		},
+		{
+			Name: "token validation - invalid expire_at type",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  "invalid_string",
+					"frequency":  "as_presented",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.expire_at must be a number",
+		},
+		{
+			Name: "token validation - invalid expire_at value",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(-100),
+					"frequency":  "as_presented",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.expire_at must be greater than 0",
+		},
+		{
+			Name: "token validation - invalid frequency type",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+					"frequency":  123,
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.frequency must be a string",
+		},
+		{
+			Name: "token validation - invalid frequency value",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+					"frequency":  "invalid_frequency",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.frequency must be one of: as_presented, " +
+				"monthly, one_time, yearly, weekly, daily",
+		},
+		{
+			Name: "token validation - invalid type value",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+					"frequency":  "as_presented",
+					"type":       "invalid_type",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.type must be one of: single_block_multiple_debit",
+		},
+		{
+			Name: "token validation - invalid type type",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+					"frequency":  "as_presented",
+					"type":       123,
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.type must be a string",
+		},
+		{
+			Name: "token validation - missing type",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"expire_at":  float64(2709971120),
+					"frequency":  "as_presented",
+				},
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "token.type is required",
+		},
+		{
+			Name: "token validation - default expire_at when not provided",
+			Request: map[string]interface{}{
+				"amount":      float64(500000),
+				"currency":    "INR",
+				"customer_id": "cust_4xbQrmEoA5WJ01",
+				"method":      "upi",
+				"token": map[string]interface{}{
+					"max_amount": float64(500000),
+					"frequency":  "as_presented",
+					"type":       "single_block_multiple_debit",
+				},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:   createOrderPath,
+						Method: "POST",
+						Response: map[string]interface{}{
+							"id": "order_test_12345",
+						},
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"id": "order_test_12345",
+			},
+		},
 	}
 
 	for _, tc := range tests {
