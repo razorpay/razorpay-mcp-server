@@ -18,36 +18,28 @@ func CreateOrder(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Payment amount in the smallest currency sub-unit. "+
-				"REQUIRED for all orders. Examples: for ₹295, use 29500; "+
-				"for $2.95, use 295. Minimum amount is 100 (₹1.00 for INR). "+
-				"For mandate orders, this is typically the same as token.max_amount."),
+			mcpgo.Description("Payment amount in the smallest "+
+				"currency sub-unit (e.g., for ₹295, use 29500)"),
 			mcpgo.Required(),
 			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
 		mcpgo.WithString(
 			"currency",
-			mcpgo.Description("ISO 4217 currency code. REQUIRED for all orders. "+
-				"Must be 3 uppercase letters. Examples: 'INR' for Indian Rupees, "+
-				"'USD' for US Dollars, 'SGD' for Singapore Dollars. "+
-				"For mandate orders in India, typically use 'INR'."),
+			mcpgo.Description("ISO code for the currency "+
+				"(e.g., INR, USD, SGD)"),
 			mcpgo.Required(),
 			mcpgo.Pattern("^[A-Z]{3}$"), // ISO currency codes are 3 uppercase letters
 		),
 		mcpgo.WithString(
 			"receipt",
-			mcpgo.Description("Optional receipt number for internal reference. "+
-				"Must be unique across all orders. Maximum 40 characters. "+
-				"Example: 'Receipt No. 1', 'ORDER_123', 'INV-2024-001'."),
+			mcpgo.Description("Receipt number for internal "+
+				"reference (max 40 chars, must be unique)"),
 			mcpgo.Max(40),
 		),
 		mcpgo.WithObject(
 			"notes",
-			mcpgo.Description("Optional key-value pairs for additional information. "+
-				"Maximum 15 pairs, each key and value limited to 256 characters. "+
-				"Example: {\"customer_name\": \"John Doe\", "+
-				"\"product\": \"Premium Plan\", "+
-				"\"notes_key_1\": \"Tea, Earl Grey, Hot\"}."),
+			mcpgo.Description("Key-value pairs for additional "+
+				"information (max 15 pairs, 256 chars each)"),
 			mcpgo.MaxProperties(15),
 		),
 		mcpgo.WithBoolean(
