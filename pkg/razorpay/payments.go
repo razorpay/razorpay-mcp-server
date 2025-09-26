@@ -608,7 +608,7 @@ func createOrGetCustomer(
 	customer, err := client.Customer.Create(customerData, nil)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"failed to create/fetch customer with contact %s: %v",
+			"Failed to create/fetch customer with contact %s: %v",
 			contact,
 			err,
 		)
