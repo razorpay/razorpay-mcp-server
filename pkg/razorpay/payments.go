@@ -796,6 +796,9 @@ func InitiatePayment(
 		// Create payment using Razorpay SDK's CreatePaymentJson method
 		// This follows the S2S JSON v1 flow:
 		// https://api.razorpay.com/v1/payments/create/json
+
+		fmt.Println("\n\n\n\n\n\ns\npaymentData", paymentData)
+
 		payment, err := client.Payment.CreatePaymentJson(paymentData, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
