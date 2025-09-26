@@ -61,6 +61,31 @@ func CreateOrder(
 				"(in currency subunits), currency (ISO code), and optional fields "+
 				"like notes, linked_account_notes, on_hold, on_hold_until"),
 		),
+		mcpgo.WithString(
+			"method",
+			mcpgo.Description("Payment method for mandate orders. "+
+				"REQUIRED for mandate orders. Must be 'upi' when using "+
+				"token.type='single_block_multiple_debit'. This field is used "+
+				"only for mandate/recurring payment orders."),
+		),
+		mcpgo.WithString(
+			"customer_id",
+			mcpgo.Description("Customer ID for mandate orders. "+
+				"REQUIRED for mandate orders. Must start with 'cust_' followed by "+
+				"alphanumeric characters. Example: 'cust_xxx'. "+
+				"This identifies the customer for recurring payments."),
+		),
+		mcpgo.WithObject(
+			"token",
+			mcpgo.Description("Token object for mandate orders. "+
+				"REQUIRED for mandate orders. Must contain: max_amount "+
+				"(positive number, maximum debit amount), frequency "+
+				"(as_presented/monthly/one_time/yearly/weekly/daily), "+
+				"type='single_block_multiple_debit' (only supported type), "+
+				"and optionally expire_at (Unix timestamp, defaults to today+60days). "+
+				"Example: {\"max_amount\": 100, \"frequency\": \"as_presented\", "+
+				"\"type\": \"single_block_multiple_debit\"}"),
+		),
 	}
 
 	handler := func(
@@ -81,7 +106,10 @@ func CreateOrder(
 			ValidateAndAddOptionalString(payload, "receipt").
 			ValidateAndAddOptionalMap(payload, "notes").
 			ValidateAndAddOptionalBool(payload, "partial_payment").
-			ValidateAndAddOptionalArray(payload, "transfers")
+			ValidateAndAddOptionalArray(payload, "transfers").
+			ValidateAndAddOptionalString(payload, "method").
+			ValidateAndAddOptionalString(payload, "customer_id").
+			ValidateAndAddToken(payload, "token")
 
 		// Add first_payment_min_amount only if partial_payment is true
 		if payload["partial_payment"] == true {
@@ -104,7 +132,27 @@ func CreateOrder(
 
 	return mcpgo.NewTool(
 		"create_order",
-		"Create a new order in Razorpay",
+		"Create a new order in Razorpay. Supports both regular orders and "+
+			"mandate orders. "+
+			"\n\nFor REGULAR ORDERS: Provide amount, currency, and optional "+
+			"receipt/notes. "+
+			"\n\nFor MANDATE ORDERS (recurring payments): You MUST provide ALL "+
+			"of these fields: "+
+			"amount, currency, method='upi', customer_id (starts with 'cust_'), "+
+			"and token object. "+
+			"\n\nThe token object is required for mandate orders and must contain: "+
+			"max_amount (positive number), frequency "+
+			"(as_presented/monthly/one_time/yearly/weekly/daily), "+
+			"type='single_block_multiple_debit', and optionally expire_at "+
+			"(defaults to today+60days). "+
+			"\n\nIMPORTANT: When token.type is 'single_block_multiple_debit', "+
+			"the method MUST be 'upi'. "+
+			"\n\nExample mandate order payload: "+
+			`{"amount": 100, "currency": "INR", "method": "upi", `+
+			`"customer_id": "cust_abc123", `+
+			`"token": {"max_amount": 100, "frequency": "as_presented", `+
+			`"type": "single_block_multiple_debit"}, `+
+			`"receipt": "Receipt No. 1", "notes": {"key": "value"}}`,
 		parameters,
 		handler,
 	)
