@@ -547,6 +547,11 @@ func addAdditionalPaymentParameters(
 		paymentData["save"] = save
 	}
 
+	// Add recurring if provided
+	if recurring, exists := params["recurring"]; exists {
+		paymentData["recurring"] = recurring
+	}
+
 	// Add UPI parameters if provided
 	if upiParams, exists := params["upi"]; exists && upiParams != nil {
 		if upiMap, ok := upiParams.(map[string]interface{}); ok {
@@ -603,7 +608,7 @@ func createOrGetCustomer(
 	customer, err := client.Customer.Create(customerData, nil)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"Failed to create/fetch customer with contact %s: %v",
+			"failed to create/fetch customer with contact %s: %v",
 			contact,
 			err,
 		)
@@ -722,6 +727,11 @@ func InitiatePayment(
 				"When set to true, automatically sets method='upi' and UPI parameters "+
 				"with flow='intent'. The API will return a UPI URL in the response."),
 		),
+		mcpgo.WithBoolean(
+			"recurring",
+			mcpgo.Description("Set this to true for recurring payments like "+
+				"single block multiple debit."),
+		),
 	}
 
 	handler := func(
@@ -746,7 +756,8 @@ func InitiatePayment(
 			ValidateAndAddOptionalString(params, "customer_id").
 			ValidateAndAddOptionalBool(params, "save").
 			ValidateAndAddOptionalString(params, "vpa").
-			ValidateAndAddOptionalBool(params, "upi_intent")
+			ValidateAndAddOptionalBool(params, "upi_intent").
+			ValidateAndAddOptionalBool(params, "recurring")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
@@ -810,7 +821,7 @@ func InitiatePayment(
 			"For UPI intent flow, set 'upi_intent=true' parameter "+
 			"which automatically sets UPI with flow='intent' and API returns UPI URL. "+
 			"Supports additional parameters like customer_id, email, "+
-			"contact, and save. "+
+			"contact, save, and recurring. "+
 			"Returns payment details including next action steps if required.",
 		parameters,
 		handler,

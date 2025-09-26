@@ -72,7 +72,7 @@ func CreateOrder(
 			"customer_id",
 			mcpgo.Description("Customer ID for mandate orders. "+
 				"REQUIRED for mandate orders. Must start with 'cust_' followed by "+
-				"alphanumeric characters. Example: 'cust_RFqtp3IMdXrZP7'. "+
+				"alphanumeric characters. Example: 'cust_xxx'. "+
 				"This identifies the customer for recurring payments."),
 		),
 		mcpgo.WithObject(
