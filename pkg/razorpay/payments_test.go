@@ -2734,6 +2734,32 @@ func Test_addAdditionalPaymentParameters_scenarios(t *testing.T) {
 				"method": "upi",
 			},
 		},
+		{
+			name: "recurring parameter provided",
+			paymentData: map[string]interface{}{
+				"amount": 10000,
+			},
+			params: map[string]interface{}{
+				"recurring": true,
+			},
+			expectedResult: map[string]interface{}{
+				"amount":    10000,
+				"recurring": true,
+			},
+		},
+		{
+			name: "recurring parameter false",
+			paymentData: map[string]interface{}{
+				"amount": 10000,
+			},
+			params: map[string]interface{}{
+				"recurring": false,
+			},
+			expectedResult: map[string]interface{}{
+				"amount":    10000,
+				"recurring": false,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -3865,6 +3891,30 @@ func TestPayments100PercentCoverage_ContextErrors2(t *testing.T) {
 // TestPayments100PercentCoverage_ContextErrors3 tests remaining
 // context error paths
 func TestPayments100PercentCoverage_ContextErrors3(t *testing.T) {
+	// Test FetchPayment - getClientFromContextOrDefault error
+	t.Run("FetchPayment - client context error", func(t *testing.T) {
+		// Create context without client
+		ctx := context.Background()
+
+		tool := FetchPayment(nil, nil)
+		request := mcpgo.CallToolRequest{
+			Arguments: map[string]interface{}{
+				"payment_id": "pay_test123",
+			},
+		}
+
+		result, err := tool.GetHandler()(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil || !result.IsError {
+			t.Error("Expected error result for missing client context")
+		}
+		if !strings.Contains(result.Text, "no client found in context") {
+			t.Errorf("Expected 'no client found in context', got '%s'", result.Text)
+		}
+	})
+
 	// Test FetchPaymentCardDetails - getClientFromContextOrDefault error
 	t.Run("FetchPaymentCardDetails - client context error", func(t *testing.T) {
 		// Create context without client
