@@ -608,7 +608,7 @@ func createOrGetCustomer(
 	customer, err := client.Customer.Create(customerData, nil)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"Failed to create/fetch customer with contact %s: %v",
+			"failed to create/fetch customer with contact %s: %v",
 			contact,
 			err,
 		)
@@ -642,6 +642,12 @@ func buildPaymentData(
 
 	// Add additional parameters for UPI collect and other flows
 	addAdditionalPaymentParameters(paymentData, params)
+
+	// Add force_terminal_id if provided (for single block multiple debit orders)
+	if terminalID, exists := params["force_terminal_id"]; exists &&
+		terminalID != "" {
+		paymentData["force_terminal_id"] = terminalID
+	}
 
 	return &paymentData
 }
@@ -732,6 +738,11 @@ func InitiatePayment(
 			mcpgo.Description("Set this to true for recurring payments like "+
 				"single block multiple debit."),
 		),
+		mcpgo.WithString(
+			"force_terminal_id",
+			mcpgo.Description("Terminal ID to be passed in case of single block "+
+				"multiple debit order."),
+		),
 	}
 
 	handler := func(
@@ -757,7 +768,8 @@ func InitiatePayment(
 			ValidateAndAddOptionalBool(params, "save").
 			ValidateAndAddOptionalString(params, "vpa").
 			ValidateAndAddOptionalBool(params, "upi_intent").
-			ValidateAndAddOptionalBool(params, "recurring")
+			ValidateAndAddOptionalBool(params, "recurring").
+			ValidateAndAddOptionalString(params, "force_terminal_id")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err

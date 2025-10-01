@@ -633,7 +633,7 @@ func Test_InitiatePayment(t *testing.T) {
 		"status":              "created",
 		"amount":              float64(10000),
 		"currency":            "INR",
-		"order_id":            "order_MT48CvBhIC98MQ",
+		"order_id":            "order_129837127313912",
 		"next": []interface{}{
 			map[string]interface{}{
 				"action": "redirect",
@@ -648,7 +648,7 @@ func Test_InitiatePayment(t *testing.T) {
 		"status":              "captured",
 		"amount":              float64(10000),
 		"currency":            "INR",
-		"order_id":            "order_MT48CvBhIC98MQ",
+		"order_id":            "order_129837127313912",
 	}
 
 	paymentErrorResp := map[string]interface{}{
@@ -665,7 +665,7 @@ func Test_InitiatePayment(t *testing.T) {
 				"amount":   10000,
 				"currency": "INR",
 				"token":    "token_MT48CvBhIC98MQ",
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 				"email":    "test@example.com",
 				"contact":  "9876543210",
 			},
@@ -704,7 +704,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount":   10000,
 				"token":    "token_MT48CvBhIC98MQ",
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -736,7 +736,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount":   10000,
 				"token":    "token_MT48CvBhIC98MQ",
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 				"contact":  "9876543210",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -774,7 +774,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount":   10000,
 				"token":    "token_invalid",
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -792,7 +792,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Name: "missing required amount parameter",
 			Request: map[string]interface{}{
 				"token":    "token_MT48CvBhIC98MQ",
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 			},
 			MockHttpClient: nil,
 			ExpectError:    true,
@@ -813,7 +813,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount":   "not_a_number",
 				"token":    "token_MT48CvBhIC98MQ",
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 			},
 			MockHttpClient: nil,
 			ExpectError:    true,
@@ -838,7 +838,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount":      10000,
 				"currency":    "INR",
-				"order_id":    "order_MT48CvBhIC98MQ",
+				"order_id":    "order_129837127313912",
 				"email":       "test@example.com",
 				"contact":     "9876543210",
 				"customer_id": "cust_RGCgP2osfPKFq2",
@@ -851,7 +851,7 @@ func Test_InitiatePayment(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 					"method":              "upi",
 					"next": []interface{}{
 						map[string]interface{}{
@@ -882,7 +882,7 @@ func Test_InitiatePayment(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 					"method":              "upi",
 					"next": []interface{}{
 						map[string]interface{}{
@@ -907,7 +907,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Name: "successful UPI collect flow without token",
 			Request: map[string]interface{}{
 				"amount":   10000,
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 				"contact":  "9876543210",
 				"vpa":      "9876543210@ptsbi",
 			},
@@ -917,7 +917,7 @@ func Test_InitiatePayment(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 					"method":              "upi",
 				}
 				return mock.NewHTTPClient(
@@ -941,7 +941,7 @@ func Test_InitiatePayment(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 					"method":              "upi",
 				},
 				"status": "payment_initiated",
@@ -961,7 +961,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount":      10000,
 				"currency":    "INR",
-				"order_id":    "order_MT48CvBhIC98MQ",
+				"order_id":    "order_129837127313912",
 				"email":       "test@example.com",
 				"contact":     "9876543210",
 				"customer_id": "cust_RGCgP2osfPKFq2",
@@ -974,7 +974,7 @@ func Test_InitiatePayment(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 					"method":              "upi",
 				}
 				return mock.NewHTTPClient(
@@ -998,7 +998,7 @@ func Test_InitiatePayment(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 					"method":              "upi",
 				},
 				"status": "payment_initiated",
@@ -1017,7 +1017,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Name: "invalid save parameter type",
 			Request: map[string]interface{}{
 				"amount":   10000,
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 				"save":     "invalid_string_instead_of_bool",
 			},
 			MockHttpClient: nil,
@@ -1028,7 +1028,7 @@ func Test_InitiatePayment(t *testing.T) {
 			Name: "invalid customer_id parameter type",
 			Request: map[string]interface{}{
 				"amount":      10000,
-				"order_id":    "order_MT48CvBhIC98MQ",
+				"order_id":    "order_129837127313912",
 				"customer_id": 123,
 			},
 			MockHttpClient: nil,
@@ -1113,12 +1113,77 @@ func Test_InitiatePayment(t *testing.T) {
 			Name: "invalid upi_intent parameter type",
 			Request: map[string]interface{}{
 				"amount":     10000,
-				"order_id":   "order_MT48CvBhIC98MQ",
+				"order_id":   "order_129837127313912",
 				"upi_intent": "invalid_string",
 			},
 			MockHttpClient: nil,
 			ExpectError:    true,
 			ExpectedErrMsg: "invalid parameter type: upi_intent",
+		},
+		{
+			Name: "successful payment initiation with force_terminal_id " +
+				"for single block multiple debit",
+			Request: map[string]interface{}{
+				"amount":            10000,
+				"currency":          "INR",
+				"order_id":          "order_129837127313912",
+				"email":             "test@example.com",
+				"contact":           "9876543210",
+				"customer_id":       "cust_RGCgP2osfPKFq2",
+				"recurring":         true,
+				"force_terminal_id": "term_ABCD1234256732",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				successPaymentWithTerminalResp := map[string]interface{}{
+					"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "INR",
+					"order_id":            "order_129837127313912",
+					"method":              "upi",
+					"force_terminal_id":   "term_ABCD1234256732",
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaymentWithTerminalResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details": map[string]interface{}{
+					"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "INR",
+					"order_id":            "order_129837127313912",
+					"method":              "upi",
+					"force_terminal_id":   "term_ABCD1234256732",
+				},
+				"status":  "payment_initiated",
+				"message": "Payment initiated successfully using S2S JSON v1 flow",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			Name: "invalid force_terminal_id parameter type",
+			Request: map[string]interface{}{
+				"amount":            10000,
+				"order_id":          "order_129837127313912",
+				"force_terminal_id": 123,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: force_terminal_id",
 		},
 	}
 
@@ -1142,7 +1207,7 @@ func Test_SubmitOtp(t *testing.T) {
 		"amount":            float64(10000),
 		"currency":          "INR",
 		"status":            "authorized",
-		"order_id":          "order_MT48CvBhIC98MQ",
+		"order_id":          "order_129837127313912",
 		"description":       "Test payment",
 		"method":            "card",
 		"amount_refunded":   float64(0),
@@ -1341,7 +1406,7 @@ func Test_InitiatePaymentWithVPA(t *testing.T) {
 			Name: "successful UPI payment with VPA parameter",
 			Request: map[string]interface{}{
 				"amount":   10000,
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 				"vpa":      "9876543210@ptsbi",
 				"email":    "test@example.com",
 				"contact":  "9876543210",
@@ -1352,7 +1417,7 @@ func Test_InitiatePaymentWithVPA(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 					"method":              "upi",
 					"email":               "test@example.com",
 					"contact":             "9876543210",
@@ -1391,7 +1456,7 @@ func Test_InitiatePaymentWithVPA(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 					"method":              "upi",
 					"email":               "test@example.com",
 					"contact":             "9876543210",
@@ -1482,7 +1547,7 @@ func Test_InitiatePaymentWithVPA(t *testing.T) {
 			Name: "missing VPA parameter value",
 			Request: map[string]interface{}{
 				"amount":   10000,
-				"order_id": "order_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
 				"vpa":      "",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
@@ -1491,7 +1556,7 @@ func Test_InitiatePaymentWithVPA(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 				}
 				return mock.NewHTTPClient(
 					mock.Endpoint{
@@ -1509,7 +1574,7 @@ func Test_InitiatePaymentWithVPA(t *testing.T) {
 					"status":              "created",
 					"amount":              float64(10000),
 					"currency":            "INR",
-					"order_id":            "order_MT48CvBhIC98MQ",
+					"order_id":            "order_129837127313912",
 				},
 				"status": "payment_initiated",
 				"message": "Payment initiated successfully using " +
@@ -2466,7 +2531,7 @@ func Test_createOrGetCustomer_scenarios(t *testing.T) {
 					},
 				)
 			},
-			expectedError: "Failed to create/fetch customer with contact 9876543210",
+			expectedError: "failed to create/fetch customer with contact 9876543210",
 		},
 	}
 
