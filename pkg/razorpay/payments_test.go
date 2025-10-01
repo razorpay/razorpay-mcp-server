@@ -1120,6 +1120,71 @@ func Test_InitiatePayment(t *testing.T) {
 			ExpectError:    true,
 			ExpectedErrMsg: "invalid parameter type: upi_intent",
 		},
+		{
+			Name: "successful payment initiation with force_terminal_id " +
+				"for single block multiple debit",
+			Request: map[string]interface{}{
+				"amount":            10000,
+				"currency":          "INR",
+				"order_id":          "order_MT48CvBhIC98MQ",
+				"email":             "test@example.com",
+				"contact":           "9876543210",
+				"customer_id":       "cust_RGCgP2osfPKFq2",
+				"recurring":         true,
+				"force_terminal_id": "term_RNLLxGnL254jAw",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				successPaymentWithTerminalResp := map[string]interface{}{
+					"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "INR",
+					"order_id":            "order_MT48CvBhIC98MQ",
+					"method":              "upi",
+					"force_terminal_id":   "term_RNLLxGnL254jAw",
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaymentWithTerminalResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details": map[string]interface{}{
+					"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "INR",
+					"order_id":            "order_MT48CvBhIC98MQ",
+					"method":              "upi",
+					"force_terminal_id":   "term_RNLLxGnL254jAw",
+				},
+				"status":  "payment_initiated",
+				"message": "Payment initiated successfully using S2S JSON v1 flow",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			Name: "invalid force_terminal_id parameter type",
+			Request: map[string]interface{}{
+				"amount":            10000,
+				"order_id":          "order_MT48CvBhIC98MQ",
+				"force_terminal_id": 123,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: force_terminal_id",
+		},
 	}
 
 	for _, tc := range tests {
@@ -2466,7 +2531,7 @@ func Test_createOrGetCustomer_scenarios(t *testing.T) {
 					},
 				)
 			},
-			expectedError: "Failed to create/fetch customer with contact 9876543210",
+			expectedError: "failed to create/fetch customer with contact 9876543210",
 		},
 	}
 
