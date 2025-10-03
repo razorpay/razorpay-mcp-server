@@ -46,7 +46,7 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 		"count":  float64(2),
 		"items": []interface{}{
 			map[string]interface{}{
-				"id":     "token_EhYXHrLsJdwRhM",
+				"id":     "token_ABCDEFGH",
 				"entity": "token",
 				"token":  "EhYXHrLsJdwRhM",
 				"bank":   nil,
@@ -382,6 +382,258 @@ func Test_FetchSavedPaymentMethods_ClientContextScenarios(t *testing.T) {
 		request := mcpgo.CallToolRequest{
 			Arguments: map[string]interface{}{
 				"contact": "9876543210",
+			},
+		}
+
+		result, err := tool.GetHandler()(ctx, request)
+
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+
+		if result == nil {
+			t.Fatal("Expected result, got nil")
+		}
+
+		if result.Text == "" {
+			t.Fatal("Expected error message in result")
+		}
+
+		expectedErrMsg := "invalid client type in context"
+		if !strings.Contains(result.Text, expectedErrMsg) {
+			t.Errorf(
+				"Expected error message to contain '%s', got '%s'",
+				expectedErrMsg,
+				result.Text,
+			)
+		}
+	})
+}
+
+func Test_RevokeToken(t *testing.T) {
+	// URL patterns for mocking
+	revokeTokenPathFmt := fmt.Sprintf(
+		"/%s/customers/%%s/tokens/%%s/cancel",
+		constants.VERSION_V1,
+	)
+
+	// Sample successful token revocation response
+	successResp := map[string]interface{}{
+		"deleted": true,
+	}
+
+	// Error responses
+	tokenNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Token not found",
+		},
+	}
+
+	customerNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Customer not found",
+		},
+	}
+
+	tests := []RazorpayToolTestCase{
+		{
+			Name: "successful token revocation with valid parameters",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+				"token_id":    "token_ABCDEFGH",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							revokeTokenPathFmt,
+							"cust_1Aa00000000003",
+							"token_ABCDEFGH",
+						),
+						Method:   "PUT",
+						Response: successResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successResp,
+		},
+		{
+			Name: "token not found error",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+				"token_id":    "token_nonexistent",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							revokeTokenPathFmt,
+							"cust_1Aa00000000003",
+							"token_nonexistent",
+						),
+						Method:   "PUT",
+						Response: tokenNotFoundResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "Failed to revoke token token_nonexistent for " +
+				"customer cust_1Aa00000000003: Token not found",
+		},
+		{
+			Name: "customer not found error",
+			Request: map[string]interface{}{
+				"customer_id": "cust_nonexistent",
+				"token_id":    "token_ABCDEFGH",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							revokeTokenPathFmt,
+							"cust_nonexistent",
+							"token_ABCDEFGH",
+						),
+						Method:   "PUT",
+						Response: customerNotFoundResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "Failed to revoke token token_ABCDEFGH for " +
+				"customer cust_nonexistent: Customer not found",
+		},
+		{
+			Name: "missing customer_id parameter",
+			Request: map[string]interface{}{
+				"token_id": "token_ABCDEFGH",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: customer_id",
+		},
+		{
+			Name: "missing token_id parameter",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: token_id",
+		},
+		{
+			Name: "empty customer_id parameter",
+			Request: map[string]interface{}{
+				"customer_id": "",
+				"token_id":    "token_ABCDEFGH",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: customer_id",
+		},
+		{
+			Name: "empty token_id parameter",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+				"token_id":    "",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: token_id",
+		},
+		{
+			Name: "null customer_id parameter",
+			Request: map[string]interface{}{
+				"customer_id": nil,
+				"token_id":    "token_ABCDEFGH",
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: customer_id",
+		},
+		{
+			Name: "null token_id parameter",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+				"token_id":    nil,
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: token_id",
+		},
+		{
+			Name:    "both parameters missing",
+			Request: map[string]interface{}{
+				// No parameters
+			},
+			MockHttpClient: nil, // No HTTP client needed for validation error
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: customer_id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			runToolTest(t, tc, RevokeToken, "Revoke Token")
+		})
+	}
+}
+
+// Test_RevokeToken_ClientContextScenarios tests scenarios
+// related to client context handling for 100% code coverage
+func Test_RevokeToken_ClientContextScenarios(t *testing.T) {
+	obs := CreateTestObservability()
+
+	t.Run("no client in context and default is nil", func(t *testing.T) {
+		// Create tool with nil client
+		tool := RevokeToken(obs, nil)
+
+		// Create context without client
+		ctx := context.Background()
+		request := mcpgo.CallToolRequest{
+			Arguments: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+				"token_id":    "token_ABCDEFGH",
+			},
+		}
+
+		result, err := tool.GetHandler()(ctx, request)
+
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+
+		if result == nil {
+			t.Fatal("Expected result, got nil")
+		}
+
+		if result.Text == "" {
+			t.Fatal("Expected error message in result")
+		}
+
+		expectedErrMsg := "no client found in context"
+		if !strings.Contains(result.Text, expectedErrMsg) {
+			t.Errorf(
+				"Expected error message to contain '%s', got '%s'",
+				expectedErrMsg,
+				result.Text,
+			)
+		}
+	})
+
+	t.Run("invalid client type in context", func(t *testing.T) {
+		// Create tool with nil client
+		tool := RevokeToken(obs, nil)
+
+		// Create context with invalid client type
+		ctx := contextkey.WithClient(context.Background(), "invalid_client_type")
+		request := mcpgo.CallToolRequest{
+			Arguments: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+				"token_id":    "token_ABCDEFGH",
 			},
 		}
 

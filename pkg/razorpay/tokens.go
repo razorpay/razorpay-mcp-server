@@ -105,3 +105,98 @@ func FetchSavedPaymentMethods(
 		handler,
 	)
 }
+
+// RevokeToken returns a tool that revokes a saved payment token
+func RevokeToken(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"customer_id",
+			mcpgo.Description(
+				"Customer ID for which the token should be revoked. "+
+					"Must start with 'cust_' followed by alphanumeric characters. "+
+					"Example: 'cust_xxx'"),
+			mcpgo.Required(),
+		),
+		mcpgo.WithString(
+			"token_id",
+			mcpgo.Description(
+				"Token ID of the saved payment method to be revoked. "+
+					"Must start with 'token_' followed by alphanumeric characters. "+
+					"Example: 'token_xxx'"),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		// Get client from context or use default
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		validator := NewValidator(&r)
+
+		// Validate required customer_id parameter
+		customerIDValue, err := extractValueGeneric[string](&r, "customer_id", true)
+		if err != nil {
+			validator = validator.addError(err)
+		} else if customerIDValue == nil || *customerIDValue == "" {
+			validator = validator.addError(
+				fmt.Errorf("missing required parameter: customer_id"))
+		}
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+		customerID := *customerIDValue
+
+		// Validate required token_id parameter
+		tokenIDValue, err := extractValueGeneric[string](&r, "token_id", true)
+		if err != nil {
+			validator = validator.addError(err)
+		} else if tokenIDValue == nil || *tokenIDValue == "" {
+			validator = validator.addError(
+				fmt.Errorf("missing required parameter: token_id"))
+		}
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+		tokenID := *tokenIDValue
+
+		url := fmt.Sprintf(
+			"/%s%s/%s/tokens/%s/cancel",
+			constants.VERSION_V1,
+			constants.CUSTOMER_URL,
+			customerID,
+			tokenID,
+		)
+		response, err := client.Token.Request.Put(url, nil, nil)
+
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf(
+					"Failed to revoke token %s for customer %s: %v",
+					tokenID,
+					customerID,
+					err,
+				)), nil
+		}
+
+		return mcpgo.NewToolResultJSON(response)
+	}
+
+	return mcpgo.NewTool(
+		"revoke_token",
+		"Revoke a saved payment method (token) for a customer. "+
+			"This tool revokes the specified token "+
+			"associated with the given customer ID. "+
+			"Once revoked, the token cannot be used for future payments.",
+		parameters,
+		handler,
+	)
+}

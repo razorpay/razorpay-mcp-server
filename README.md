@@ -55,6 +55,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/) | ✅ |
 | `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id) | ✅ |
 | `fetch_tokens`     | Get all saved payment methods for a contact number     | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/cards/tokens/) | ✅ |
+| `revoke_token`     | Revoke a saved payment method (token) for a customer   | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-otm/collect/tokens/#24-cancel-token) | ✅ |
 
 
 ## Use Cases
