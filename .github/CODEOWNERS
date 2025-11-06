@@ -1,0 +1,26 @@
+# Default owners for everything in the repository
+* @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+
+# Core Razorpay MCP server implementation
+/pkg/razorpay/ @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+
+# MCP protocol implementation
+/pkg/mcpgo/ @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+
+# Main application entry point
+/cmd/ @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+
+# GitHub workflows and templates
+/.github/ @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+
+# Docker configuration
+/Dockerfile @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+
+# Build and dependency files
+/go.mod @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+/go.sum @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+/Makefile @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+
+# Documentation
+/*.md @RZP7464 @jating06 @Jayant-saksham @nikhil-rzp @ankitchoudhary2209
+

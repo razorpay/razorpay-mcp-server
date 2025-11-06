@@ -18,5 +18,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              assignees: ['KarthikBoddeda', 'ChiragChiranjib', 'stuckinforloop', 'alok87']
+              assignees: ['RZP7464','jating06','Jayant-saksham','nikhil-rzp', 'ankitchoudhary2209']
             })
