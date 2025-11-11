@@ -45,7 +45,8 @@ func TestMark3labsStdioImpl_Listen(t *testing.T) {
 
 		// Create a simple input that will cause the server to process
 		// The actual Listen implementation will read from in and write to out
-		in := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`)
+		initMsg := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`
+		in := strings.NewReader(initMsg)
 		out := &bytes.Buffer{}
 
 		// Listen will block, so we need to run it in a goroutine

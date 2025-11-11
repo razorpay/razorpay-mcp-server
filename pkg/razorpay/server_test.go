@@ -43,7 +43,8 @@ func TestNewRzpMcpServer(t *testing.T) {
 		obs := CreateTestObservability()
 		client := rzpsdk.NewClient("test-key", "test-secret")
 
-		server, err := NewRzpMcpServer(obs, client, []string{"payments", "orders"}, false)
+		server, err := NewRzpMcpServer(
+			obs, client, []string{"payments", "orders"}, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, server)
 	})

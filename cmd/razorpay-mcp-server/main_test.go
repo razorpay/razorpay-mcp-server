@@ -103,8 +103,10 @@ func TestRootCmdFlags(t *testing.T) {
 		viper.Reset()
 
 		// Set flag values
-		rootCmd.PersistentFlags().Set("key", "test-key")
-		rootCmd.PersistentFlags().Set("secret", "test-secret")
+		err := rootCmd.PersistentFlags().Set("key", "test-key")
+		assert.NoError(t, err)
+		err = rootCmd.PersistentFlags().Set("secret", "test-secret")
+		assert.NoError(t, err)
 
 		// Verify viper can read the values
 		// Note: This might not work if viper hasn't been initialized yet

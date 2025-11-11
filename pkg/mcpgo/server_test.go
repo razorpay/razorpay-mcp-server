@@ -197,7 +197,7 @@ func TestWithResourceCapabilities(t *testing.T) {
 }
 
 func TestWithToolCapabilities(t *testing.T) {
-	t.Run("returns server option with enabled tool capabilities", func(t *testing.T) {
+	t.Run("returns server option with enabled tool caps", func(t *testing.T) {
 		opt := WithToolCapabilities(true)
 		assert.NotNil(t, opt)
 		setter := &mark3labsOptionSetter{
@@ -208,7 +208,7 @@ func TestWithToolCapabilities(t *testing.T) {
 		assert.Len(t, setter.mcpOptions, 1)
 	})
 
-	t.Run("returns server option with disabled tool capabilities", func(t *testing.T) {
+	t.Run("returns server option with disabled tool caps", func(t *testing.T) {
 		opt := WithToolCapabilities(false)
 		assert.NotNil(t, opt)
 		setter := &mark3labsOptionSetter{
@@ -250,7 +250,7 @@ func TestSetupHooks(t *testing.T) {
 		_ = ctx
 	})
 
-	t.Run("creates hooks and tests OnSuccess with ListToolsResult", func(t *testing.T) {
+	t.Run("creates hooks and tests OnSuccess with ListTools", func(t *testing.T) {
 		ctx := context.Background()
 		_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
 		obs := &observability.Observability{
@@ -266,7 +266,7 @@ func TestSetupHooks(t *testing.T) {
 		_ = ctx
 	})
 
-	t.Run("creates hooks and tests OnSuccess with non-ListToolsResult", func(t *testing.T) {
+	t.Run("creates hooks and tests OnSuccess with non-ListTools", func(t *testing.T) {
 		ctx := context.Background()
 		_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
 		obs := &observability.Observability{
@@ -323,7 +323,7 @@ func TestSetupHooks(t *testing.T) {
 		_ = ctx
 	})
 
-	t.Run("creates hooks with empty tools list in ListToolsResult", func(t *testing.T) {
+	t.Run("creates hooks with empty tools list in ListTools", func(t *testing.T) {
 		ctx := context.Background()
 		_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
 		obs := &observability.Observability{
@@ -340,7 +340,7 @@ func TestSetupHooks(t *testing.T) {
 		_ = ctx
 	})
 
-	t.Run("creates hooks and tests OnSuccess with non-ListToolsResult type", func(t *testing.T) {
+	t.Run("creates hooks and tests OnSuccess with non-ListTools type", func(t *testing.T) {
 		ctx := context.Background()
 		_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
 		obs := &observability.Observability{
@@ -357,7 +357,7 @@ func TestSetupHooks(t *testing.T) {
 		_ = ctx
 	})
 
-	t.Run("creates hooks and tests OnSuccess with ListToolsResult that fails type assertion", func(t *testing.T) {
+	t.Run("creates hooks and tests OnSuccess with ListTools that fails", func(t *testing.T) {
 		ctx := context.Background()
 		_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
 		obs := &observability.Observability{

@@ -21,7 +21,10 @@ func TestWithClient(t *testing.T) {
 	})
 
 	t.Run("adds client to context with existing values", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), "existing-key", "existing-value")
+		type existingKeyType string
+		existingKey := existingKeyType("existing-key")
+		ctx := context.WithValue(
+			context.Background(), existingKey, "existing-value")
 		client := map[string]interface{}{
 			"key": "value",
 		}
@@ -104,7 +107,9 @@ func TestClientFromContext(t *testing.T) {
 		client := "test-client"
 
 		ctx = WithClient(ctx, client)
-		ctx = context.WithValue(ctx, "other-key", "other-value")
+		type otherKeyType string
+		otherKey := otherKeyType("other-key")
+		ctx = context.WithValue(ctx, otherKey, "other-value")
 
 		retrieved := ClientFromContext(ctx)
 		assert.Equal(t, client, retrieved)

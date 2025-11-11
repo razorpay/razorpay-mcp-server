@@ -11,7 +11,8 @@ import (
 
 func TestNewTool(t *testing.T) {
 	t.Run("creates tool with all fields", func(t *testing.T) {
-		handler := func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+		handler := func(
+			ctx context.Context, req CallToolRequest) (*ToolResult, error) {
 			return NewToolResultText("success"), nil
 		}
 		tool := NewTool(
@@ -25,7 +26,8 @@ func TestNewTool(t *testing.T) {
 	})
 
 	t.Run("creates tool with empty parameters", func(t *testing.T) {
-		handler := func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+		handler := func(
+			ctx context.Context, req CallToolRequest) (*ToolResult, error) {
 			return NewToolResultText("success"), nil
 		}
 		tool := NewTool("test-tool", "Test", []ToolParameter{}, handler)
@@ -35,7 +37,8 @@ func TestNewTool(t *testing.T) {
 
 func TestMark3labsToolImpl_GetHandler(t *testing.T) {
 	t.Run("returns handler", func(t *testing.T) {
-		handler := func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+		handler := func(
+			ctx context.Context, req CallToolRequest) (*ToolResult, error) {
 			return NewToolResultText("success"), nil
 		}
 		tool := NewTool("test-tool", "Test", []ToolParameter{}, handler)

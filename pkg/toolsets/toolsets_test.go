@@ -62,11 +62,13 @@ func TestToolset_AddWriteTools(t *testing.T) {
 	t.Run("adds write tools when not readOnly", func(t *testing.T) {
 		ts := NewToolset("test", "Test")
 		tool1 := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result1"), nil
 			})
 		tool2 := mcpgo.NewTool("tool2", "Tool 2", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result2"), nil
 			})
 
@@ -79,7 +81,8 @@ func TestToolset_AddWriteTools(t *testing.T) {
 		ts := NewToolset("test", "Test")
 		ts.readOnly = true
 		tool := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 
@@ -91,15 +94,18 @@ func TestToolset_AddWriteTools(t *testing.T) {
 	t.Run("adds multiple write tools", func(t *testing.T) {
 		ts := NewToolset("test", "Test")
 		tool1 := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 		tool2 := mcpgo.NewTool("tool2", "Tool 2", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 		tool3 := mcpgo.NewTool("tool3", "Tool 3", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 
@@ -118,11 +124,13 @@ func TestToolset_AddReadTools(t *testing.T) {
 	t.Run("adds read tools", func(t *testing.T) {
 		ts := NewToolset("test", "Test")
 		tool1 := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result1"), nil
 			})
 		tool2 := mcpgo.NewTool("tool2", "Tool 2", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result2"), nil
 			})
 
@@ -135,7 +143,8 @@ func TestToolset_AddReadTools(t *testing.T) {
 		ts := NewToolset("test", "Test")
 		ts.readOnly = true
 		tool := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 
@@ -146,15 +155,18 @@ func TestToolset_AddReadTools(t *testing.T) {
 	t.Run("adds multiple read tools", func(t *testing.T) {
 		ts := NewToolset("test", "Test")
 		tool1 := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 		tool2 := mcpgo.NewTool("tool2", "Tool 2", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 		tool3 := mcpgo.NewTool("tool3", "Tool 3", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 
@@ -174,11 +186,14 @@ func TestToolset_RegisterTools(t *testing.T) {
 		ts := NewToolset("test", "Test")
 		ts.Enabled = true
 		readTool := mcpgo.NewTool("read-tool", "Read Tool", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
-		writeTool := mcpgo.NewTool("write-tool", "Write Tool", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+		writeTool := mcpgo.NewTool(
+			"write-tool", "Write Tool", []mcpgo.ToolParameter{},
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 
@@ -188,14 +203,16 @@ func TestToolset_RegisterTools(t *testing.T) {
 		mockSrv := &mockServer{}
 		ts.RegisterTools(mockSrv)
 
-		assert.Len(t, mockSrv.GetTools(), 2) // Both read and write tools should be registered
+		// Both read and write tools should be registered
+		assert.Len(t, mockSrv.GetTools(), 2)
 	})
 
 	t.Run("does not register tools when disabled", func(t *testing.T) {
 		ts := NewToolset("test", "Test")
 		ts.Enabled = false
 		tool := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 
@@ -212,11 +229,14 @@ func TestToolset_RegisterTools(t *testing.T) {
 		ts.Enabled = true
 		ts.readOnly = true
 		readTool := mcpgo.NewTool("read-tool", "Read Tool", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
-		writeTool := mcpgo.NewTool("write-tool", "Write Tool", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+		writeTool := mcpgo.NewTool(
+			"write-tool", "Write Tool", []mcpgo.ToolParameter{},
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result"), nil
 			})
 
@@ -249,7 +269,8 @@ func TestToolsetGroup_AddToolset(t *testing.T) {
 
 		assert.Len(t, tg.Toolsets, 1)
 		assert.Equal(t, ts, tg.Toolsets["test"])
-		assert.False(t, ts.readOnly) // Should not be readOnly when group is not readOnly
+		// Should not be readOnly when group is not readOnly
+		assert.False(t, ts.readOnly)
 	})
 
 	t.Run("adds toolset to readOnly group", func(t *testing.T) {
@@ -411,7 +432,7 @@ func TestToolsetGroup_EnableToolsets(t *testing.T) {
 		assert.True(t, ts2.Enabled)
 	})
 
-	t.Run("enables all toolsets when everythingOn is true with empty names", func(t *testing.T) {
+	t.Run("enables all toolsets when everythingOn true with empty names", func(t *testing.T) {
 		tg := NewToolsetGroup(false)
 		ts1 := NewToolset("test1", "Test 1")
 		ts2 := NewToolset("test2", "Test 2")
@@ -438,11 +459,13 @@ func TestToolsetGroup_RegisterTools(t *testing.T) {
 		ts2 := NewToolset("test2", "Test 2")
 
 		tool1 := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result1"), nil
 			})
 		tool2 := mcpgo.NewTool("tool2", "Tool 2", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result2"), nil
 			})
 
@@ -466,11 +489,13 @@ func TestToolsetGroup_RegisterTools(t *testing.T) {
 		ts2 := NewToolset("test2", "Test 2")
 
 		tool1 := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result1"), nil
 			})
 		tool2 := mcpgo.NewTool("tool2", "Tool 2", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result2"), nil
 			})
 
@@ -494,7 +519,8 @@ func TestToolsetGroup_RegisterTools(t *testing.T) {
 		ts2 := NewToolset("test2", "Test 2")
 
 		tool1 := mcpgo.NewTool("tool1", "Tool 1", []mcpgo.ToolParameter{},
-			func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
+			func(ctx context.Context,
+				req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
 				return mcpgo.NewToolResultText("result1"), nil
 			})
 

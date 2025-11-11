@@ -40,96 +40,62 @@ func TestStdioCmd(t *testing.T) {
 	})
 }
 
+func setupTestServer(t *testing.T) (
+	context.Context, context.CancelFunc, *observability.Observability,
+	*rzpsdk.Client) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	config := log.NewConfig(log.WithMode(log.ModeStdio))
+	_, logger := log.New(context.Background(), config)
+	obs := observability.New(observability.WithLoggingService(logger))
+	client := rzpsdk.NewClient("test-key", "test-secret")
+	return ctx, cancel, obs, client
+}
+
+func runServerAndCancel(
+	t *testing.T, ctx context.Context, cancel context.CancelFunc,
+	obs *observability.Observability, client *rzpsdk.Client,
+	toolsets []string, readOnly bool) {
+	t.Helper()
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- runStdioServer(ctx, obs, client, toolsets, readOnly)
+	}()
+	cancel()
+	select {
+	case err := <-errChan:
+		assert.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("server did not stop in time")
+	}
+}
+
 func TestRunStdioServer(t *testing.T) {
 	t.Run("creates server successfully", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel, obs, client := setupTestServer(t)
 		defer cancel()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client
-		client := rzpsdk.NewClient("test-key", "test-secret")
-
-		// Run server in a goroutine and cancel immediately
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- runStdioServer(ctx, obs, client, []string{}, false)
-		}()
-
-		// Cancel context to stop server
-		cancel()
-
-		// Wait for server to stop
-		select {
-		case err := <-errChan:
-			assert.NoError(t, err)
-		case <-time.After(2 * time.Second):
-			t.Fatal("server did not stop in time")
-		}
+		runServerAndCancel(t, ctx, cancel, obs, client, []string{}, false)
 	})
 
 	t.Run("handles server creation error", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel, obs, _ := setupTestServer(t)
 		defer cancel()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client with invalid credentials (should still create client)
 		client := rzpsdk.NewClient("", "")
-
-		// Run server - should handle gracefully
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- runStdioServer(ctx, obs, client, []string{}, false)
-		}()
-
-		// Cancel context
-		cancel()
-
-		select {
-		case err := <-errChan:
-			// Should not error on cancellation
-			assert.NoError(t, err)
-		case <-time.After(2 * time.Second):
-			t.Fatal("server did not stop in time")
-		}
+		runServerAndCancel(t, ctx, cancel, obs, client, []string{}, false)
 	})
 
 	t.Run("handles signal context cancellation", func(t *testing.T) {
+		_, _, obs, client := setupTestServer(t)
 		ctx := context.Background()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client
-		client := rzpsdk.NewClient("test-key", "test-secret")
-
-		// Create signal context
 		signalCtx, stop := signal.NotifyContext(
-			ctx,
-			os.Interrupt,
-			syscall.SIGTERM,
-		)
+			ctx, os.Interrupt, syscall.SIGTERM)
 		defer stop()
-
-		// Run server
 		errChan := make(chan error, 1)
 		go func() {
 			errChan <- runStdioServer(signalCtx, obs, client, []string{}, false)
 		}()
-
-		// Send interrupt signal
 		time.Sleep(100 * time.Millisecond)
 		stop()
-
 		select {
 		case err := <-errChan:
 			assert.NoError(t, err)
@@ -139,190 +105,45 @@ func TestRunStdioServer(t *testing.T) {
 	})
 
 	t.Run("handles read-only mode", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel, obs, client := setupTestServer(t)
 		defer cancel()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client
-		client := rzpsdk.NewClient("test-key", "test-secret")
-
-		// Run server in read-only mode
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- runStdioServer(ctx, obs, client, []string{}, true)
-		}()
-
-		// Cancel context
-		cancel()
-
-		select {
-		case err := <-errChan:
-			assert.NoError(t, err)
-		case <-time.After(2 * time.Second):
-			t.Fatal("server did not stop in time")
-		}
+		runServerAndCancel(t, ctx, cancel, obs, client, []string{}, true)
 	})
 
 	t.Run("handles enabled toolsets", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel, obs, client := setupTestServer(t)
 		defer cancel()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client
-		client := rzpsdk.NewClient("test-key", "test-secret")
-
-		// Run server with enabled toolsets
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- runStdioServer(ctx, obs, client, []string{"payments", "orders"}, false)
-		}()
-
-		// Cancel context
-		cancel()
-
-		select {
-		case err := <-errChan:
-			assert.NoError(t, err)
-		case <-time.After(2 * time.Second):
-			t.Fatal("server did not stop in time")
-		}
+		toolsets := []string{"payments", "orders"}
+		runServerAndCancel(t, ctx, cancel, obs, client, toolsets, false)
 	})
 
 	t.Run("handles server listen error", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel, obs, client := setupTestServer(t)
 		defer cancel()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client
-		client := rzpsdk.NewClient("test-key", "test-secret")
-
-		// Create a context that will be cancelled quickly
 		quickCtx, quickCancel := context.WithTimeout(ctx, 50*time.Millisecond)
 		defer quickCancel()
-
-		// Run server
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- runStdioServer(quickCtx, obs, client, []string{}, false)
-		}()
-
-		select {
-		case err := <-errChan:
-			// Should not error on timeout/cancellation
-			assert.NoError(t, err)
-		case <-time.After(1 * time.Second):
-			// If it takes too long, cancel and check
-			cancel()
-			select {
-			case err := <-errChan:
-				assert.NoError(t, err)
-			case <-time.After(1 * time.Second):
-				t.Fatal("server did not stop in time")
-			}
-		}
+		runServerAndCancel(t, quickCtx, quickCancel, obs, client, []string{}, false)
 	})
 
 	t.Run("handles error from server creation", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel, obs, client := setupTestServer(t)
 		defer cancel()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client - this should work
-		client := rzpsdk.NewClient("test-key", "test-secret")
-
-		// Run server - should work fine
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- runStdioServer(ctx, obs, client, []string{}, false)
-		}()
-
-		// Cancel immediately
-		cancel()
-
-		select {
-		case err := <-errChan:
-			assert.NoError(t, err)
-		case <-time.After(2 * time.Second):
-			t.Fatal("server did not stop in time")
-		}
+		runServerAndCancel(t, ctx, cancel, obs, client, []string{}, false)
 	})
 
 	t.Run("handles error from stdio server creation", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel, obs, client := setupTestServer(t)
 		defer cancel()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client
-		client := rzpsdk.NewClient("test-key", "test-secret")
-
-		// Run server
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- runStdioServer(ctx, obs, client, []string{}, false)
-		}()
-
-		// Cancel to stop
-		cancel()
-
-		select {
-		case err := <-errChan:
-			assert.NoError(t, err)
-		case <-time.After(2 * time.Second):
-			t.Fatal("server did not stop in time")
-		}
+		runServerAndCancel(t, ctx, cancel, obs, client, []string{}, false)
 	})
 
 	t.Run("handles error from listen channel", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel, obs, client := setupTestServer(t)
 		defer cancel()
-
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
-
-		// Create client
-		client := rzpsdk.NewClient("test-key", "test-secret")
-
-		// Run server
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- runStdioServer(ctx, obs, client, []string{}, false)
-		}()
-
-		// Cancel to stop
-		cancel()
-
-		select {
-		case err := <-errChan:
-			// Should return nil on context cancellation
-			assert.NoError(t, err)
-		case <-time.After(2 * time.Second):
-			t.Fatal("server did not stop in time")
-		}
+		runServerAndCancel(t, ctx, cancel, obs, client, []string{}, false)
 	})
 
-	t.Run("handles error from NewRzpMcpServer with nil observability", func(t *testing.T) {
+	t.Run("handles error from NewRzpMcpServer with nil obs", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
