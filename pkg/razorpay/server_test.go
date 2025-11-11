@@ -98,15 +98,16 @@ func TestGetClientFromContextOrDefault(t *testing.T) {
 			assert.Contains(t, err.Error(), "no client found in context")
 		})
 
-	t.Run("returns error when client in context has wrong type", func(t *testing.T) {
-		ctx := context.Background()
-		ctx = contextkey.WithClient(ctx, "not-a-client")
+	t.Run("returns error when client in context has wrong type",
+		func(t *testing.T) {
+			ctx := context.Background()
+			ctx = contextkey.WithClient(ctx, "not-a-client")
 
-		result, err := getClientFromContextOrDefault(ctx, nil)
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "invalid client type in context")
-	})
+			result, err := getClientFromContextOrDefault(ctx, nil)
+			assert.Error(t, err)
+			assert.Nil(t, result)
+			assert.Contains(t, err.Error(), "invalid client type in context")
+		})
 
 	t.Run("prefers default client over context client", func(t *testing.T) {
 		ctx := context.Background()
