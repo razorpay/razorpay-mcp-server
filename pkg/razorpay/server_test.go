@@ -88,14 +88,15 @@ func TestGetClientFromContextOrDefault(t *testing.T) {
 		assert.Equal(t, client, result)
 	})
 
-	t.Run("returns error when no client in context and no default", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("returns error when no client in context and no default",
+		func(t *testing.T) {
+			ctx := context.Background()
 
-		result, err := getClientFromContextOrDefault(ctx, nil)
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "no client found in context")
-	})
+			result, err := getClientFromContextOrDefault(ctx, nil)
+			assert.Error(t, err)
+			assert.Nil(t, result)
+			assert.Contains(t, err.Error(), "no client found in context")
+		})
 
 	t.Run("returns error when client in context has wrong type", func(t *testing.T) {
 		ctx := context.Background()

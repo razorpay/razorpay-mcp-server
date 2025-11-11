@@ -266,20 +266,21 @@ func TestSetupHooks(t *testing.T) {
 		_ = ctx
 	})
 
-	t.Run("creates hooks and tests OnSuccess with non-ListTools", func(t *testing.T) {
-		ctx := context.Background()
-		_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
-		obs := &observability.Observability{
-			Logger: logger,
-		}
+	t.Run("creates hooks and tests OnSuccess with non-ListTools",
+		func(t *testing.T) {
+			ctx := context.Background()
+			_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
+			obs := &observability.Observability{
+				Logger: logger,
+			}
 
-		hooks := SetupHooks(obs)
-		assert.NotNil(t, hooks)
+			hooks := SetupHooks(obs)
+			assert.NotNil(t, hooks)
 
-		// The OnSuccess hook with non-ListToolsResult is tested by creating
-		// a server and verifying hooks are properly configured
-		_ = ctx
-	})
+			// The OnSuccess hook with non-ListToolsResult is tested by creating
+			// a server and verifying hooks are properly configured
+			_ = ctx
+		})
 
 	t.Run("creates hooks and tests OnError hook", func(t *testing.T) {
 		ctx := context.Background()
@@ -340,37 +341,39 @@ func TestSetupHooks(t *testing.T) {
 		_ = ctx
 	})
 
-	t.Run("creates hooks and tests OnSuccess with non-ListTools type", func(t *testing.T) {
-		ctx := context.Background()
-		_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
-		obs := &observability.Observability{
-			Logger: logger,
-		}
+	t.Run("creates hooks and tests OnSuccess with non-ListTools type",
+		func(t *testing.T) {
+			ctx := context.Background()
+			_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
+			obs := &observability.Observability{
+				Logger: logger,
+			}
 
-		hooks := SetupHooks(obs)
-		assert.NotNil(t, hooks)
+			hooks := SetupHooks(obs)
+			assert.NotNil(t, hooks)
 
-		// Test OnSuccess with result that is not *mcp.ListToolsResult
-		// This tests the else branch in the OnSuccess hook
-		srv := NewMcpServer("test", "1.0.0", WithHooks(hooks))
-		assert.NotNil(t, srv)
-		_ = ctx
-	})
+			// Test OnSuccess with result that is not *mcp.ListToolsResult
+			// This tests the else branch in the OnSuccess hook
+			srv := NewMcpServer("test", "1.0.0", WithHooks(hooks))
+			assert.NotNil(t, srv)
+			_ = ctx
+		})
 
-	t.Run("creates hooks and tests OnSuccess with ListTools that fails", func(t *testing.T) {
-		ctx := context.Background()
-		_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
-		obs := &observability.Observability{
-			Logger: logger,
-		}
+	t.Run("creates hooks and tests OnSuccess with ListTools that fails",
+		func(t *testing.T) {
+			ctx := context.Background()
+			_, logger := log.New(ctx, log.NewConfig(log.WithMode(log.ModeStdio)))
+			obs := &observability.Observability{
+				Logger: logger,
+			}
 
-		hooks := SetupHooks(obs)
-		assert.NotNil(t, hooks)
+			hooks := SetupHooks(obs)
+			assert.NotNil(t, hooks)
 
-		// Test OnSuccess with MethodToolsList but result is not *mcp.ListToolsResult
-		// This tests the type assertion failure case
-		srv := NewMcpServer("test", "1.0.0", WithHooks(hooks))
-		assert.NotNil(t, srv)
-		_ = ctx
-	})
+			// Test OnSuccess with MethodToolsList but result is not *mcp.ListToolsResult
+			// This tests the type assertion failure case
+			srv := NewMcpServer("test", "1.0.0", WithHooks(hooks))
+			assert.NotNil(t, srv)
+			_ = ctx
+		})
 }

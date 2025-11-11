@@ -432,24 +432,25 @@ func TestToolsetGroup_EnableToolsets(t *testing.T) {
 		assert.True(t, ts2.Enabled)
 	})
 
-	t.Run("enables all toolsets when everythingOn true with empty names", func(t *testing.T) {
-		tg := NewToolsetGroup(false)
-		ts1 := NewToolset("test1", "Test 1")
-		ts2 := NewToolset("test2", "Test 2")
-		tg.AddToolset(ts1)
-		tg.AddToolset(ts2)
+	t.Run("enables all toolsets when everythingOn true with empty names",
+		func(t *testing.T) {
+			tg := NewToolsetGroup(false)
+			ts1 := NewToolset("test1", "Test 1")
+			ts2 := NewToolset("test2", "Test 2")
+			tg.AddToolset(ts1)
+			tg.AddToolset(ts2)
 
-		// Set everythingOn to true
-		tg.everythingOn = true
-		ts1.Enabled = false
-		ts2.Enabled = false
+			// Set everythingOn to true
+			tg.everythingOn = true
+			ts1.Enabled = false
+			ts2.Enabled = false
 
-		// Call with empty array - should still enable all because everythingOn is true
-		err := tg.EnableToolsets([]string{})
-		assert.NoError(t, err)
-		assert.True(t, ts1.Enabled)
-		assert.True(t, ts2.Enabled)
-	})
+			// Call with empty array
+			err := tg.EnableToolsets([]string{})
+			assert.NoError(t, err)
+			assert.True(t, ts1.Enabled)
+			assert.True(t, ts2.Enabled)
+		})
 }
 
 func TestToolsetGroup_RegisterTools(t *testing.T) {

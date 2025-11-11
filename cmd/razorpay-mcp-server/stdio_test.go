@@ -155,20 +155,21 @@ func TestRunStdioServer(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to create server")
 	})
 
-	t.Run("handles error from NewRzpMcpServer with nil client", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	t.Run("handles error from NewRzpMcpServer with nil client",
+		func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
-		// Setup observability
-		config := log.NewConfig(log.WithMode(log.ModeStdio))
-		_, logger := log.New(context.Background(), config)
-		obs := observability.New(observability.WithLoggingService(logger))
+			// Setup observability
+			config := log.NewConfig(log.WithMode(log.ModeStdio))
+			_, logger := log.New(context.Background(), config)
+			obs := observability.New(observability.WithLoggingService(logger))
 
-		// Pass nil client to trigger error
-		err := runStdioServer(ctx, obs, nil, []string{}, false)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create server")
-	})
+			// Pass nil client to trigger error
+			err := runStdioServer(ctx, obs, nil, []string{}, false)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "failed to create server")
+		})
 }
 
 func TestStdioCmdRun(t *testing.T) {
