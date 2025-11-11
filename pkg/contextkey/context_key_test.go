@@ -32,8 +32,8 @@ func TestWithClient(t *testing.T) {
 		newCtx := WithClient(ctx, client)
 
 		assert.NotNil(t, newCtx)
-		// Verify existing value is preserved
-		assert.Equal(t, "existing-value", newCtx.Value("existing-key"))
+		// Verify existing value is preserved using the same key type
+		assert.Equal(t, "existing-value", newCtx.Value(existingKey))
 		// Verify client can be retrieved
 		retrieved := ClientFromContext(newCtx)
 		assert.Equal(t, client, retrieved)
