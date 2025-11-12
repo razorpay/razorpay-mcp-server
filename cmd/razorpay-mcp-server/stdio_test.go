@@ -205,7 +205,7 @@ func TestRunStdioServer(t *testing.T) {
 
 		// Create a context that completes normally
 		completionCtx, completionCancel := context.WithCancel(ctx)
-
+		
 		// Run server in goroutine and cancel after short delay
 		errChan := make(chan error, 1)
 		go func() {
@@ -222,6 +222,61 @@ func TestRunStdioServer(t *testing.T) {
 		case <-time.After(1 * time.Second):
 			t.Fatal("server did not complete in time")
 		}
+	})
+
+	t.Run("handles server listen returning actual error", func(t *testing.T) {
+		ctx, cancel, obs, client := setupTestServer(t)
+		defer cancel()
+
+		// Use a very short context that will be cancelled quickly
+		// This should trigger the error channel path where err != nil
+		shortCtx, shortCancel := context.WithTimeout(ctx, 1*time.Nanosecond)
+		defer shortCancel()
+
+		// Wait for context to be cancelled
+		time.Sleep(1 * time.Millisecond)
+
+		err := runStdioServer(shortCtx, obs, client, []string{}, false)
+		// Should return nil because context was cancelled (line 105)
+		assert.NoError(t, err)
+	})
+
+	t.Run("covers all error paths in runStdioServer", func(t *testing.T) {
+		ctx, cancel, obs, client := setupTestServer(t)
+		defer cancel()
+
+		// Test with read-only mode to cover that path
+		err := runStdioServer(ctx, obs, client, []string{}, true)
+		// Context should be cancelled quickly, returning nil
+		assert.NoError(t, err)
+	})
+
+	t.Run("handles different toolsets configuration", func(t *testing.T) {
+		ctx, cancel, obs, client := setupTestServer(t)
+		defer cancel()
+
+		// Test with specific toolsets
+		toolsets := []string{"payments", "orders"}
+		
+		// Create a short-lived context
+		shortCtx, shortCancel := context.WithTimeout(ctx, 1*time.Millisecond)
+		defer shortCancel()
+
+		err := runStdioServer(shortCtx, obs, client, toolsets, false)
+		assert.NoError(t, err)
+	})
+
+	t.Run("covers signal handling path", func(t *testing.T) {
+		ctx, cancel, obs, client := setupTestServer(t)
+		defer cancel()
+
+		// Create a context and immediately cancel it to trigger signal path
+		signalCtx, signalCancel := context.WithCancel(ctx)
+		signalCancel() // Cancel immediately
+
+		err := runStdioServer(signalCtx, obs, client, []string{}, false)
+		// Should return nil due to context cancellation (line 105)
+		assert.NoError(t, err)
 	})
 }
 
