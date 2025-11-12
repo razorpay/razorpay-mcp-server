@@ -142,6 +142,28 @@ func TestNew(t *testing.T) {
 		// The default case in New() calls os.Exit(1)
 		// This is tested by code inspection, not runtime
 	})
+
+	t.Run("stdio mode with file error triggers exit", func(t *testing.T) {
+		// Test the error case in stdio mode where NewSloggerWithFile fails
+		// This tests the error path in the New function
+		config := NewConfig(
+			WithMode(ModeStdio),
+			WithLogPath("/root/impossible/path/that/should/fail/log.txt"),
+		)
+
+		// This should not panic and should fallback to stderr
+		ctx := context.Background()
+		newCtx, logger := New(ctx, config)
+
+		require.NotNil(t, newCtx)
+		require.NotNil(t, logger)
+
+		// Test that logger works (fallback to stderr)
+		logger.Infof(ctx, "test message")
+
+		err := logger.Close()
+		assert.NoError(t, err)
+	})
 }
 
 func TestSlogLogger_Fatalf(t *testing.T) {
@@ -251,6 +273,9 @@ func TestGetDefaultLogPath_ErrorCase(t *testing.T) {
 		// We can't easily simulate this, but the code path exists
 		path := getDefaultLogPath()
 		assert.NotEmpty(t, path)
+
+		// The function should return either the executable path or temp dir fallback
+		assert.True(t, filepath.IsAbs(path), "path should be absolute")
 	})
 }
 

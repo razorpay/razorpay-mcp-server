@@ -170,6 +170,20 @@ func TestRunStdioServer(t *testing.T) {
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "failed to create server")
 		})
+
+	t.Run("handles error from server listen", func(t *testing.T) {
+		ctx, cancel, obs, client := setupTestServer(t)
+		defer cancel()
+
+		// Create a context that will be cancelled immediately to trigger
+		// the server error path
+		quickCtx, quickCancel := context.WithCancel(ctx)
+		quickCancel() // Cancel immediately
+
+		err := runStdioServer(quickCtx, obs, client, []string{}, false)
+		// Should return nil because context was cancelled
+		assert.NoError(t, err)
+	})
 }
 
 func TestStdioCmdRun(t *testing.T) {

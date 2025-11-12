@@ -158,6 +158,38 @@ func TestNewServer(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		resp.Body.Close()
 	})
+
+	t.Run("creates server with no endpoints", func(t *testing.T) {
+		server := NewServer()
+		defer server.Close()
+
+		assert.NotNil(t, server)
+
+		// Test that not found handler works for any path
+		resp, err := http.Get(server.URL + "/any-path")
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		assert.NoError(t, err)
+		assert.NotNil(t, result["error"])
+		resp.Body.Close()
+	})
+
+	t.Run("handles response that is not map with error", func(t *testing.T) {
+		server := NewServer(Endpoint{
+			Path:     "/test",
+			Method:   "GET",
+			Response: "simple string response",
+		})
+		defer server.Close()
+
+		resp, err := http.Get(server.URL + "/test")
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		resp.Body.Close()
+	})
 }
 
 func TestNewHTTPClient(t *testing.T) {
@@ -195,5 +227,19 @@ func TestNewHTTPClient(t *testing.T) {
 
 		assert.NotNil(t, client)
 		assert.NotNil(t, server)
+	})
+
+	t.Run("creates HTTP client with no endpoints", func(t *testing.T) {
+		client, server := NewHTTPClient()
+		defer server.Close()
+
+		assert.NotNil(t, client)
+		assert.NotNil(t, server)
+
+		// Test that not found handler works
+		resp, err := client.Get(server.URL + "/nonexistent")
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		resp.Body.Close()
 	})
 }

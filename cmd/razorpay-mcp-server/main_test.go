@@ -34,6 +34,23 @@ func TestExecute(t *testing.T) {
 			_ = Execute
 		})
 	})
+
+	t.Run("execute with help flag", func(t *testing.T) {
+		// Test Execute with help flag - this should not exit
+		oldArgs := os.Args
+		defer func() { os.Args = oldArgs }()
+
+		os.Args = []string{"server", "--help"}
+
+		// This should not panic or exit
+		assert.NotPanics(t, func() {
+			// Reset the command to avoid side effects
+			rootCmd.SetArgs([]string{"--help"})
+			err := rootCmd.Execute()
+			// Help command should succeed, not return error
+			assert.NoError(t, err)
+		})
+	})
 }
 
 func TestInitConfig(t *testing.T) {
@@ -129,5 +146,29 @@ func TestVersionInfo(t *testing.T) {
 		assert.Contains(t, versionStr, version)
 		assert.Contains(t, versionStr, commit)
 		assert.Contains(t, versionStr, date)
+	})
+}
+
+func TestMain(t *testing.T) {
+	t.Run("main function exists and can be called indirectly", func(t *testing.T) {
+		// We can't directly test main() as it calls os.Exit
+		// But we can test that rootCmd.Execute() works with valid commands
+		assert.NotPanics(t, func() {
+			// Test with version flag which should not exit with error
+			rootCmd.SetArgs([]string{"--version"})
+			err := rootCmd.Execute()
+			// Version command should succeed
+			assert.NoError(t, err)
+		})
+	})
+
+	t.Run("main function with invalid command", func(t *testing.T) {
+		// Test with invalid command
+		assert.NotPanics(t, func() {
+			rootCmd.SetArgs([]string{"invalid-command"})
+			err := rootCmd.Execute()
+			// Invalid command should return error
+			assert.Error(t, err)
+		})
 	})
 }
