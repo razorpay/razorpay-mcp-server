@@ -46,7 +46,7 @@ func TestExecute(t *testing.T) {
 
 			// Set args to help command which should succeed
 			rootCmd.SetArgs([]string{"--help"})
-			
+
 			// This should execute successfully without calling os.Exit(1)
 			Execute()
 		})
@@ -61,7 +61,7 @@ func TestExecute(t *testing.T) {
 
 			// Set args to version command which should succeed
 			rootCmd.SetArgs([]string{"--version"})
-			
+
 			// This should execute successfully without calling os.Exit(1)
 			Execute()
 		})
@@ -77,11 +77,11 @@ func TestExecute(t *testing.T) {
 
 			// Set args to an invalid command that should cause an error
 			rootCmd.SetArgs([]string{"invalid-nonexistent-command"})
-			
+
 			// Execute() will call rootCmd.Execute() which will return an error
 			// This should trigger the os.Exit(1) path, but we can't test that directly
 			// However, we can verify that Execute() handles the error path
-			
+
 			// The function will call os.Exit(1) if there's an error
 			// We can't prevent that in a unit test, but we can verify the logic
 			err := rootCmd.Execute()
@@ -258,7 +258,7 @@ func TestMain(t *testing.T) {
 
 			// Set args to a command that should succeed (help)
 			rootCmd.SetArgs([]string{"--help"})
-			
+
 			// Call main() - this should succeed without calling os.Exit(1)
 			// because help command returns no error
 			main()
@@ -274,7 +274,7 @@ func TestMain(t *testing.T) {
 
 			// Set args to version command which should succeed
 			rootCmd.SetArgs([]string{"--version"})
-			
+
 			// Call main() - this should succeed without calling os.Exit(1)
 			main()
 		})
@@ -294,10 +294,10 @@ func TestMain(t *testing.T) {
 					return fmt.Errorf("main test error")
 				},
 			}
-			
+
 			// Temporarily replace rootCmd to test error path
 			rootCmd = errorCmd
-			
+
 			// Test that main() would handle the error
 			// We can't actually call main() with an error because it calls os.Exit(1)
 			// But we can verify the error path exists

@@ -151,17 +151,17 @@ func TestNew(t *testing.T) {
 			WithMode(ModeStdio),
 			WithLogPath("/root/impossible/path/that/should/fail/log.txt"),
 		)
-		
+
 		// This should not panic and should fallback to stderr
 		ctx := context.Background()
 		newCtx, logger := New(ctx, config)
-		
+
 		require.NotNil(t, newCtx)
 		require.NotNil(t, logger)
-		
+
 		// Test that logger works (fallback to stderr)
 		logger.Infof(ctx, "test message")
-		
+
 		err := logger.Close()
 		assert.NoError(t, err)
 	})
@@ -177,11 +177,11 @@ func TestNew(t *testing.T) {
 				path:     "",
 			},
 		}
-		
+
 		// We can't actually call New() with this config as it would call os.Exit(1)
 		// But we can verify that the GetMode() returns the invalid mode
 		assert.Equal(t, "invalid-mode", config.GetMode())
-		
+
 		// The actual New() function would call os.Exit(1) in the default case
 		// This tests that the code path exists without actually executing it
 	})
@@ -198,17 +198,17 @@ func TestSlogLogger_Fatalf(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		
+
 		// We can't test the os.Exit(1) part, but we can test that it would log
 		// by testing the logWithLevel method that Fatalf calls
 		logger.logWithLevel(ctx, slog.LevelError, "test fatal message", "key", "value")
-		
+
 		// Verify that the message was logged
 		logOutput := buf.String()
 		assert.Contains(t, logOutput, "test fatal message")
 		assert.Contains(t, logOutput, "key")
 		assert.Contains(t, logOutput, "value")
-		
+
 		// Verify the function exists and is callable (but don't actually call it)
 		assert.NotNil(t, logger.Fatalf)
 	})
@@ -225,10 +225,10 @@ func TestSlogLogger_Fatalf(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		
+
 		// Simulate what Fatalf does: call logWithLevel with LevelError
 		logger.logWithLevel(ctx, slog.LevelError, "fatal error: %s", "error", "critical failure")
-		
+
 		logOutput := buf.String()
 		assert.Contains(t, logOutput, "fatal error")
 		assert.Contains(t, logOutput, "critical failure")
@@ -327,28 +327,28 @@ func TestGetDefaultLogPath_ErrorCase(t *testing.T) {
 		// We can't easily simulate this, but the code path exists
 		path := getDefaultLogPath()
 		assert.NotEmpty(t, path)
-		
+
 		// The function should return either the executable path or temp dir fallback
 		assert.True(t, filepath.IsAbs(path), "path should be absolute")
-		
+
 		// Test that the path contains either "logs" (normal case) or temp dir (error case)
 		tempDir := os.TempDir()
 		isNormalPath := filepath.Base(path) == "logs"
 		isFallbackPath := filepath.Dir(path) == tempDir && filepath.Base(path) == "razorpay-mcp-server-logs"
-		
-		assert.True(t, isNormalPath || isFallbackPath, 
+
+		assert.True(t, isNormalPath || isFallbackPath,
 			"path should be either normal logs path or temp dir fallback")
 	})
-	
+
 	t.Run("verifies fallback behavior exists", func(t *testing.T) {
 		// We can't easily trigger os.Executable() to fail, but we can verify
 		// that the fallback logic exists by checking the temp dir path construction
 		tempDir := os.TempDir()
 		expectedFallback := filepath.Join(tempDir, "razorpay-mcp-server-logs")
-		
+
 		// Verify the fallback path would be absolute
 		assert.True(t, filepath.IsAbs(expectedFallback), "fallback path should be absolute")
-		
+
 		// Verify the fallback path construction logic
 		assert.Equal(t, "razorpay-mcp-server-logs", filepath.Base(expectedFallback))
 	})

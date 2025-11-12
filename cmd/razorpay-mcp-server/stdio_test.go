@@ -205,7 +205,7 @@ func TestRunStdioServer(t *testing.T) {
 
 		// Create a context that completes normally
 		completionCtx, completionCancel := context.WithCancel(ctx)
-		
+
 		// Run server in goroutine and cancel after short delay
 		errChan := make(chan error, 1)
 		go func() {
@@ -257,7 +257,7 @@ func TestRunStdioServer(t *testing.T) {
 
 		// Test with specific toolsets
 		toolsets := []string{"payments", "orders"}
-		
+
 		// Create a short-lived context
 		shortCtx, shortCancel := context.WithTimeout(ctx, 1*time.Millisecond)
 		defer shortCancel()

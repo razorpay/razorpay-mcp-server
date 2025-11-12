@@ -387,7 +387,7 @@ func TestSetupHooks(t *testing.T) {
 
 		// Create hooks and manually execute the hook functions to get coverage
 		hooks := &server.Hooks{}
-		
+
 		// Add and test BeforeAny hook
 		hooks.AddBeforeAny(func(ctx context.Context, id any, method mcp.MCPMethod, message any) {
 			obs.Logger.Infof(ctx, "MCP_METHOD_CALLED", "method", method, "id", id, "message", message)
