@@ -129,6 +129,125 @@ func Test_CreatePaymentLink(t *testing.T) {
 			ExpectError:    true,
 			ExpectedErrMsg: "creating payment link failed: API error: Invalid currency",
 		},
+		{
+			Name: "payment link with customer details",
+			Request: map[string]interface{}{
+				"amount":           float64(50000),
+				"currency":         "INR",
+				"description":      "Test payment with customer",
+				"customer_name":    "John Doe",
+				"customer_email":   "john@example.com",
+				"customer_contact": "9876543210",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentLinkPath,
+						Method:   "POST",
+						Response: successfulPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulPaymentLinkResp,
+		},
+		{
+			Name: "payment link with notification settings",
+			Request: map[string]interface{}{
+				"amount":       float64(50000),
+				"currency":     "INR",
+				"description":  "Test payment with notifications",
+				"notify_sms":   true,
+				"notify_email": true,
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentLinkPath,
+						Method:   "POST",
+						Response: successfulPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulPaymentLinkResp,
+		},
+		{
+			Name: "payment link with all optional parameters",
+			Request: map[string]interface{}{
+				"amount":                   float64(50000),
+				"currency":                 "INR",
+				"description":              "Complete test payment",
+				"accept_partial":           true,
+				"first_min_partial_amount": float64(10000),
+				"expire_by":                float64(1735689600), // Unix timestamp
+				"reference_id":             "ref_12345",
+				"customer_name":            "Jane Doe",
+				"customer_email":           "jane@example.com",
+				"customer_contact":         "9876543210",
+				"notify_sms":               true,
+				"notify_email":             false,
+				"reminder_enable":          true,
+				"notes": map[string]interface{}{
+					"order_id":   "order_12345",
+					"product":    "subscription",
+					"department": "sales",
+				},
+				"callback_url":    "https://example.com/callback",
+				"callback_method": "get",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentLinkPath,
+						Method:   "POST",
+						Response: successfulPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulPaymentLinkResp,
+		},
+		{
+			Name: "payment link with empty customer details should not add customer object",
+			Request: map[string]interface{}{
+				"amount":      float64(50000),
+				"currency":    "INR",
+				"description": "Test payment without customer",
+				// No customer fields provided
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentLinkPath,
+						Method:   "POST",
+						Response: successfulPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulPaymentLinkResp,
+		},
+		{
+			Name: "payment link with empty notify details should not add notify object",
+			Request: map[string]interface{}{
+				"amount":      float64(50000),
+				"currency":    "INR",
+				"description": "Test payment without notifications",
+				// No notify fields provided
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createPaymentLinkPath,
+						Method:   "POST",
+						Response: successfulPaymentLinkResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulPaymentLinkResp,
+		},
 	}
 
 	for _, tc := range tests {

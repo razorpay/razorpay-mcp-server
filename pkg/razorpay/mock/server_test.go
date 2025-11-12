@@ -190,6 +190,114 @@ func TestNewServer(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		_ = resp.Body.Close()
 	})
+
+	t.Run("handles complex response types", func(t *testing.T) {
+		// Test with different response types to cover all switch cases
+		testCases := []struct {
+			name     string
+			response interface{}
+		}{
+			{
+				name:     "byte array response",
+				response: []byte(`{"test": "byte_response"}`),
+			},
+			{
+				name:     "string response",
+				response: `{"test": "string_response"}`,
+			},
+			{
+				name: "complex object response",
+				response: map[string]interface{}{
+					"nested": map[string]interface{}{
+						"field": "value",
+						"array": []string{"item1", "item2"},
+					},
+					"number": 42,
+					"bool":   true,
+				},
+			},
+			{
+				name: "array response",
+				response: []interface{}{
+					map[string]interface{}{"id": 1, "name": "item1"},
+					map[string]interface{}{"id": 2, "name": "item2"},
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				server := NewServer(Endpoint{
+					Path:     "/test",
+					Method:   "GET",
+					Response: tc.response,
+				})
+				defer server.Close()
+
+				resp, err := http.Get(server.URL + "/test")
+				assert.NoError(t, err)
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				_ = resp.Body.Close()
+			})
+		}
+	})
+
+	t.Run("handles error response with complex error object", func(t *testing.T) {
+		server := NewServer(Endpoint{
+			Path:   "/error",
+			Method: "POST",
+			Response: map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":        "VALIDATION_ERROR",
+					"description": "Multiple validation errors occurred",
+					"details": []interface{}{
+						map[string]interface{}{
+							"field":   "email",
+							"message": "Invalid email format",
+						},
+						map[string]interface{}{
+							"field":   "phone",
+							"message": "Phone number required",
+						},
+					},
+				},
+			},
+		})
+		defer server.Close()
+
+		resp, err := http.Post(server.URL+"/error", "application/json", nil)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		_ = resp.Body.Close()
+	})
+
+	t.Run("handles empty byte response", func(t *testing.T) {
+		server := NewServer(Endpoint{
+			Path:     "/empty",
+			Method:   "GET",
+			Response: []byte{},
+		})
+		defer server.Close()
+
+		resp, err := http.Get(server.URL + "/empty")
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		_ = resp.Body.Close()
+	})
+
+	t.Run("handles empty string response", func(t *testing.T) {
+		server := NewServer(Endpoint{
+			Path:     "/empty-string",
+			Method:   "GET",
+			Response: "",
+		})
+		defer server.Close()
+
+		resp, err := http.Get(server.URL + "/empty-string")
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		_ = resp.Body.Close()
+	})
 }
 
 func TestNewHTTPClient(t *testing.T) {

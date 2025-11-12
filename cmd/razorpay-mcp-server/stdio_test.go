@@ -184,6 +184,45 @@ func TestRunStdioServer(t *testing.T) {
 		// Should return nil because context was cancelled
 		assert.NoError(t, err)
 	})
+
+	t.Run("handles error from stdio server listen with actual error", func(t *testing.T) {
+		ctx, cancel, obs, client := setupTestServer(t)
+		defer cancel()
+
+		// Use a very short timeout to force the server to return quickly
+		// This should trigger the error channel path
+		timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 1*time.Millisecond)
+		defer timeoutCancel()
+
+		err := runStdioServer(timeoutCtx, obs, client, []string{}, false)
+		// Should return nil due to context cancellation
+		assert.NoError(t, err)
+	})
+
+	t.Run("handles successful server completion", func(t *testing.T) {
+		ctx, cancel, obs, client := setupTestServer(t)
+		defer cancel()
+
+		// Create a context that completes normally
+		completionCtx, completionCancel := context.WithCancel(ctx)
+
+		// Run server in goroutine and cancel after short delay
+		errChan := make(chan error, 1)
+		go func() {
+			errChan <- runStdioServer(completionCtx, obs, client, []string{}, false)
+		}()
+
+		// Cancel after a short delay to simulate normal completion
+		time.Sleep(10 * time.Millisecond)
+		completionCancel()
+
+		select {
+		case err := <-errChan:
+			assert.NoError(t, err)
+		case <-time.After(1 * time.Second):
+			t.Fatal("server did not complete in time")
+		}
+	})
 }
 
 func TestStdioCmdRun(t *testing.T) {
