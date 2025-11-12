@@ -182,6 +182,45 @@ func Test_FetchSettlementRecon(t *testing.T) {
 			ExpectError:    true,
 			ExpectedErrMsg: "missing required parameter: year",
 		},
+		{
+			Name: "settlement recon with day parameter",
+			Request: map[string]interface{}{
+				"year":  float64(2023),
+				"month": float64(12),
+				"day":   float64(15),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchSettlementReconPath,
+						Method:   "GET",
+						Response: settlementReconResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementReconResp,
+		},
+		{
+			Name: "settlement recon with pagination",
+			Request: map[string]interface{}{
+				"year":  float64(2023),
+				"month": float64(12),
+				"count": float64(50),
+				"skip":  float64(10),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchSettlementReconPath,
+						Method:   "GET",
+						Response: settlementReconResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementReconResp,
+		},
 	}
 
 	for _, tc := range tests {
@@ -295,6 +334,60 @@ func Test_FetchAllSettlements(t *testing.T) {
 			ExpectError: true,
 			ExpectedErrMsg: "fetching settlements failed: from must be " +
 				"between 946684800 and 4765046400",
+		},
+		{
+			Name: "settlements fetch with all optional parameters",
+			Request: map[string]interface{}{
+				"count": float64(25),
+				"skip":  float64(5),
+				"from":  float64(1609459200),
+				"to":    float64(1640995199),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllSettlementsPath,
+						Method:   "GET",
+						Response: settlementsResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementsResp,
+		},
+		{
+			Name: "settlements fetch with only from parameter",
+			Request: map[string]interface{}{
+				"from": float64(1609459200),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllSettlementsPath,
+						Method:   "GET",
+						Response: settlementsResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementsResp,
+		},
+		{
+			Name: "settlements fetch with only to parameter",
+			Request: map[string]interface{}{
+				"to": float64(1640995199),
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllSettlementsPath,
+						Method:   "GET",
+						Response: settlementsResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: settlementsResp,
 		},
 	}
 

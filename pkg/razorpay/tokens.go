@@ -74,7 +74,7 @@ func FetchSavedPaymentMethods(
 			constants.VERSION_V1, customerID)
 
 		// Make the API request to get tokens
-		tokensResponse, err := client.Request.Get(url, nil, nil)
+		tokensResponse, err := client.Get(url, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf(

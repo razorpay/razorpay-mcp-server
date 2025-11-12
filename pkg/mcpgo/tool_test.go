@@ -226,6 +226,137 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, result)
 	})
+
+	t.Run("handler returns error result", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultError("test error"), nil
+			},
+		)
+		mcpTool := tool.toMCPServerTool()
+		assert.NotNil(t, mcpTool.Handler)
+
+		req := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name:      "test-tool",
+				Arguments: map[string]interface{}{},
+			},
+		}
+		result, err := mcpTool.Handler(context.Background(), req)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+	})
+
+	t.Run("handles parameter with missing type", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{
+				{
+					Name:   "param1",
+					Schema: map[string]interface{}{}, // No type specified
+				},
+			},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+		mcpTool := tool.toMCPServerTool()
+		assert.NotNil(t, mcpTool.Handler)
+	})
+
+	t.Run("handles parameter with non-string type", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{
+				{
+					Name: "param1",
+					Schema: map[string]interface{}{
+						"type": 123, // Non-string type
+					},
+				},
+			},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+		mcpTool := tool.toMCPServerTool()
+		assert.NotNil(t, mcpTool.Handler)
+	})
+
+	t.Run("handles unknown parameter type", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{
+				{
+					Name: "param1",
+					Schema: map[string]interface{}{
+						"type": "unknown-type",
+					},
+				},
+			},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+		mcpTool := tool.toMCPServerTool()
+		assert.NotNil(t, mcpTool.Handler)
+	})
+
+	t.Run("handles all parameter types", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{
+				{
+					Name: "string_param",
+					Schema: map[string]interface{}{
+						"type": "string",
+					},
+				},
+				{
+					Name: "number_param",
+					Schema: map[string]interface{}{
+						"type": "number",
+					},
+				},
+				{
+					Name: "integer_param",
+					Schema: map[string]interface{}{
+						"type": "integer",
+					},
+				},
+				{
+					Name: "boolean_param",
+					Schema: map[string]interface{}{
+						"type": "boolean",
+					},
+				},
+				{
+					Name: "object_param",
+					Schema: map[string]interface{}{
+						"type": "object",
+					},
+				},
+				{
+					Name: "array_param",
+					Schema: map[string]interface{}{
+						"type": "array",
+					},
+				},
+			},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+		mcpTool := tool.toMCPServerTool()
+		assert.NotNil(t, mcpTool.Handler)
+	})
 }
 
 func TestPropertyOption_Min(t *testing.T) {
