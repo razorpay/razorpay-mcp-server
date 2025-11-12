@@ -395,7 +395,7 @@ func sendOtp(otpUrl string) error {
 	if err != nil {
 		return fmt.Errorf("OTP generation failed: %s", err.Error())
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Validate HTTP response status
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

@@ -76,7 +76,7 @@ func TestInitConfig(t *testing.T) {
 		// Create a temporary config file
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
 		assert.NoError(t, err)
-		defer os.Remove(tmpFile.Name())
+		defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 		cfgFile = tmpFile.Name()
 		initConfig()
@@ -169,6 +169,26 @@ func TestMain(t *testing.T) {
 			err := rootCmd.Execute()
 			// Invalid command should return error
 			assert.Error(t, err)
+		})
+	})
+
+	t.Run("main function behavior verification", func(t *testing.T) {
+		// Verify that main() would call rootCmd.Execute()
+		// We can't call main() directly due to os.Exit(1), but we can verify
+		// the command structure and behavior
+		assert.NotNil(t, rootCmd)
+		assert.Equal(t, "server", rootCmd.Use)
+
+		// Test that Execute() function exists and would be called by main()
+		assert.NotNil(t, Execute)
+
+		// Verify the main function exists (we can't call it due to os.Exit)
+		// but we can test the command execution path it would follow
+		assert.NotPanics(t, func() {
+			// Test successful command execution path
+			rootCmd.SetArgs([]string{"--help"})
+			err := rootCmd.Execute()
+			assert.NoError(t, err)
 		})
 	})
 }

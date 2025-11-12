@@ -21,7 +21,7 @@ func TestNewServer(t *testing.T) {
 		resp, err := http.Get(server.URL + "/test")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("creates server with multiple endpoints", func(t *testing.T) {
@@ -43,12 +43,12 @@ func TestNewServer(t *testing.T) {
 		resp1, err := http.Get(server.URL + "/test1")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp1.StatusCode)
-		resp1.Body.Close()
+		_ = resp1.Body.Close()
 
 		resp2, err := http.Post(server.URL+"/test2", "application/json", nil)
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp2.StatusCode)
-		resp2.Body.Close()
+		_ = resp2.Body.Close()
 	})
 
 	t.Run("handles error response", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestNewServer(t *testing.T) {
 		resp, err := http.Get(server.URL + "/error")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("handles string response", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestNewServer(t *testing.T) {
 		resp, err := http.Get(server.URL + "/string")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("handles byte response", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestNewServer(t *testing.T) {
 		resp, err := http.Get(server.URL + "/bytes")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("handles not found", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestNewServer(t *testing.T) {
 		err = json.NewDecoder(resp.Body).Decode(&result)
 		assert.NoError(t, err)
 		assert.NotNil(t, result["error"])
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("handles write error in byte response", func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestNewServer(t *testing.T) {
 		resp, err := http.Get(server.URL + "/test")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("handles write error in string response", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestNewServer(t *testing.T) {
 		resp, err := http.Get(server.URL + "/test")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("handles json encode error", func(t *testing.T) {
@@ -156,7 +156,7 @@ func TestNewServer(t *testing.T) {
 		resp, err := http.Get(server.URL + "/test")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("creates server with no endpoints", func(t *testing.T) {
@@ -174,7 +174,7 @@ func TestNewServer(t *testing.T) {
 		err = json.NewDecoder(resp.Body).Decode(&result)
 		assert.NoError(t, err)
 		assert.NotNil(t, result["error"])
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("handles response that is not map with error", func(t *testing.T) {
@@ -188,7 +188,7 @@ func TestNewServer(t *testing.T) {
 		resp, err := http.Get(server.URL + "/test")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 }
 
@@ -207,7 +207,7 @@ func TestNewHTTPClient(t *testing.T) {
 		resp, err := client.Get(server.URL + "/test")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	t.Run("creates HTTP client with multiple endpoints", func(t *testing.T) {
@@ -240,6 +240,6 @@ func TestNewHTTPClient(t *testing.T) {
 		resp, err := client.Get(server.URL + "/nonexistent")
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 }
