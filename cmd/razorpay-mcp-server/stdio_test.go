@@ -415,11 +415,11 @@ func TestRunStdioServer(t *testing.T) {
 		// Create a context that will be cancelled immediately to force
 		// the server to return quickly, but we need to ensure it goes through
 		// the error channel path with an actual error
-		
+
 		// Use a context that expires very quickly
 		expiredCtx, expiredCancel := context.WithTimeout(ctx, 1*time.Nanosecond)
 		defer expiredCancel()
-		
+
 		// Wait for context to expire
 		time.Sleep(1 * time.Millisecond)
 
@@ -474,7 +474,7 @@ func TestRunStdioServer(t *testing.T) {
 
 	t.Run("covers all error paths comprehensively", func(t *testing.T) {
 		// Test to ensure we cover the remaining 14.3% of runStdioServer
-		
+
 		// Test 1: Error from NewRzpMcpServer
 		t.Run("NewRzpMcpServer error", func(t *testing.T) {
 			ctx := context.Background()
@@ -489,9 +489,9 @@ func TestRunStdioServer(t *testing.T) {
 			_, logger := log.New(context.Background(), log.NewConfig(log.WithMode(log.ModeStdio)))
 			obs := observability.New(observability.WithLoggingService(logger))
 			client := rzpsdk.NewClient("test", "test")
-			
+
 			cancel() // Cancel immediately
-			
+
 			err := runStdioServer(ctx, obs, client, []string{}, false)
 			assert.NoError(t, err) // Should return nil due to cancellation
 		})
@@ -500,11 +500,11 @@ func TestRunStdioServer(t *testing.T) {
 		t.Run("normal completion", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 			defer cancel()
-			
+
 			_, logger := log.New(context.Background(), log.NewConfig(log.WithMode(log.ModeStdio)))
 			obs := observability.New(observability.WithLoggingService(logger))
 			client := rzpsdk.NewClient("test", "test")
-			
+
 			err := runStdioServer(ctx, obs, client, []string{}, false)
 			assert.NoError(t, err)
 		})
@@ -515,20 +515,20 @@ func TestRunStdioServer(t *testing.T) {
 			_, logger := log.New(context.Background(), log.NewConfig(log.WithMode(log.ModeStdio)))
 			obs := observability.New(observability.WithLoggingService(logger))
 			client := rzpsdk.NewClient("test", "test")
-			
+
 			// Create a context that will be cancelled very quickly
 			// This might help us hit the error path
 			quickCtx, quickCancel := context.WithCancel(ctx)
-			
+
 			// Start the server in a goroutine
 			errChan := make(chan error, 1)
 			go func() {
 				errChan <- runStdioServer(quickCtx, obs, client, []string{}, false)
 			}()
-			
+
 			// Cancel immediately
 			quickCancel()
-			
+
 			select {
 			case err := <-errChan:
 				// This should return nil due to context cancellation
@@ -572,10 +572,10 @@ func TestStdioCmdRun(t *testing.T) {
 	t.Run("stdio command run function execution", func(t *testing.T) {
 		// Test the actual Run function of stdioCmd
 		// This might be what's missing from our coverage
-		
+
 		// Reset viper
 		viper.Reset()
-		
+
 		// Set up minimal viper configuration
 		viper.Set("log_file", "")
 		viper.Set("key", "test-key")
@@ -590,7 +590,7 @@ func TestStdioCmdRun(t *testing.T) {
 			// We just verify it's not nil and callable
 			runFunc := stdioCmd.Run
 			assert.NotNil(t, runFunc)
-			
+
 			// We can't actually call it because it would start the server
 			// but this verifies the function structure
 		})
@@ -599,14 +599,14 @@ func TestStdioCmdRun(t *testing.T) {
 	t.Run("stdio command run with error handling", func(t *testing.T) {
 		// Test error handling in stdioCmd.Run
 		// This covers the error path in the Run function
-		
+
 		// Reset viper
 		viper.Reset()
-		
+
 		// Set invalid configuration to potentially trigger errors
 		viper.Set("log_file", "")
-		viper.Set("key", "")  // Empty key might cause issues
-		viper.Set("secret", "")  // Empty secret might cause issues
+		viper.Set("key", "")    // Empty key might cause issues
+		viper.Set("secret", "") // Empty secret might cause issues
 		viper.Set("toolsets", []string{})
 		viper.Set("read_only", false)
 
@@ -621,10 +621,10 @@ func TestStdioCmdRun(t *testing.T) {
 	t.Run("stdio command run function direct test", func(t *testing.T) {
 		// Test the stdioCmd.Run function directly with a timeout
 		// This should cover the missing lines in the Run function (lines 28-62 in stdio.go)
-		
+
 		// Reset viper
 		viper.Reset()
-		
+
 		// Set up configuration
 		viper.Set("log_file", "")
 		viper.Set("key", "test-key")
@@ -646,7 +646,7 @@ func TestStdioCmdRun(t *testing.T) {
 				}
 				done <- true
 			}()
-			
+
 			// Call the Run function - this covers lines 28-62 in stdio.go
 			stdioCmd.Run(stdioCmd, []string{})
 		}()
