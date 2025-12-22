@@ -411,8 +411,10 @@ func addTypeSpecificPropertyOptions(
 		case "minItems", "maxItems":
 			propOpts = addArrayPropertyOptions(propOpts, schema)
 		case "items":
-			// Items schema is handled by the underlying MCP library
-			// We don't need to add it as a property option here
+			// Convert items schema to MCP Items PropertyOption
+			if itemsSchema, ok := v.(map[string]interface{}); ok {
+				propOpts = append(propOpts, mcp.Items(itemsSchema))
+			}
 			continue
 		}
 	}
