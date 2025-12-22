@@ -144,6 +144,18 @@ func Description(desc string) PropertyOption {
 	}
 }
 
+// Items sets the schema for items in an array parameter.
+// This is required for array parameters to be valid JSON Schema.
+func Items(itemSchema map[string]interface{}) PropertyOption {
+	return func(schema map[string]interface{}) {
+		propType, ok := schema["type"].(string)
+		if !ok || propType != "array" {
+			return
+		}
+		schema["items"] = itemSchema
+	}
+}
+
 // ToolParameter represents a parameter for a tool
 type ToolParameter struct {
 	Name   string
@@ -348,6 +360,19 @@ func convertSchemaToPropertyOptions(
 	schema map[string]interface{}) []mcp.PropertyOption {
 	var propOpts []mcp.PropertyOption
 
+	// Add basic properties
+	propOpts = addBasicPropertyOptions(propOpts, schema)
+
+	// Add type-specific properties
+	propOpts = addTypeSpecificPropertyOptions(propOpts, schema)
+
+	return propOpts
+}
+
+// addBasicPropertyOptions adds description and required flags
+func addBasicPropertyOptions(
+	propOpts []mcp.PropertyOption,
+	schema map[string]interface{}) []mcp.PropertyOption {
 	// Add description if present
 	if description, ok := schema["description"].(string); ok && description != "" {
 		propOpts = append(propOpts, mcp.Description(description))
@@ -358,6 +383,13 @@ func convertSchemaToPropertyOptions(
 		propOpts = append(propOpts, mcp.Required())
 	}
 
+	return propOpts
+}
+
+// addTypeSpecificPropertyOptions adds type-specific property options
+func addTypeSpecificPropertyOptions(
+	propOpts []mcp.PropertyOption,
+	schema map[string]interface{}) []mcp.PropertyOption {
 	// Skip type, description and required as they're handled separately
 	for k, v := range schema {
 		if k == "type" || k == "description" || k == "required" {
@@ -378,6 +410,10 @@ func convertSchemaToPropertyOptions(
 			propOpts = addObjectPropertyOptions(propOpts, schema)
 		case "minItems", "maxItems":
 			propOpts = addArrayPropertyOptions(propOpts, schema)
+		case "items":
+			// Items schema is handled by the underlying MCP library
+			// We don't need to add it as a property option here
+			continue
 		}
 	}
 

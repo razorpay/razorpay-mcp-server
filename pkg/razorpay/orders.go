@@ -60,6 +60,26 @@ func CreateOrder(
 				"object should contain: account (linked account ID), amount "+
 				"(in currency subunits), currency (ISO code), and optional fields "+
 				"like notes, linked_account_notes, on_hold, on_hold_until"),
+			mcpgo.Items(map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"account": map[string]interface{}{
+						"type":        "string",
+						"description": "Linked account ID",
+					},
+					"amount": map[string]interface{}{
+						"type":        "number",
+						"description": "Amount to transfer in currency subunits",
+						"minimum":     1,
+					},
+					"currency": map[string]interface{}{
+						"type":        "string",
+						"description": "ISO currency code",
+						"pattern":     "^[A-Z]{3}$",
+					},
+				},
+				"required": []interface{}{"account", "amount", "currency"},
+			}),
 		),
 		mcpgo.WithString(
 			"method",
@@ -255,6 +275,15 @@ func FetchAllOrders(
 			"expand",
 			mcpgo.Description("Used to retrieve additional information. "+
 				"Supported values: payments, payments.card, transfers, virtual_account"),
+			mcpgo.Items(map[string]interface{}{
+				"type": "string",
+				"enum": []interface{}{
+					"payments",
+					"payments.card",
+					"transfers",
+					"virtual_account",
+				},
+			}),
 		),
 	}
 
