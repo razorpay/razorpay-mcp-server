@@ -181,6 +181,23 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 		assert.NotNil(t, mcpTool.Tool)
 	})
 
+	t.Run("converts tool with truly unknown type parameter", func(t *testing.T) {
+		param := ToolParameter{
+			Name:   "param1",
+			Schema: map[string]interface{}{"type": "custom_unknown_type"},
+		}
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{param},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+		mcpTool := tool.toMCPServerTool()
+		assert.NotNil(t, mcpTool.Tool)
+	})
+
 	t.Run("handler returns error result", func(t *testing.T) {
 		tool := NewTool(
 			"test-tool",
@@ -225,6 +242,33 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 		result, err := mcpTool.Handler(context.Background(), req)
 		assert.Error(t, err)
 		assert.Nil(t, result)
+	})
+
+	t.Run("handler returns success result with content", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return &ToolResult{
+					Text:    "success",
+					IsError: false,
+					Content: []interface{}{"content1", "content2"},
+				}, nil
+			},
+		)
+		mcpTool := tool.toMCPServerTool()
+		assert.NotNil(t, mcpTool.Handler)
+
+		req := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name:      "test-tool",
+				Arguments: map[string]interface{}{},
+			},
+		}
+		result, err := mcpTool.Handler(context.Background(), req)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
 	})
 }
 
@@ -428,6 +472,39 @@ func TestPropertyOption_Description(t *testing.T) {
 	})
 }
 
+func TestPropertyOption_Items(t *testing.T) {
+	t.Run("sets items for array", func(t *testing.T) {
+		schema := map[string]interface{}{"type": "array"}
+		itemSchema := map[string]interface{}{
+			"type": "string",
+			"enum": []interface{}{"value1", "value2"},
+		}
+		Items(itemSchema)(schema)
+		assert.Equal(t, itemSchema, schema["items"])
+	})
+
+	t.Run("ignores for non-array type", func(t *testing.T) {
+		schema := map[string]interface{}{"type": "string"}
+		itemSchema := map[string]interface{}{"type": "string"}
+		Items(itemSchema)(schema)
+		assert.NotContains(t, schema, "items")
+	})
+
+	t.Run("ignores for missing type", func(t *testing.T) {
+		schema := map[string]interface{}{}
+		itemSchema := map[string]interface{}{"type": "string"}
+		Items(itemSchema)(schema)
+		assert.NotContains(t, schema, "items")
+	})
+
+	t.Run("ignores for non-string type value", func(t *testing.T) {
+		schema := map[string]interface{}{"type": 123}
+		itemSchema := map[string]interface{}{"type": "string"}
+		Items(itemSchema)(schema)
+		assert.NotContains(t, schema, "items")
+	})
+}
+
 func TestToolParameter_ApplyPropertyOptions(t *testing.T) {
 	t.Run("applies single option", func(t *testing.T) {
 		param := ToolParameter{
@@ -533,6 +610,17 @@ func TestWithArray(t *testing.T) {
 		assert.Equal(t, "array", param.Schema["type"])
 		assert.Equal(t, 1, param.Schema["minItems"])
 		assert.Equal(t, 10, param.Schema["maxItems"])
+	})
+
+	t.Run("creates array parameter with items schema", func(t *testing.T) {
+		itemSchema := map[string]interface{}{
+			"type": "string",
+			"enum": []interface{}{"value1", "value2"},
+		}
+		param := WithArray("test", Items(itemSchema))
+		assert.Equal(t, "test", param.Name)
+		assert.Equal(t, "array", param.Schema["type"])
+		assert.Equal(t, itemSchema, param.Schema["items"])
 	})
 }
 
@@ -763,6 +851,22 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 		// False required should not be added
 		// In Go, a nil slice is valid and has length 0
 		assert.Len(t, opts, 0)
+	})
+
+	t.Run("converts array schema with items", func(t *testing.T) {
+		schema := map[string]interface{}{
+			"type": "array",
+			"items": map[string]interface{}{
+				"type": "string",
+				"enum": []interface{}{"value1", "value2"},
+			},
+			"minItems": 1,
+			"maxItems": 10,
+		}
+		opts := convertSchemaToPropertyOptions(schema)
+		assert.NotNil(t, opts)
+		// The items property should be handled (skipped) in the conversion
+		// This test ensures the items case is covered in the switch statement
 	})
 }
 
