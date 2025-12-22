@@ -415,7 +415,6 @@ func addTypeSpecificPropertyOptions(
 			if itemsSchema, ok := v.(map[string]interface{}); ok {
 				propOpts = append(propOpts, mcp.Items(itemsSchema))
 			}
-			continue
 		}
 	}
 
