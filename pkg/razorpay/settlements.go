@@ -328,6 +328,10 @@ func FetchAllInstantSettlements(
 			mcpgo.Description("Pass this if you want to fetch payout details "+
 				"as part of the response for all instant settlements. "+
 				"Supported values: ondemand_payouts"),
+			mcpgo.Items(map[string]interface{}{
+				"type": "string",
+				"enum": []interface{}{"ondemand_payouts"},
+			}),
 		),
 	}
 
