@@ -953,22 +953,29 @@ func TestNewToolResultError(t *testing.T) {
 
 func TestSetReadOnly(t *testing.T) {
 	t.Run("sets read-only flag to true", func(t *testing.T) {
-		handler := func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+		handler := func(
+			ctx context.Context, req CallToolRequest,
+		) (*ToolResult, error) {
 			return NewToolResultText("success"), nil
 		}
-		tool := NewTool("test-tool", "Test description", []ToolParameter{}, handler)
+		tool := NewTool(
+			"test-tool", "Test description", []ToolParameter{}, handler)
 		tool.SetReadOnly(true)
 
-		// Verify through MCP tool conversion (annotations should reflect read-only)
+		// Verify through MCP tool conversion
+		// (annotations should reflect read-only)
 		mcpTool := tool.toMCPServerTool()
 		assert.NotNil(t, mcpTool.Tool)
 	})
 
 	t.Run("sets read-only flag to false", func(t *testing.T) {
-		handler := func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+		handler := func(
+			ctx context.Context, req CallToolRequest,
+		) (*ToolResult, error) {
 			return NewToolResultText("success"), nil
 		}
-		tool := NewTool("test-tool", "Test description", []ToolParameter{}, handler)
+		tool := NewTool(
+			"test-tool", "Test description", []ToolParameter{}, handler)
 		tool.SetReadOnly(false)
 
 		mcpTool := tool.toMCPServerTool()
@@ -978,34 +985,45 @@ func TestSetReadOnly(t *testing.T) {
 
 func TestToolAnnotations(t *testing.T) {
 	t.Run("read-only tool has correct annotations", func(t *testing.T) {
-		handler := func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+		handler := func(
+			ctx context.Context, req CallToolRequest,
+		) (*ToolResult, error) {
 			return NewToolResultText("success"), nil
 		}
-		tool := NewTool("read-tool", "Read-only operation", []ToolParameter{}, handler)
+		tool := NewTool(
+			"read-tool", "Read-only operation", []ToolParameter{}, handler)
 		tool.SetReadOnly(true)
 
 		mcpTool := tool.toMCPServerTool()
 		assert.NotNil(t, mcpTool.Tool)
-		// The MCP tool should be created with readOnlyHint=true, destructiveHint=false
+		// The MCP tool should be created with
+		// readOnlyHint=true, destructiveHint=false
 	})
 
 	t.Run("write tool has correct annotations", func(t *testing.T) {
-		handler := func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+		handler := func(
+			ctx context.Context, req CallToolRequest,
+		) (*ToolResult, error) {
 			return NewToolResultText("success"), nil
 		}
-		tool := NewTool("write-tool", "Write operation", []ToolParameter{}, handler)
+		tool := NewTool(
+			"write-tool", "Write operation", []ToolParameter{}, handler)
 		tool.SetReadOnly(false)
 
 		mcpTool := tool.toMCPServerTool()
 		assert.NotNil(t, mcpTool.Tool)
-		// The MCP tool should be created with readOnlyHint=false, destructiveHint=true
+		// The MCP tool should be created with
+		// readOnlyHint=false, destructiveHint=true
 	})
 
 	t.Run("default tool is not read-only", func(t *testing.T) {
-		handler := func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+		handler := func(
+			ctx context.Context, req CallToolRequest,
+		) (*ToolResult, error) {
 			return NewToolResultText("success"), nil
 		}
-		tool := NewTool("default-tool", "Default behavior", []ToolParameter{}, handler)
+		tool := NewTool(
+			"default-tool", "Default behavior", []ToolParameter{}, handler)
 		// Without calling SetReadOnly, default is false (destructive)
 
 		mcpTool := tool.toMCPServerTool()
