@@ -62,10 +62,12 @@ func (t *Toolset) RegisterTools(s mcpgo.Server) {
 		return
 	}
 	for _, tool := range t.readTools {
+		tool.SetReadOnly(true)
 		s.AddTools(tool)
 	}
 	if !t.readOnly {
 		for _, tool := range t.writeTools {
+			tool.SetReadOnly(false)
 			s.AddTools(tool)
 		}
 	}

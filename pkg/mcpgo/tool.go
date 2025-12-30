@@ -33,6 +33,9 @@ type Tool interface {
 
 	// GetHandler internal method for fetching the underlying handler
 	GetHandler() ToolHandler
+
+	// SetReadOnly sets whether this tool is read-only for annotation purposes
+	SetReadOnly(readOnly bool)
 }
 
 // PropertyOption represents a customization option for
@@ -226,6 +229,7 @@ type mark3labsToolImpl struct {
 	description string
 	handler     ToolHandler
 	parameters  []ToolParameter
+	isReadOnly  bool
 }
 
 // NewTool creates a new tool with the given
@@ -426,6 +430,11 @@ func (t *mark3labsToolImpl) GetHandler() ToolHandler {
 	return t.handler
 }
 
+// SetReadOnly sets whether this tool is read-only for annotation purposes
+func (t *mark3labsToolImpl) SetReadOnly(readOnly bool) {
+	t.isReadOnly = readOnly
+}
+
 // toMCPServerTool converts our Tool to mcp's ServerTool
 func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
 	// Create the mcp tool with appropriate options
@@ -462,6 +471,15 @@ func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
 			// Unknown type, default to string
 			toolOpts = append(toolOpts, mcp.WithString(param.Name, propOpts...))
 		}
+	}
+
+	// Add tool annotations based on read/write classification
+	if t.isReadOnly {
+		toolOpts = append(toolOpts, mcp.WithReadOnlyHintAnnotation(true))
+		toolOpts = append(toolOpts, mcp.WithDestructiveHintAnnotation(false))
+	} else {
+		toolOpts = append(toolOpts, mcp.WithReadOnlyHintAnnotation(false))
+		toolOpts = append(toolOpts, mcp.WithDestructiveHintAnnotation(true))
 	}
 
 	// Create the tool with all options
