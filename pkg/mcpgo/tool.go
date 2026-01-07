@@ -477,9 +477,11 @@ func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
 	if t.isReadOnly {
 		toolOpts = append(toolOpts, mcp.WithReadOnlyHintAnnotation(true))
 		toolOpts = append(toolOpts, mcp.WithDestructiveHintAnnotation(false))
+		toolOpts = append(toolOpts, mcp.WithOpenWorldHintAnnotation(false))
 	} else {
 		toolOpts = append(toolOpts, mcp.WithReadOnlyHintAnnotation(false))
 		toolOpts = append(toolOpts, mcp.WithDestructiveHintAnnotation(true))
+		toolOpts = append(toolOpts, mcp.WithOpenWorldHintAnnotation(false))
 	}
 
 	// Create the tool with all options
