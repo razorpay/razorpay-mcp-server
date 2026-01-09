@@ -558,6 +558,16 @@ func addAdditionalPaymentParameters(
 			paymentData["upi"] = upiMap
 		}
 	}
+
+	// Add wallet parameter if provided (for wallet payments)
+	if wallet, exists := params["wallet"]; exists && wallet != "" {
+		paymentData["wallet"] = wallet
+	}
+
+	// Add callback_url if provided (for redirects after payment)
+	if callbackURL, exists := params["callback_url"]; exists && callbackURL != "" {
+		paymentData["callback_url"] = callbackURL
+	}
 }
 
 // processUPIParameters handles VPA and UPI intent parameter processing
@@ -743,6 +753,12 @@ func InitiatePayment(
 			mcpgo.Description("Terminal ID to be passed in case of single block "+
 				"multiple debit order."),
 		),
+		mcpgo.WithString(
+			"wallet",
+			mcpgo.Description("Wallet provider for wallet payments "+
+				"(e.g., 'amazonpay', 'phonepe', 'paytm'). "+
+				"Use with method='wallet' for wallet-based payments."),
+		),
 	}
 
 	handler := func(
@@ -769,7 +785,9 @@ func InitiatePayment(
 			ValidateAndAddOptionalString(params, "vpa").
 			ValidateAndAddOptionalBool(params, "upi_intent").
 			ValidateAndAddOptionalBool(params, "recurring").
-			ValidateAndAddOptionalString(params, "force_terminal_id")
+			ValidateAndAddOptionalString(params, "force_terminal_id").
+			ValidateAndAddOptionalString(params, "wallet").
+			ValidateAndAddOptionalString(params, "callback_url")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
@@ -832,6 +850,8 @@ func InitiatePayment(
 			"which automatically sets UPI with flow='collect' and expiry_time='6'. "+
 			"For UPI intent flow, set 'upi_intent=true' parameter "+
 			"which automatically sets UPI with flow='intent' and API returns UPI URL. "+
+			"For wallet payments, provide 'wallet' parameter (e.g., 'amazonpay') "+
+			"and optionally 'callback_url' for post-payment redirect. "+
 			"Supports additional parameters like customer_id, email, "+
 			"contact, save, and recurring. "+
 			"Returns payment details including next action steps if required.",

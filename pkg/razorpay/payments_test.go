@@ -1185,6 +1185,152 @@ func Test_InitiatePayment(t *testing.T) {
 			ExpectError:    true,
 			ExpectedErrMsg: "invalid parameter type: force_terminal_id",
 		},
+		{
+			Name: "successful wallet payment with amazonpay",
+			Request: map[string]interface{}{
+				"amount":       10000,
+				"currency":     "INR",
+				"order_id":     "order_WALLET123",
+				"email":        "test@example.com",
+				"contact":      "9876543210",
+				"customer_id":  "cust_S1jnUx7pvtinKJ",
+				"wallet":       "amazonpay",
+				"callback_url": "https://example.com/payment/callback",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				successWalletPaymentResp := map[string]interface{}{
+					"razorpay_payment_id": "pay_WALLET123",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "INR",
+					"order_id":            "order_WALLET123",
+					"method":              "wallet",
+					"wallet":              "amazonpay",
+					"next": []interface{}{
+						map[string]interface{}{
+							"action": "redirect",
+							"url": "https://api.razorpay.com/v1/payments/" +
+								"wallet_amazonpay/wallet/gateway_redirect",
+						},
+					},
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successWalletPaymentResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_WALLET123",
+				"payment_details": map[string]interface{}{
+					"razorpay_payment_id": "pay_WALLET123",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "INR",
+					"order_id":            "order_WALLET123",
+					"method":              "wallet",
+					"wallet":              "amazonpay",
+					"next": []interface{}{
+						map[string]interface{}{
+							"action": "redirect",
+							"url": "https://api.razorpay.com/v1/payments/" +
+								"wallet_amazonpay/wallet/gateway_redirect",
+						},
+					},
+				},
+				"status": "payment_initiated",
+				"message": "Payment initiated. Redirect authentication is available. " +
+					"Use the redirect URL provided in available_actions.",
+				"available_actions": []interface{}{
+					map[string]interface{}{
+						"action": "redirect",
+						"url": "https://api.razorpay.com/v1/payments/" +
+							"wallet_amazonpay/wallet/gateway_redirect",
+					},
+				},
+			},
+		},
+		{
+			Name: "wallet payment with paytm and callback_url",
+			Request: map[string]interface{}{
+				"amount":       15000,
+				"order_id":     "order_PAYTM123",
+				"contact":      "9876543210",
+				"wallet":       "paytm",
+				"callback_url": "https://example.com/success",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				successPaytmWalletResp := map[string]interface{}{
+					"razorpay_payment_id": "pay_PAYTM123",
+					"status":              "created",
+					"amount":              float64(15000),
+					"currency":            "INR",
+					"order_id":            "order_PAYTM123",
+					"method":              "wallet",
+					"wallet":              "paytm",
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     createCustomerPath,
+						Method:   "POST",
+						Response: customerResp,
+					},
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaytmWalletResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_PAYTM123",
+				"payment_details": map[string]interface{}{
+					"razorpay_payment_id": "pay_PAYTM123",
+					"status":              "created",
+					"amount":              float64(15000),
+					"currency":            "INR",
+					"order_id":            "order_PAYTM123",
+					"method":              "wallet",
+					"wallet":              "paytm",
+				},
+				"status": "payment_initiated",
+				"message": "Payment initiated successfully using " +
+					"S2S JSON v1 flow",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_PAYTM123",
+				},
+			},
+		},
+		{
+			Name: "invalid wallet parameter type",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"order_id": "order_129837127313912",
+				"wallet":   123,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: wallet",
+		},
+		{
+			Name: "invalid callback_url parameter type",
+			Request: map[string]interface{}{
+				"amount":       10000,
+				"order_id":     "order_129837127313912",
+				"callback_url": 123,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: callback_url",
+		},
 	}
 
 	for _, tc := range tests {
