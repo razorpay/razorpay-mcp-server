@@ -3,7 +3,6 @@ package razorpay
 import (
 	"context"
 	"fmt"
-	"net/url"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
@@ -86,12 +85,12 @@ func FetchSavedPaymentMethods(
 		}
 
 		// Build the base URL for balances
-		baseURL := fmt.Sprintf("/%s/customers/%s/balances", constants.VERSION_V1, customerID)
-		queryParams := url.Values{}
-		queryParams.Add("wallet[]", "amazonpay")
-		fullURL := baseURL + "?" + queryParams.Encode()
-		
-		balancesResponse, err := client.Request.Get(fullURL, nil, nil)
+		balancesURL := fmt.Sprintf("/%s/customers/%s/balances",
+			constants.VERSION_V1, customerID)
+
+		queryParams := map[string]interface{}{"wallet[]": "amazonpay"}
+
+		balancesResponse, err := client.Request.Get(balancesURL, queryParams, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf(
