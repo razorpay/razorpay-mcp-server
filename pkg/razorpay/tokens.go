@@ -3,6 +3,7 @@ package razorpay
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
@@ -70,11 +71,11 @@ func FetchSavedPaymentMethods(
 			return mcpgo.NewToolResultError("Customer ID not found in response"), nil
 		}
 
-		url := fmt.Sprintf("/%s/customers/%s/tokens",
+		tokensURL := fmt.Sprintf("/%s/customers/%s/tokens",
 			constants.VERSION_V1, customerID)
 
 		// Make the API request to get tokens
-		tokensResponse, err := client.Request.Get(url, nil, nil)
+		tokensResponse, err := client.Request.Get(tokensURL, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf(
@@ -84,11 +85,13 @@ func FetchSavedPaymentMethods(
 				)), nil
 		}
 
-		url1 := fmt.Sprintf("/%s/customers/%s/balances?wallet[]=amazonpay",
-			constants.VERSION_V1, customerID)
-
-		// Make the API request to get tokens
-		balancesResponse, err := client.Request.Get(url1, nil, nil)
+		// Build the base URL for balances
+		baseURL := fmt.Sprintf("/%s/customers/%s/balances", constants.VERSION_V1, customerID)
+		queryParams := url.Values{}
+		queryParams.Add("wallet[]", "amazonpay")
+		fullURL := baseURL + "?" + queryParams.Encode()
+		
+		balancesResponse, err := client.Request.Get(fullURL, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf(
@@ -183,14 +186,14 @@ func RevokeToken(
 		}
 		tokenID := *tokenIDValue
 
-		url := fmt.Sprintf(
+		revokeURL := fmt.Sprintf(
 			"/%s%s/%s/tokens/%s/cancel",
 			constants.VERSION_V1,
 			constants.CUSTOMER_URL,
 			customerID,
 			tokenID,
 		)
-		response, err := client.Token.Request.Put(url, nil, nil)
+		response, err := client.Token.Request.Put(revokeURL, nil, nil)
 
 		if err != nil {
 			return mcpgo.NewToolResultError(
