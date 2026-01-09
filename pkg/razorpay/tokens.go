@@ -84,9 +84,24 @@ func FetchSavedPaymentMethods(
 				)), nil
 		}
 
+		url1 := fmt.Sprintf("/%s/customers/%s/balances?wallet[]=amazonpay",
+			constants.VERSION_V1, customerID)
+
+		// Make the API request to get tokens
+		balancesResponse, err := client.Request.Get(url1, nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				fmt.Sprintf(
+					"Failed to fetch saved payment methods for customer %s: %v",
+					customerID,
+					err,
+				)), nil
+		}
+
 		result := map[string]interface{}{
 			"customer":              customer,
 			"saved_payment_methods": tokensResponse,
+			"wallet_balances":       balancesResponse,
 		}
 		return mcpgo.NewToolResultJSON(result)
 	}
