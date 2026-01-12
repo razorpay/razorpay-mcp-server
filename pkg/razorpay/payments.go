@@ -661,10 +661,37 @@ func buildPaymentData(
 // processPaymentResult processes the payment creation result
 func processPaymentResult(
 	payment map[string]interface{},
+	params map[string]interface{},
 ) (map[string]interface{}, error) {
 	// Extract payment ID and next actions from the response
 	paymentID := extractPaymentID(payment)
 	actions := extractNextActions(payment)
+
+	// Handle Amazon Pay wallet authentication
+	if method, ok := params["method"].(string); ok && method == "wallet" {
+		if wallet, ok := params["wallet"].(string); ok && wallet == "amazonpay" {
+			// Look for authenticate action in next actions
+			for _, action := range actions {
+				if actionType, exists := action["action"]; exists && actionType == "authenticate" {
+					if authURL, exists := action["url"]; exists && authURL != nil {
+						// Get token from params and remove "token_" prefix
+						if token, exists := params["token"]; exists && token != nil {
+							tokenStr := token.(string)
+							tokenID := strings.TrimPrefix(tokenStr, "token_")
+
+							// Append token query param and make GET call
+							fullURL := fmt.Sprintf("%s?token=%s", authURL.(string), tokenID)
+							err := callAuthenticateURL(fullURL)
+							if err != nil {
+								return nil, fmt.Errorf("Amazon Pay authentication failed: %s", err.Error())
+							}
+						}
+					}
+					break
+				}
+			}
+		}
+	}
 
 	// Build structured response using the helper function
 	response, otpUrl := buildInitiatePaymentResponse(payment, paymentID, actions)
@@ -678,6 +705,50 @@ func processPaymentResult(
 	}
 
 	return response, nil
+}
+
+// callAuthenticateURL makes a GET request to the authenticate URL
+func callAuthenticateURL(authURL string) error {
+	if authURL == "" {
+		return fmt.Errorf("authenticate URL is empty")
+	}
+
+	// Validate URL is safe and from Razorpay domain for security
+	parsedURL, err := url.Parse(authURL)
+	if err != nil {
+		return fmt.Errorf("invalid authenticate URL: %s", err.Error())
+	}
+
+	if parsedURL.Scheme != "https" {
+		return fmt.Errorf("authenticate URL must use HTTPS")
+	}
+
+	if !strings.Contains(parsedURL.Host, "razorpay.com") {
+		return fmt.Errorf("authenticate URL must be from Razorpay domain")
+	}
+
+	// Create a secure HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest("GET", authURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create authenticate request: %s", err.Error())
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("authenticate call failed: %s", err.Error())
+	}
+	defer resp.Body.Close()
+
+	// Validate HTTP response status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("authenticate call failed with HTTP status: %d", resp.StatusCode)
+	}
+
+	return nil
 }
 
 // InitiatePayment returns a tool that initiates a payment using order_id
@@ -843,7 +914,7 @@ func InitiatePayment(
 		}
 
 		// Process payment result
-		response, err := processPaymentResult(payment)
+		response, err := processPaymentResult(payment, params)
 		if err != nil {
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}

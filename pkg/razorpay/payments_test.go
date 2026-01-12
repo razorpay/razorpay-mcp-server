@@ -3167,7 +3167,7 @@ func Test_processPaymentResult_edgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := processPaymentResult(tt.payment)
+			result, err := processPaymentResult(tt.payment, map[string]interface{}{})
 
 			if tt.expectedError != "" {
 				if err == nil {
@@ -3595,7 +3595,7 @@ func TestProcessPaymentResult(t *testing.T) {
 			},
 		}
 
-		result, err := processPaymentResult(paymentResult)
+		result, err := processPaymentResult(paymentResult, map[string]interface{}{})
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
@@ -3620,7 +3620,7 @@ func TestProcessPaymentResult(t *testing.T) {
 			},
 		}
 
-		result, err := processPaymentResult(paymentResult)
+		result, err := processPaymentResult(paymentResult, map[string]interface{}{})
 
 		// The function should handle this gracefully
 		if err != nil && result == nil {
