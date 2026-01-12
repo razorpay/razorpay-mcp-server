@@ -9,6 +9,7 @@ import (
 	"time"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
+	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
@@ -563,11 +564,6 @@ func addAdditionalPaymentParameters(
 	if wallet, exists := params["wallet"]; exists && wallet != "" {
 		paymentData["wallet"] = wallet
 	}
-
-	// Add callback_url if provided (for redirects after payment)
-	if callbackURL, exists := params["callback_url"]; exists && callbackURL != "" {
-		paymentData["callback_url"] = callbackURL
-	}
 }
 
 // processUPIParameters handles VPA and UPI intent parameter processing
@@ -786,8 +782,7 @@ func InitiatePayment(
 			ValidateAndAddOptionalBool(params, "upi_intent").
 			ValidateAndAddOptionalBool(params, "recurring").
 			ValidateAndAddOptionalString(params, "force_terminal_id").
-			ValidateAndAddOptionalString(params, "wallet").
-			ValidateAndAddOptionalString(params, "callback_url")
+			ValidateAndAddOptionalString(params, "wallet")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
@@ -797,6 +792,21 @@ func InitiatePayment(
 		currency := "INR"
 		if c, exists := params["currency"]; exists && c != "" {
 			currency = c.(string)
+		}
+
+		if params["method"] == "wallet" && params["wallet"] == "amazonpay" {
+			balancesURL := fmt.Sprintf("/%s/customers/%s/balances",
+				constants.VERSION_V1, params["customer_id"])
+
+			queryParams := map[string]interface{}{"wallet[]": "amazonpay"}
+
+			balancesResponse, err := client.Request.Get(balancesURL, queryParams, nil)
+			if err != nil {
+				return mcpgo.NewToolResultError(fmt.Sprintf("failed to fetch wallet balances: %s", err.Error())), nil
+			}
+			if int(balancesResponse["items"].([]interface{})[0].(map[string]interface{})["amount"].(float64))*100 < params["amount"].(int) {
+				return mcpgo.NewToolResultError(fmt.Sprintf("wallet balance is less than the payment amount: %s, please recharge amazopay wallet", balancesResponse["items"].([]interface{})[0].(map[string]interface{})["amount"])), nil
+			}
 		}
 
 		// Process UPI parameters (VPA for collect flow, upi_intent for intent flow)
@@ -851,7 +861,6 @@ func InitiatePayment(
 			"For UPI intent flow, set 'upi_intent=true' parameter "+
 			"which automatically sets UPI with flow='intent' and API returns UPI URL. "+
 			"For wallet payments, provide 'wallet' parameter (e.g., 'amazonpay') "+
-			"and optionally 'callback_url' for post-payment redirect. "+
 			"Supports additional parameters like customer_id, email, "+
 			"contact, save, and recurring. "+
 			"Returns payment details including next action steps if required.",
