@@ -3167,7 +3167,7 @@ func Test_processPaymentResult_edgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := processPaymentResult(tt.payment)
+			result, err := processPaymentResult(tt.payment, map[string]interface{}{})
 
 			if tt.expectedError != "" {
 				if err == nil {
@@ -3595,7 +3595,7 @@ func TestProcessPaymentResult(t *testing.T) {
 			},
 		}
 
-		result, err := processPaymentResult(paymentResult)
+		result, err := processPaymentResult(paymentResult, map[string]interface{}{})
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
@@ -3620,7 +3620,7 @@ func TestProcessPaymentResult(t *testing.T) {
 			},
 		}
 
-		result, err := processPaymentResult(paymentResult)
+		result, err := processPaymentResult(paymentResult, map[string]interface{}{})
 
 		// The function should handle this gracefully
 		if err != nil && result == nil {
@@ -3630,6 +3630,100 @@ func TestProcessPaymentResult(t *testing.T) {
 			if result["status"] != "payment_initiated" {
 				t.Errorf("Expected status to be 'payment_initiated', got '%s'",
 					result["status"])
+			}
+		}
+	})
+
+	t.Run("processPaymentResult - Amazon Pay wallet with token", func(t *testing.T) {
+		// Test Amazon Pay wallet payment with token - should add url_with_token field
+		paymentResult := map[string]interface{}{
+			"razorpay_payment_id": "pay_test123",
+			"next": []interface{}{
+				map[string]interface{}{
+					"action": "authenticate",
+					"url":    "https://api.razorpay.com/pg_router/v1/payments/test123/authenticate",
+				},
+			},
+		}
+
+		params := map[string]interface{}{
+			"method": "wallet",
+			"wallet": "amazonpay",
+			"token":  "token_S3IBsftkflBJda",
+		}
+
+		result, err := processPaymentResult(paymentResult, params)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		if result["razorpay_payment_id"] != "pay_test123" {
+			t.Errorf("Expected payment ID, got %v", result["razorpay_payment_id"])
+		}
+
+		// Check that both original URL and url_with_token exist
+		if actions, ok := result["available_actions"].([]map[string]interface{}); ok {
+			if len(actions) > 0 {
+				// Check original URL is preserved
+				if url, ok := actions[0]["url"].(string); ok {
+					expectedURL := "https://api.razorpay.com/pg_router/v1/payments/test123/authenticate"
+					if url != expectedURL {
+						t.Errorf("Expected original URL '%s', got '%s'", expectedURL, url)
+					}
+				} else {
+					t.Errorf("Expected URL to be a string")
+				}
+
+				// Check url_with_token is added
+				if urlWithToken, ok := actions[0]["url_with_token"].(string); ok {
+					expectedURLWithToken := "https://api.razorpay.com/pg_router/v1/payments/test123/authenticate?token=S3IBsftkflBJda"
+					if urlWithToken != expectedURLWithToken {
+						t.Errorf("Expected url_with_token '%s', got '%s'",
+							expectedURLWithToken, urlWithToken)
+					}
+				} else {
+					t.Errorf("Expected url_with_token to be added")
+				}
+			} else {
+				t.Errorf("Expected at least one action")
+			}
+		} else {
+			t.Errorf("Expected available_actions to be a slice")
+		}
+	})
+
+	t.Run("processPaymentResult - non-Amazon Pay should not modify URL", func(t *testing.T) {
+		// Test non-Amazon Pay payment - URL should not be modified
+		paymentResult := map[string]interface{}{
+			"razorpay_payment_id": "pay_test123",
+			"next": []interface{}{
+				map[string]interface{}{
+					"action": "authenticate",
+					"url":    "https://api.razorpay.com/pg_router/v1/payments/test123/authenticate",
+				},
+			},
+		}
+
+		params := map[string]interface{}{
+			"method": "upi",
+		}
+
+		result, err := processPaymentResult(paymentResult, params)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		// Check that the authenticate URL is NOT modified
+		if actions, ok := result["available_actions"].([]map[string]interface{}); ok {
+			if len(actions) > 0 {
+				if url, ok := actions[0]["url"].(string); ok {
+					expectedURL := "https://api.razorpay.com/pg_router/v1/payments/test123/authenticate"
+					if url != expectedURL {
+						t.Errorf("Expected URL '%s' (not modified), got '%s'", expectedURL, url)
+					}
+				}
 			}
 		}
 	})

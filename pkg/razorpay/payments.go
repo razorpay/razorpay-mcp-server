@@ -661,10 +661,32 @@ func buildPaymentData(
 // processPaymentResult processes the payment creation result
 func processPaymentResult(
 	payment map[string]interface{},
+	params map[string]interface{},
 ) (map[string]interface{}, error) {
 	// Extract payment ID and next actions from the response
 	paymentID := extractPaymentID(payment)
 	actions := extractNextActions(payment)
+
+	// Add token query parameter to authenticate url for amazopay wallet payments
+	if method, ok := params["method"].(string); ok && method == "wallet" {
+		if wallet, ok := params["wallet"].(string); ok && wallet == "amazonpay" {
+			for i, action := range actions {
+				if actionType, exists := action["action"]; exists && actionType == "authenticate" {
+					if authURL, exists := action["url"]; exists && authURL != nil {
+						if token, exists := params["token"]; exists && token != nil {
+							tokenStr := token.(string)
+							tokenID := strings.TrimPrefix(tokenStr, "token_")
+
+							// Add new field with token query param (keep original URL intact)
+							fullURL := fmt.Sprintf("%s?token=%s", authURL.(string), tokenID)
+							actions[i]["url_with_token"] = fullURL
+						}
+					}
+					break
+				}
+			}
+		}
+	}
 
 	// Build structured response using the helper function
 	response, otpUrl := buildInitiatePaymentResponse(payment, paymentID, actions)
@@ -843,7 +865,7 @@ func InitiatePayment(
 		}
 
 		// Process payment result
-		response, err := processPaymentResult(payment)
+		response, err := processPaymentResult(payment, params)
 		if err != nil {
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
