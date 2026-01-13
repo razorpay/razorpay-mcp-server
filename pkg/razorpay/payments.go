@@ -668,22 +668,20 @@ func processPaymentResult(
 	actions := extractNextActions(payment)
 
 	// Add token query parameter to authenticate url for amazopay wallet payments
-	if method, ok := params["method"].(string); ok && method == "wallet" {
-		if wallet, ok := params["wallet"].(string); ok && wallet == "amazonpay" {
-			for i, action := range actions {
-				if actionType, exists := action["action"]; exists && actionType == "authenticate" {
-					if authURL, exists := action["url"]; exists && authURL != nil {
-						if token, exists := params["token"]; exists && token != nil {
-							tokenStr := token.(string)
-							tokenID := strings.TrimPrefix(tokenStr, "token_")
+	if wallet, ok := params["wallet"].(string); ok && wallet == "amazonpay" {
+		for i, action := range actions {
+			if actionType, exists := action["action"]; exists && actionType == "authenticate" {
+				if authURL, exists := action["url"]; exists && authURL != nil {
+					if token, exists := params["token"]; exists && token != nil {
+						tokenStr := token.(string)
+						tokenID := strings.TrimPrefix(tokenStr, "token_")
 
-							// Add new field with token query param (keep original URL intact)
-							fullURL := fmt.Sprintf("%s?token=%s", authURL.(string), tokenID)
-							actions[i]["url_with_token"] = fullURL
-						}
+						// Add new field with token query param (keep original URL intact)
+						fullURL := fmt.Sprintf("%s?token=%s", authURL.(string), tokenID)
+						actions[i]["url_with_token"] = fullURL
 					}
-					break
 				}
+				break
 			}
 		}
 	}

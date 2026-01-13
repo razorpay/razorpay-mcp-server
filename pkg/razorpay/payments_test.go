@@ -3647,7 +3647,6 @@ func TestProcessPaymentResult(t *testing.T) {
 		}
 
 		params := map[string]interface{}{
-			"method": "wallet",
 			"wallet": "amazonpay",
 			"token":  "token_S3IBsftkflBJda",
 		}
@@ -3690,6 +3689,46 @@ func TestProcessPaymentResult(t *testing.T) {
 			}
 		} else {
 			t.Errorf("Expected available_actions to be a slice")
+		}
+	})
+
+	t.Run("processPaymentResult - Amazon Pay with method and wallet params", func(t *testing.T) {
+		// Test with both method=wallet and wallet=amazonpay (backward compatibility)
+		paymentResult := map[string]interface{}{
+			"razorpay_payment_id": "pay_test456",
+			"next": []interface{}{
+				map[string]interface{}{
+					"action": "authenticate",
+					"url":    "https://api.razorpay.com/pg_router/v1/payments/test456/authenticate",
+				},
+			},
+		}
+
+		params := map[string]interface{}{
+			"method": "wallet",
+			"wallet": "amazonpay",
+			"token":  "token_XYZ123",
+		}
+
+		result, err := processPaymentResult(paymentResult, params)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		// Check that url_with_token is added
+		if actions, ok := result["available_actions"].([]map[string]interface{}); ok {
+			if len(actions) > 0 {
+				if urlWithToken, ok := actions[0]["url_with_token"].(string); ok {
+					expectedURLWithToken := "https://api.razorpay.com/pg_router/v1/payments/test456/authenticate?token=XYZ123"
+					if urlWithToken != expectedURLWithToken {
+						t.Errorf("Expected url_with_token '%s', got '%s'",
+							expectedURLWithToken, urlWithToken)
+					}
+				} else {
+					t.Errorf("Expected url_with_token to be added")
+				}
+			}
 		}
 	})
 
