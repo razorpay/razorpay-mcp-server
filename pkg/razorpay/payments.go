@@ -805,11 +805,21 @@ func InitiatePayment(
 		paymentDataPtr := buildPaymentData(params, currency, customerID)
 		paymentData := *paymentDataPtr
 
-		// Create payment using appropriate method based on recurring flag
+		// Create payment using appropriate method based on
+		// currency, token, and recurring flag
 		var payment map[string]interface{}
-		if isRecurring, exists := params["recurring"]; exists && isRecurring.(bool) {
-			// Use CreateRecurringPayment for recurring payments
-			fmt.Println("paymentData payload 1", paymentData)
+		isRecurring := false
+		if recurring, exists := params["recurring"]; exists && recurring.(bool) {
+			isRecurring = true
+		}
+
+		hasToken := false
+		if token, exists := params["token"]; exists && token != "" {
+			hasToken = true
+		}
+
+		if currency != "INR" && hasToken && isRecurring {
+			// Use CreateRecurringPayment for non-INR recurring payments with token
 			payment, err = client.Payment.CreateRecurringPayment(paymentData, nil)
 		} else {
 			// Use CreatePaymentJson for regular payments
