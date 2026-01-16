@@ -810,6 +810,7 @@ func InitiatePayment(
 		if isRecurring, exists := params["recurring"]; exists && isRecurring.(bool) {
 			// Use CreateRecurringPayment for recurring payments
 			payment, err = client.Payment.CreateRecurringPayment(paymentData, nil)
+			fmt.Println("payment", payment)
 		} else {
 			// Use CreatePaymentJson for regular payments
 			// This follows the S2S JSON v1 flow:
