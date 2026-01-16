@@ -263,31 +263,115 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 			ExpectedErrMsg: "Customer ID not found in response",
 		},
 		{
-			Name:    "missing contact parameter",
+			Name: "successful fetch with customer_id provided",
 			Request: map[string]interface{}{
-				// No contact parameter
+				"customer_id": "cust_1Aa00000000003",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				fetchCustomerPath := fmt.Sprintf(
+					"/%s%s/cust_1Aa00000000003",
+					constants.VERSION_V1,
+					constants.CUSTOMER_URL,
+				)
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchCustomerPath,
+						Method:   "GET",
+						Response: customerResp,
+					},
+					mock.Endpoint{
+						Path:     fmt.Sprintf(fetchTokensPathFmt, "cust_1Aa00000000003"),
+						Method:   "GET",
+						Response: tokensResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: expectedSuccessResp,
+		},
+		{
+			Name: "successful fetch with customer_id provided, contact ignored",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+				"contact":     "9876543210", // Should be ignored
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				fetchCustomerPath := fmt.Sprintf(
+					"/%s%s/cust_1Aa00000000003",
+					constants.VERSION_V1,
+					constants.CUSTOMER_URL,
+				)
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchCustomerPath,
+						Method:   "GET",
+						Response: customerResp,
+					},
+					mock.Endpoint{
+						Path:     fmt.Sprintf(fetchTokensPathFmt, "cust_1Aa00000000003"),
+						Method:   "GET",
+						Response: tokensResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: expectedSuccessResp,
+		},
+		{
+			Name: "customer fetch failure with invalid customer_id",
+			Request: map[string]interface{}{
+				"customer_id": "cust_invalid",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				fetchCustomerPath := fmt.Sprintf(
+					"/%s%s/cust_invalid",
+					constants.VERSION_V1,
+					constants.CUSTOMER_URL,
+				)
+				customerNotFoundResp := map[string]interface{}{
+					"error": map[string]interface{}{
+						"code":        "BAD_REQUEST_ERROR",
+						"description": "Customer not found",
+					},
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchCustomerPath,
+						Method:   "GET",
+						Response: customerNotFoundResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "Failed to fetch customer with ID cust_invalid: " +
+				"Customer not found",
+		},
+		{
+			Name:    "missing both customer_id and contact parameters",
+			Request: map[string]interface{}{
+				// No parameters
 			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: contact",
+			ExpectedErrMsg: "Either customer_id or contact must be provided",
 		},
 		{
-			Name: "empty contact parameter",
+			Name: "empty contact parameter when customer_id not provided",
 			Request: map[string]interface{}{
 				"contact": "",
 			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: contact",
+			ExpectedErrMsg: "Either customer_id or contact must be provided",
 		},
 		{
-			Name: "null contact parameter",
+			Name: "null contact parameter when customer_id not provided",
 			Request: map[string]interface{}{
 				"contact": nil,
 			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: contact",
+			ExpectedErrMsg: "Either customer_id or contact must be provided",
 		},
 		{
 			Name: "successful fetch with empty tokens list",

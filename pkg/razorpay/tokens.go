@@ -12,18 +12,26 @@ import (
 )
 
 // FetchSavedPaymentMethods returns a tool that fetches saved cards
-// using contact number
+// using contact number or customer ID
 func FetchSavedPaymentMethods(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
+			"customer_id",
+			mcpgo.Description(
+				"Customer ID to fetch all saved payment methods for. "+
+					"If provided, contact number will be ignored. "+
+					"Must start with 'cust_' followed by alphanumeric characters. "+
+					"Example: 'cust_xxx'"),
+		),
+		mcpgo.WithString(
 			"contact",
 			mcpgo.Description(
 				"Contact number of the customer to fetch all saved payment methods for. "+
+					"Required if customer_id is not provided. "+
 					"For example, 9876543210 or +919876543210"),
-			mcpgo.Required(),
 		),
 	}
 
@@ -37,37 +45,58 @@ func FetchSavedPaymentMethods(
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
 
-		validator := NewValidator(&r)
+		params := make(map[string]interface{})
+		validator := NewValidator(&r).
+			ValidateAndAddOptionalString(params, "customer_id").
+			ValidateAndAddOptionalString(params, "contact")
 
-		// Validate required contact parameter
-		contactValue, err := extractValueGeneric[string](&r, "contact", true)
-		if err != nil {
-			validator = validator.addError(err)
-		} else if contactValue == nil || *contactValue == "" {
-			validator = validator.addError(
-				fmt.Errorf("missing required parameter: contact"))
-		}
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
-		contact := *contactValue
-		customerData := map[string]interface{}{
-			"contact":       contact,
-			"fail_existing": "0", // Get existing customer if exists
-		}
 
-		// Create/get customer using Razorpay SDK
-		customer, err := client.Customer.Create(customerData, nil)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf(
-					"Failed to create/fetch customer with contact %s: %v", contact, err,
-				)), nil
-		}
+		var customerID string
+		var customer map[string]interface{}
 
-		customerID, ok := customer["id"].(string)
-		if !ok {
-			return mcpgo.NewToolResultError("Customer ID not found in response"), nil
+		// Check if customer_id is provided
+		if custID, exists := params["customer_id"]; exists && custID != "" {
+			// Use customer_id directly, ignore contact
+			customerID = custID.(string)
+
+			// Fetch customer details by customer ID
+			customer, err = client.Customer.Fetch(customerID, nil, nil)
+			if err != nil {
+				return mcpgo.NewToolResultError(
+					fmt.Sprintf(
+						"Failed to fetch customer with ID %s: %v", customerID, err,
+					)), nil
+			}
+		} else {
+			// Use contact to create/get customer
+			contactValue, exists := params["contact"]
+			if !exists || contactValue == nil || contactValue == "" {
+				return mcpgo.NewToolResultError(
+					"Either customer_id or contact must be provided"), nil
+			}
+			contact := contactValue.(string)
+			customerData := map[string]interface{}{
+				"contact":       contact,
+				"fail_existing": "0", // Get existing customer if exists
+			}
+
+			// Create/get customer using Razorpay SDK
+			customer, err = client.Customer.Create(customerData, nil)
+			if err != nil {
+				return mcpgo.NewToolResultError(
+					fmt.Sprintf(
+						"Failed to create/fetch customer with contact %s: %v", contact, err,
+					)), nil
+			}
+
+			var ok bool
+			customerID, ok = customer["id"].(string)
+			if !ok {
+				return mcpgo.NewToolResultError("Customer ID not found in response"), nil
+			}
 		}
 
 		url := fmt.Sprintf("/%s/customers/%s/tokens",
@@ -94,8 +123,10 @@ func FetchSavedPaymentMethods(
 	return mcpgo.NewTool(
 		"fetch_tokens",
 		"Get all saved payment methods (cards, UPI)"+
-			" for a contact number. "+
-			"This tool first finds or creates a"+
+			" for a customer. "+
+			"This tool can fetch tokens using either a customer ID or contact number. "+
+			"If customer_id is provided, it will be used directly and contact will be ignored. "+
+			"If only contact is provided, the tool first finds or creates a"+
 			" customer with the given contact number, "+
 			"then fetches all saved payment tokens "+
 			"associated with that customer including "+
