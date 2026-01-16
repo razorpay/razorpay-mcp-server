@@ -1127,11 +1127,11 @@ func Test_InitiatePayment(t *testing.T) {
 			ExpectedErrMsg: "invalid parameter type: upi_intent",
 		},
 		{
-			Name: "successful payment initiation with force_terminal_id " +
-				"for single block multiple debit",
+			Name: "recurring payment with INR currency uses regular flow",
 			Request: map[string]interface{}{
 				"amount":            10000,
 				"currency":          "INR",
+				"token":             "token_MT48CvBhIC98MQ",
 				"order_id":          "order_129837127313912",
 				"email":             "test@example.com",
 				"contact":           "9876543210",
@@ -1151,7 +1151,7 @@ func Test_InitiatePayment(t *testing.T) {
 				}
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:     recurringPaymentPath,
+						Path:     initiatePaymentPath,
 						Method:   "POST",
 						Response: successPaymentWithTerminalResp,
 					},
@@ -1168,6 +1168,109 @@ func Test_InitiatePayment(t *testing.T) {
 					"order_id":            "order_129837127313912",
 					"method":              "upi",
 					"force_terminal_id":   "term_ABCD1234256732",
+				},
+				"status":  "payment_initiated",
+				"message": "Payment initiated successfully using S2S JSON v1 flow",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			Name: "recurring payment with non-INR currency and token " +
+				"uses recurring flow",
+			Request: map[string]interface{}{
+				"amount":            10000,
+				"currency":          "USD",
+				"token":             "token_MT48CvBhIC98MQ",
+				"order_id":          "order_129837127313912",
+				"email":             "test@example.com",
+				"contact":           "9876543210",
+				"customer_id":       "cust_RGCgP2osfPKFq2",
+				"recurring":         true,
+				"force_terminal_id": "term_ABCD1234256732",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				successPaymentWithTerminalResp := map[string]interface{}{
+					"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "USD",
+					"order_id":            "order_129837127313912",
+					"method":              "card",
+					"force_terminal_id":   "term_ABCD1234256732",
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     recurringPaymentPath,
+						Method:   "POST",
+						Response: successPaymentWithTerminalResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details": map[string]interface{}{
+					"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "USD",
+					"order_id":            "order_129837127313912",
+					"method":              "card",
+					"force_terminal_id":   "term_ABCD1234256732",
+				},
+				"status":  "payment_initiated",
+				"message": "Payment initiated successfully using S2S JSON v1 flow",
+				"next_step": "Use 'resend_otp' to regenerate OTP or " +
+					"'submit_otp' to proceed to enter OTP if " +
+					"OTP authentication is required.",
+				"next_tool": "resend_otp",
+				"next_tool_params": map[string]interface{}{
+					"payment_id": "pay_MT48CvBhIC98MQ",
+				},
+			},
+		},
+		{
+			Name: "recurring payment without token uses regular flow",
+			Request: map[string]interface{}{
+				"amount":      10000,
+				"currency":    "USD",
+				"order_id":    "order_129837127313912",
+				"email":       "test@example.com",
+				"contact":     "9876543210",
+				"customer_id": "cust_RGCgP2osfPKFq2",
+				"recurring":   true,
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				successPaymentResp := map[string]interface{}{
+					"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "USD",
+					"order_id":            "order_129837127313912",
+				}
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: successPaymentResp,
+					},
+				)
+			},
+			ExpectError: false,
+			ExpectedResult: map[string]interface{}{
+				"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+				"payment_details": map[string]interface{}{
+					"razorpay_payment_id": "pay_MT48CvBhIC98MQ",
+					"status":              "created",
+					"amount":              float64(10000),
+					"currency":            "USD",
+					"order_id":            "order_129837127313912",
 				},
 				"status":  "payment_initiated",
 				"message": "Payment initiated successfully using S2S JSON v1 flow",

@@ -674,6 +674,38 @@ func processPaymentResult(
 	return response, nil
 }
 
+// createPaymentWithParams creates a payment using the appropriate API
+// based on the parameters provided
+func createPaymentWithParams(
+	client *rzpsdk.Client,
+	params map[string]interface{},
+	currency, customerID string,
+) (map[string]interface{}, error) {
+	// Build payment data
+	paymentDataPtr := buildPaymentData(params, currency, customerID)
+	paymentData := *paymentDataPtr
+
+	// Determine if recurring payment API should be used
+	// Non-INR currency + token + recurring flag = use recurring API
+	useRecurringAPI := false
+	if recurring, ok := params["recurring"].(bool); ok && recurring {
+		if tokenStr, ok := params["token"].(string); ok && tokenStr != "" {
+			useRecurringAPI = currency != "INR"
+		}
+	}
+
+	// Create payment using appropriate method
+	var payment map[string]interface{}
+	var err error
+	if useRecurringAPI {
+		payment, err = client.Payment.CreateRecurringPayment(paymentData, nil)
+	} else {
+		payment, err = client.Payment.CreatePaymentJson(paymentData, nil)
+	}
+
+	return payment, err
+}
+
 // InitiatePayment returns a tool that initiates a payment using order_id
 // and token
 // This implements the S2S JSON v1 flow for creating payments
@@ -801,21 +833,8 @@ func InitiatePayment(
 			}
 		}
 
-		// Build payment data
-		paymentDataPtr := buildPaymentData(params, currency, customerID)
-		paymentData := *paymentDataPtr
-
-		// Create payment using appropriate method based on recurring flag
-		var payment map[string]interface{}
-		if isRecurring, exists := params["recurring"]; exists && isRecurring.(bool) {
-			// Use CreateRecurringPayment for recurring payments
-			payment, err = client.Payment.CreateRecurringPayment(paymentData, nil)
-		} else {
-			// Use CreatePaymentJson for regular payments
-			// This follows the S2S JSON v1 flow:
-			// https://api.razorpay.com/v1/payments/create/json
-			payment, err = client.Payment.CreatePaymentJson(paymentData, nil)
-		}
+		// Create payment
+		payment, err := createPaymentWithParams(client, params, currency, customerID)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
