@@ -807,16 +807,15 @@ func InitiatePayment(
 
 		// Create payment using appropriate method based on recurring flag
 		var payment map[string]interface{}
-		if isRecurring, exists := params["recurring"]; exists && isRecurring.(bool) {
-			// Use CreateRecurringPayment for recurring payments
-			payment, err = client.Payment.CreateRecurringPayment(paymentData, nil)
-			fmt.Println("payment", payment)
-		} else {
-			// Use CreatePaymentJson for regular payments
-			// This follows the S2S JSON v1 flow:
-			// https://api.razorpay.com/v1/payments/create/json
-			payment, err = client.Payment.CreatePaymentJson(paymentData, nil)
-		}
+		// if isRecurring, exists := params["recurring"]; exists && isRecurring.(bool) {
+		// 	// Use CreateRecurringPayment for recurring payments
+		// 	payment, err = client.Payment.CreateRecurringPayment(paymentData, nil)
+		// } else {
+		// Use CreatePaymentJson for regular payments
+		// This follows the S2S JSON v1 flow:
+		// https://api.razorpay.com/v1/payments/create/json
+		payment, err = client.Payment.CreatePaymentJson(paymentData, nil)
+		// }
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
