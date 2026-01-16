@@ -611,6 +611,12 @@ func Test_InitiatePayment(t *testing.T) {
 		constants.PAYMENT_URL,
 	)
 
+	recurringPaymentPath := fmt.Sprintf(
+		"/%s%s/create/recurring",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
 	createCustomerPath := fmt.Sprintf(
 		"/%s%s",
 		constants.VERSION_V1,
@@ -1145,7 +1151,7 @@ func Test_InitiatePayment(t *testing.T) {
 				}
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:     initiatePaymentPath,
+						Path:     recurringPaymentPath,
 						Method:   "POST",
 						Response: successPaymentWithTerminalResp,
 					},
