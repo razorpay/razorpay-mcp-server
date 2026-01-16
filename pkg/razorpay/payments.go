@@ -809,7 +809,7 @@ func InitiatePayment(
 		var payment map[string]interface{}
 		if isRecurring, exists := params["recurring"]; exists && isRecurring.(bool) {
 			// Use CreateRecurringPayment for recurring payments
-			fmt.Println("paymentData payload", paymentData)
+			fmt.Println("paymentData payload 1", paymentData)
 			payment, err = client.Payment.CreateRecurringPayment(paymentData, nil)
 		} else {
 			// Use CreatePaymentJson for regular payments
