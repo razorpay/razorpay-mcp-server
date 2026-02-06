@@ -103,7 +103,7 @@ func NewToolSets(
 	// Add the single custom tool to an existing toolset
 	payments.AddWriteTools(FetchSavedPaymentMethods(obs, client)).
 		AddWriteTools(RevokeToken(obs, client))
-	
+
 	// Checkout Integration toolset - helps integrate Razorpay checkout
 	checkoutIntegration := toolsets.NewToolset(
 		"checkout_integration",
@@ -114,7 +114,7 @@ func NewToolSets(
 		)
 
 	// Add toolsets to the group
-	toolsetGroup.AddToolset(checkoutIntegration)	
+	toolsetGroup.AddToolset(checkoutIntegration)
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)

@@ -1,3 +1,4 @@
+//nolint:lll // File contains embedded code templates requiring longer lines
 package razorpay
 
 import (
@@ -19,14 +20,14 @@ type Credentials struct {
 
 // FileAction represents an action to perform on a file
 type FileAction struct {
-	Action          string      `json:"action"`
-	Path            string      `json:"path"`
-	Code            string      `json:"code,omitempty"`
-	Description     string      `json:"description"`
-	Edits           []EditItem  `json:"edits,omitempty"`
-	FunctionName    string      `json:"functionName,omitempty"`
-	FindCode        string      `json:"findCode,omitempty"`
-	ReplaceWithCode string      `json:"replaceWithCode,omitempty"`
+	Action          string     `json:"action"`
+	Path            string     `json:"path"`
+	Code            string     `json:"code,omitempty"`
+	Description     string     `json:"description"`
+	Edits           []EditItem `json:"edits,omitempty"`
+	FunctionName    string     `json:"functionName,omitempty"`
+	FindCode        string     `json:"findCode,omitempty"`
+	ReplaceWithCode string     `json:"replaceWithCode,omitempty"`
 }
 
 // EditItem represents a manual edit instruction
@@ -344,9 +345,9 @@ const razorpayRoutes = require('./routes/razorpay');
 
 	files := []FileAction{
 		{
-			Action:      "create",
-			Path:        "routes/razorpay." + ext,
-			Code:        razorpayRoutesCode,
+			Action: "create",
+			Path:   "routes/razorpay." + ext,
+			Code:   razorpayRoutesCode,
 			Description: "Razorpay API routes for order creation " +
 				"and payment verification",
 		},
@@ -357,11 +358,11 @@ const razorpayRoutes = require('./routes/razorpay');
 			Description: frontend.Description,
 		},
 		{
-			Action:      "insert_code",
-			Path:        "server.js",
+			Action: "insert_code",
+			Path:   "server.js",
 			Description: "Add Razorpay setup to server.js - " +
 				"MUST be done in this exact order",
-			Code:        serverSetupCode,
+			Code: serverSetupCode,
 			Edits: []EditItem{
 				{
 					Line: "STEP 1 - At the VERY TOP of server.js " +
@@ -388,8 +389,8 @@ const razorpayRoutes = require('./routes/razorpay');
 			},
 		},
 		{
-			Action:      "wire_payment",
-			Path:        "DISCOVER",
+			Action: "wire_payment",
+			Path:   "DISCOVER",
 			Description: "CRITICAL: Discover and modify the actual " +
 				"checkout flow - DO NOT assume file names",
 			Code: `STEP-BY-STEP DISCOVERY PROCESS:
@@ -475,7 +476,7 @@ COMMON MISTAKES TO AVOID:
 	return IntegrateCheckoutOutput{
 		Summary: "Complete Razorpay Standard Checkout integration " +
 			"for Express + " + frontend.Framework,
-		Files:   files,
+		Files: files,
 		Dependencies: []Dependency{
 			{Name: "razorpay", InstallCommand: "npm install razorpay"},
 			{Name: "dotenv", InstallCommand: "npm install dotenv"},
@@ -1977,13 +1978,13 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 		// Detect frontend framework
 		frontend := ""
 		frontendFrameworks := map[string]string{
-			"react":        "react",
-			"vue":          "vue",
+			"react":         "react",
+			"vue":           "vue",
 			"@angular/core": "angular",
-			"svelte":       "svelte",
-			"solid-js":     "solid",
-			"react-native": "react-native",
-			"expo":         "react-native",
+			"svelte":        "svelte",
+			"solid-js":      "solid",
+			"react-native":  "react-native",
+			"expo":          "react-native",
 		}
 		for pkg, fw := range frontendFrameworks {
 			if deps[pkg] {
