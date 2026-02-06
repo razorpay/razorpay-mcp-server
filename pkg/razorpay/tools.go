@@ -104,10 +104,10 @@ func NewToolSets(
 	payments.AddWriteTools(FetchSavedPaymentMethods(obs, client)).
 		AddWriteTools(RevokeToken(obs, client))
 	
-	// Checkout Integration toolset - helps developers integrate Razorpay checkout
+	// Checkout Integration toolset - helps integrate Razorpay checkout
 	checkoutIntegration := toolsets.NewToolset(
 		"checkout_integration",
-		"Tools to help developers integrate Razorpay Standard Checkout into their projects").
+		"Tools to help developers integrate Razorpay Standard Checkout").
 		AddReadTools(
 			IntegrateRazorpayCheckout(obs, client),
 			DetectStack(obs, client),

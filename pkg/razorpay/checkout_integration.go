@@ -83,23 +83,33 @@ func IntegrateRazorpayCheckout(
 		),
 		mcpgo.WithString(
 			"backendFramework",
-			mcpgo.Description("Backend framework: express, nextjs, django, flask, fastapi, gin, echo, or fiber"),
+			mcpgo.Description(
+				"Backend framework: express, nextjs, django, flask, "+
+					"fastapi, gin, echo, or fiber"),
 			mcpgo.Required(),
-			mcpgo.Enum("express", "nextjs", "django", "flask", "fastapi", "gin", "echo", "fiber"),
+			mcpgo.Enum(
+				"express", "nextjs", "django", "flask",
+				"fastapi", "gin", "echo", "fiber"),
 		),
 		mcpgo.WithString(
 			"frontendFramework",
-			mcpgo.Description("Frontend framework: vanilla, react, nextjs, vue, angular, or svelte"),
+			mcpgo.Description(
+				"Frontend framework: vanilla, react, nextjs, "+
+					"vue, angular, or svelte"),
 			mcpgo.Required(),
-			mcpgo.Enum("vanilla", "react", "nextjs", "vue", "angular", "svelte"),
+			mcpgo.Enum(
+				"vanilla", "react", "nextjs", "vue", "angular", "svelte"),
 		),
 		mcpgo.WithString(
 			"existingOrderEndpoint",
-			mcpgo.Description("Existing order creation endpoint path if any (e.g., /api/orders/create)"),
+			mcpgo.Description(
+				"Existing order creation endpoint path if any "+
+					"(e.g., /api/orders/create)"),
 		),
 		mcpgo.WithString(
 			"existingPaymentFunction",
-			mcpgo.Description("Existing payment/checkout function name in frontend if any"),
+			mcpgo.Description(
+				"Existing payment/checkout function name in frontend if any"),
 		),
 	}
 
@@ -152,10 +162,13 @@ func IntegrateRazorpayCheckout(
 
 	return mcpgo.NewTool(
 		"integrate_razorpay_checkout",
-		"Complete Razorpay Standard Checkout integration. Returns ALL code needed - "+
-			"backend routes, frontend integration, and payment verification. "+
-			"Use this single tool to get everything needed for Razorpay payment integration. "+
-			"The AI should apply ALL returned files and modifications without asking the user for additional steps.",
+		"Complete Razorpay Standard Checkout integration. "+
+			"Returns ALL code needed - backend routes, frontend "+
+			"integration, and payment verification. Use this single "+
+			"tool to get everything needed for Razorpay payment "+
+			"integration. The AI should apply ALL returned files "+
+			"and modifications without asking the user for "+
+			"additional steps.",
 		parameters,
 		handler,
 	)
@@ -206,9 +219,10 @@ func DetectStack(
 
 	return mcpgo.NewTool(
 		"detect_stack",
-		"Detect the technology stack of a project based on file information. "+
-			"Returns language, framework, frontend framework, and package manager. "+
-			"Use this to determine which integration approach to use.",
+		"Detect the technology stack of a project based on file "+
+			"information. Returns language, framework, frontend "+
+			"framework, and package manager. Use this to determine "+
+			"which integration approach to use.",
 		parameters,
 		handler,
 	)
@@ -227,7 +241,11 @@ type FrontendIntegration struct {
 	Description string
 }
 
-func getExpressVanillaIntegration(language string, creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
+func getExpressVanillaIntegration(
+	language string,
+	creds Credentials,
+	frontend FrontendIntegration,
+) IntegrateCheckoutOutput {
 	ext := "js"
 	if language == "typescript" {
 		ext = "ts"
@@ -329,7 +347,8 @@ const razorpayRoutes = require('./routes/razorpay');
 			Action:      "create",
 			Path:        "routes/razorpay." + ext,
 			Code:        razorpayRoutesCode,
-			Description: "Razorpay API routes for order creation and payment verification",
+			Description: "Razorpay API routes for order creation " +
+				"and payment verification",
 		},
 		{
 			Action:      "create",
@@ -340,30 +359,39 @@ const razorpayRoutes = require('./routes/razorpay');
 		{
 			Action:      "insert_code",
 			Path:        "server.js",
-			Description: "Add Razorpay setup to server.js - MUST be done in this exact order",
+			Description: "Add Razorpay setup to server.js - " +
+				"MUST be done in this exact order",
 			Code:        serverSetupCode,
 			Edits: []EditItem{
 				{
-					Line: "STEP 1 - At the VERY TOP of server.js (line 1, before any other code)",
-					Add:  "require('dotenv').config();",
-					Why:  "Must be first line to load env vars before anything else",
+					Line: "STEP 1 - At the VERY TOP of server.js " +
+						"(line 1, before any other code)",
+					Add: "require('dotenv').config();",
+					Why: "Must be first line to load env vars " +
+						"before anything else",
 				},
 				{
-					Line: "STEP 2 - Immediately after dotenv, with other require/import statements at the top",
-					Add:  "const razorpayRoutes = require('./routes/razorpay');",
-					Why:  "Import MUST come before usage - add this near top with other imports",
+					Line: "STEP 2 - Immediately after dotenv, with " +
+						"other require/import statements at the top",
+					Add: "const razorpayRoutes = " +
+						"require('./routes/razorpay');",
+					Why: "Import MUST come before usage - add this " +
+						"near top with other imports",
 				},
 				{
-					Line: "STEP 3 - Later in the file, with other app.use() middleware registrations",
-					Add:  "app.use('/api/razorpay', razorpayRoutes);",
-					Why:  "Uses razorpayRoutes - MUST come AFTER the require statement above",
+					Line: "STEP 3 - Later in the file, with other " +
+						"app.use() middleware registrations",
+					Add: "app.use('/api/razorpay', razorpayRoutes);",
+					Why: "Uses razorpayRoutes - MUST come AFTER " +
+						"the require statement above",
 				},
 			},
 		},
 		{
 			Action:      "wire_payment",
 			Path:        "DISCOVER",
-			Description: "CRITICAL: Discover and modify the actual checkout flow - DO NOT assume file names",
+			Description: "CRITICAL: Discover and modify the actual " +
+				"checkout flow - DO NOT assume file names",
 			Code: `STEP-BY-STEP DISCOVERY PROCESS:
 
 1. FIND THE CHECKOUT HTML PAGE:
@@ -445,7 +473,8 @@ COMMON MISTAKES TO AVOID:
 	}
 
 	return IntegrateCheckoutOutput{
-		Summary: "Complete Razorpay Standard Checkout integration for Express + " + frontend.Framework,
+		Summary: "Complete Razorpay Standard Checkout integration " +
+			"for Express + " + frontend.Framework,
 		Files:   files,
 		Dependencies: []Dependency{
 			{Name: "razorpay", InstallCommand: "npm install razorpay"},
@@ -455,7 +484,8 @@ COMMON MISTAKES TO AVOID:
 			{Name: "RAZORPAY_KEY_ID", Value: keyID},
 			{Name: "RAZORPAY_KEY_SECRET", Value: keySecret},
 		},
-		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
+		TestInstructions: "Use test card: 4111 1111 1111 1111, " +
+			"any future expiry, any CVV. UPI: success@razorpay",
 		AIInstructions: `CRITICAL INSTRUCTIONS - THE INTEGRATION IS NOT COMPLETE UNTIL ALL STEPS ARE DONE:
 
 **FIRST: DISCOVER THE PROJECT STRUCTURE**
@@ -688,7 +718,8 @@ export function RazorpayCheckout({
 `
 
 	return IntegrateCheckoutOutput{
-		Summary: "Complete Razorpay Standard Checkout integration for Next.js + React",
+		Summary: "Complete Razorpay Standard Checkout integration " +
+			"for Next.js + React",
 		Files: []FileAction{
 			{
 				Action:      "create",
@@ -798,10 +829,13 @@ async function initiateRazorpayPayment(amount, onSuccess, onError) {
 }
 `
 	return FrontendIntegration{
-		Framework:   "Vanilla JS",
-		Code:        code,
-		FileName:    "public/js/razorpay.js",
-		ScriptTag:   "Add <script src=\"/js/razorpay.js\"></script> to the CHECKOUT HTML file (find which HTML has the checkout - may be checkout.html, cart.html, NOT just index.html)",
+		Framework: "Vanilla JS",
+		Code:      code,
+		FileName:  "public/js/razorpay.js",
+		ScriptTag: "Add <script src=\"/js/razorpay.js\">" +
+			"</script> to the CHECKOUT HTML file (find which " +
+			"HTML has the checkout - may be checkout.html, " +
+			"cart.html, NOT just index.html)",
 		Description: "Vanilla JS Razorpay payment helper",
 	}
 }
@@ -870,10 +904,11 @@ export function RazorpayButton({ amount, onSuccess, onError, children }) {
 }
 `
 	return FrontendIntegration{
-		Framework:   "React",
-		Code:        code,
-		FileName:    "src/components/RazorpayButton.jsx",
-		ScriptTag:   "Import and use <RazorpayButton amount={100} onSuccess={...} />",
+		Framework: "React",
+		Code:      code,
+		FileName:  "src/components/RazorpayButton.jsx",
+		ScriptTag: "Import and use " +
+			"<RazorpayButton amount={100} onSuccess={...} />",
 		Description: "React hook and component for Razorpay payments",
 	}
 }
