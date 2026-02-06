@@ -1846,6 +1846,7 @@ DO NOT give "Next Steps" - complete EVERYTHING including frontend wiring.`
 // DETECT STACK HELPER
 // =============================================================================
 
+//nolint:gocyclo // Complex detection logic requires multiple conditions
 func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 	files := []string{}
 	if f, ok := args["files"].([]interface{}); ok {
@@ -1878,6 +1879,7 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 	// Go detection
 	if goMod != "" || containsSuffix(files, "go.mod") {
 		framework := "go-stdlib"
+		//nolint:gocritic // if-else chain is clearer here
 		if contains(goMod, "github.com/gin-gonic/gin") {
 			framework = "gin"
 		} else if contains(goMod, "github.com/labstack/echo") {
@@ -1948,6 +1950,7 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 
 		// Detect package manager
 		packageManager := "npm"
+		//nolint:gocritic // if-else chain is clearer here
 		if containsPath(files, "yarn.lock") {
 			packageManager = "yarn"
 		} else if containsPath(files, "pnpm-lock.yaml") {
