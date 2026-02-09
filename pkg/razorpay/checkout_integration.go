@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
-	"github.com/spf13/viper"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
@@ -71,8 +70,6 @@ type DetectStackOutput struct {
 }
 
 // IntegrateRazorpayCheckout returns a tool for complete Razorpay checkout integration
-//
-//nolint:gocyclo // Complex routing logic for multiple frameworks
 func IntegrateRazorpayCheckout(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
@@ -86,23 +83,15 @@ func IntegrateRazorpayCheckout(
 		),
 		mcpgo.WithString(
 			"backendFramework",
-			mcpgo.Description("Backend framework: express, fastify, koa, nextjs, nuxt, django, flask, fastapi, gin, echo, fiber, spring, laravel, rails, actix, aspnet, react-native, or flutter"),
+			mcpgo.Description("Backend framework: express, fastify, koa, nextjs, nuxt, django, flask, fastapi, gin, echo, fiber, spring, spring-boot, laravel, rails, actix, aspnet, react-native, flutter, android, ios, cordova, ionic, or capacitor"),
 			mcpgo.Required(),
-			mcpgo.Enum("express", "fastify", "koa", "nextjs", "nuxt", "django", "flask", "fastapi", "gin", "echo", "fiber", "spring", "laravel", "rails", "actix", "aspnet", "react-native", "flutter"),
+			mcpgo.Enum("express", "fastify", "koa", "nextjs", "nuxt", "django", "flask", "fastapi", "gin", "echo", "fiber", "spring", "spring-boot", "laravel", "rails", "actix", "aspnet", "react-native", "flutter", "android", "ios", "cordova", "ionic", "capacitor"),
 		),
 		mcpgo.WithString(
 			"frontendFramework",
 			mcpgo.Description("Frontend framework: vanilla, react, nextjs, vue, angular, svelte, or native (for mobile apps)"),
 			mcpgo.Required(),
 			mcpgo.Enum("vanilla", "react", "nextjs", "vue", "angular", "svelte", "native"),
-		),
-		mcpgo.WithString(
-			"existingOrderEndpoint",
-			mcpgo.Description("Existing order creation endpoint path if any (e.g., /api/orders/create)"),
-		),
-		mcpgo.WithString(
-			"existingPaymentFunction",
-			mcpgo.Description("Existing payment/checkout function name in frontend if any"),
 		),
 	}
 
@@ -119,10 +108,16 @@ func IntegrateRazorpayCheckout(
 		backendFramework, _ := args["backendFramework"].(string)
 		frontendFramework, _ := args["frontendFramework"].(string)
 
-		// Get credentials from config (set via MCP config env vars)
+		// Get client from context (for remote/SSE) or use default (for stdio)
+		activeClient, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError("Failed to get client: " + err.Error()), nil
+		}
+
+		// Get credentials from client (passed via Authorization header or env vars)
 		creds := Credentials{
-			KeyID:     viper.GetString("key"),
-			KeySecret: viper.GetString("secret"),
+			KeyID:     activeClient.Auth.Key,
+			KeySecret: activeClient.Auth.Secret,
 		}
 
 		var output IntegrateCheckoutOutput
@@ -158,6 +153,8 @@ func IntegrateRazorpayCheckout(
 		// Java
 		case "spring":
 			output = getSpringIntegration(creds, frontendCode)
+		case "spring-boot":
+			output = getSpringBootIntegration(creds, frontendCode)
 		// PHP
 		case "laravel":
 			output = getLaravelIntegration(creds, frontendCode)
@@ -175,6 +172,16 @@ func IntegrateRazorpayCheckout(
 			output = getReactNativeIntegration(creds)
 		case "flutter":
 			output = getFlutterIntegration(creds)
+		case "android":
+			output = getAndroidIntegration(creds)
+		case "ios":
+			output = getIOSIntegration(creds)
+		case "cordova":
+			output = getCordovaIntegration(creds)
+		case "ionic":
+			output = getIonicIntegration(creds)
+		case "capacitor":
+			output = getCapacitorIntegration(creds)
 		default: // express
 			output = getExpressVanillaIntegration(language, creds, frontendCode)
 		}
@@ -492,7 +499,10 @@ COMMON MISTAKES TO AVOID:
 - Creating new functions instead of modifying existing ones
 - Leaving the original COD/placeholder code active
 - NOT SAVING order data before payment (causes "order data not found" errors)
-- Trying to access form fields in success callback (form may be gone/reset)`,
+- Trying to access form fields in success callback (form may be gone/reset)
+- MISSING CLOSING BRACE: The function must end with } after the initiateRazorpayPayment() call:
+     );
+   }  // <-- THIS CLOSING BRACE IS REQUIRED - don't forget it!`,
 		},
 	}
 
@@ -2888,6 +2898,974 @@ void dispose() {
 	}
 }
 
+// =============================================================================
+// SPRING BOOT INTEGRATION
+// =============================================================================
+
+func getSpringBootIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := getKeysOrPlaceholders(creds)
+
+	controllerCode := `package com.example.payment;
+
+import com.razorpay.*;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/razorpay")
+@CrossOrigin(origins = "*")
+public class RazorpayController {
+
+    @Value("${razorpay.key.id}")
+    private String keyId;
+
+    @Value("${razorpay.key.secret}")
+    private String keySecret;
+
+    @PostMapping("/order")
+    public ResponseEntity<Map<String, Object>> createOrder(@RequestBody Map<String, Object> request) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
+
+            double amount = ((Number) request.get("amount")).doubleValue();
+            if (amount <= 0) {
+                response.put("success", false);
+                response.put("error", "Invalid amount");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            JSONObject orderRequest = new JSONObject();
+            orderRequest.put("amount", (int) (amount * 100));
+            orderRequest.put("currency", request.getOrDefault("currency", "INR"));
+            orderRequest.put("receipt", request.getOrDefault("receipt", "receipt_" + System.currentTimeMillis()));
+
+            Order order = razorpay.orders.create(orderRequest);
+
+            response.put("success", true);
+            response.put("orderId", order.get("id"));
+            response.put("amount", order.get("amount"));
+            response.put("currency", order.get("currency"));
+            response.put("keyId", keyId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Failed to create order: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<Map<String, Object>> verifyPayment(@RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String orderId = request.get("razorpay_order_id");
+            String paymentId = request.get("razorpay_payment_id");
+            String signature = request.get("razorpay_signature");
+
+            if (orderId == null || paymentId == null || signature == null) {
+                response.put("success", false);
+                response.put("error", "Missing payment details");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            String data = orderId + "|" + paymentId;
+            Mac sha256Hmac = Mac.getInstance("HmacSHA256");
+            sha256Hmac.init(new SecretKeySpec(keySecret.getBytes(), "HmacSHA256"));
+            String expectedSignature = bytesToHex(sha256Hmac.doFinal(data.getBytes()));
+
+            if (expectedSignature.equals(signature)) {
+                response.put("success", true);
+                response.put("paymentId", paymentId);
+                response.put("orderId", orderId);
+                return ResponseEntity.ok(response);
+            }
+            response.put("success", false);
+            response.put("error", "Invalid signature");
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Verification failed: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) sb.append(String.format("%02x", b));
+        return sb.toString();
+    }
+}
+`
+
+	configCode := `# Razorpay Configuration
+razorpay.key.id=${RAZORPAY_KEY_ID}
+razorpay.key.secret=${RAZORPAY_KEY_SECRET}
+`
+
+	pomDependency := `<!-- Add to pom.xml dependencies section -->
+<dependency>
+    <groupId>com.razorpay</groupId>
+    <artifactId>razorpay-java</artifactId>
+    <version>1.4.3</version>
+</dependency>
+`
+
+	return IntegrateCheckoutOutput{
+		Summary: "Complete Razorpay Standard Checkout integration for Spring Boot + " + frontend.Framework,
+		Files: []FileAction{
+			{Action: "create", Path: "src/main/java/com/example/payment/RazorpayController.java", Code: controllerCode, Description: "Spring Boot REST controller for Razorpay"},
+			{Action: "create", Path: frontend.FileName, Code: frontend.Code, Description: frontend.Description},
+			{Action: "manual_edit", Path: "pom.xml", Description: "Add Razorpay dependency", Edits: []EditItem{
+				{Line: "In <dependencies> section", Add: pomDependency, Why: "Razorpay Java SDK"},
+			}},
+			{Action: "manual_edit", Path: "src/main/resources/application.properties", Description: "Add Razorpay config", Edits: []EditItem{
+				{Line: "Add at end of file", Add: configCode, Why: "Razorpay credentials from environment"},
+			}},
+			getWirePaymentAction(),
+		},
+		Dependencies:     []Dependency{{Name: "razorpay-java", InstallCommand: "Add to pom.xml: com.razorpay:razorpay-java:1.4.3"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
+		AIInstructions: `SPRING BOOT SETUP:
+1) Add razorpay-java dependency to pom.xml
+2) Create RazorpayController.java in your controller package
+3) Add configuration to application.properties
+4) Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables
+5) Run: mvn spring-boot:run` + getFrontendWiringInstructions(frontend),
+	}
+}
+
+// =============================================================================
+// ANDROID (KOTLIN) INTEGRATION
+// =============================================================================
+
+func getAndroidIntegration(creds Credentials) IntegrateCheckoutOutput {
+	keyID, keySecret := getKeysOrPlaceholders(creds)
+
+	paymentServiceCode := `package com.example.app.payment
+
+import android.app.Activity
+import com.razorpay.Checkout
+import com.razorpay.PaymentResultListener
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+
+class RazorpayService(private val activity: Activity) : PaymentResultListener {
+
+    companion object {
+        private const val BACKEND_URL = "YOUR_BACKEND_URL" // Replace with your backend
+    }
+
+    private var onPaymentSuccess: ((String, String) -> Unit)? = null
+    private var onPaymentError: ((String) -> Unit)? = null
+
+    init {
+        Checkout.preload(activity.applicationContext)
+    }
+
+    suspend fun initiatePayment(
+        amount: Double,
+        onSuccess: (paymentId: String, orderId: String) -> Unit,
+        onError: (error: String) -> Unit
+    ) {
+        this.onPaymentSuccess = onSuccess
+        this.onPaymentError = onError
+
+        try {
+            val orderData = createOrder(amount)
+            if (orderData.optBoolean("success")) {
+                openCheckout(orderData)
+            } else {
+                onError(orderData.optString("error", "Failed to create order"))
+            }
+        } catch (e: Exception) {
+            onError(e.message ?: "Unknown error")
+        }
+    }
+
+    private suspend fun createOrder(amount: Double): JSONObject = withContext(Dispatchers.IO) {
+        val url = URL("$BACKEND_URL/api/razorpay/order")
+        val connection = url.openConnection() as HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.doOutput = true
+
+        val body = JSONObject().put("amount", amount)
+        connection.outputStream.write(body.toString().toByteArray())
+
+        val response = connection.inputStream.bufferedReader().readText()
+        JSONObject(response)
+    }
+
+    private fun openCheckout(orderData: JSONObject) {
+        val checkout = Checkout()
+        checkout.setKeyID(orderData.getString("keyId"))
+
+        val options = JSONObject().apply {
+            put("name", "Your App Name")
+            put("description", "Payment")
+            put("order_id", orderData.getString("orderId"))
+            put("currency", orderData.getString("currency"))
+            put("amount", orderData.getInt("amount"))
+            put("theme", JSONObject().put("color", "#528FF0"))
+        }
+
+        checkout.open(activity, options)
+    }
+
+    override fun onPaymentSuccess(razorpayPaymentID: String?) {
+        // Verify payment on backend
+        razorpayPaymentID?.let { paymentId ->
+            onPaymentSuccess?.invoke(paymentId, "")
+        }
+    }
+
+    override fun onPaymentError(code: Int, response: String?) {
+        onPaymentError?.invoke(response ?: "Payment failed with code: $code")
+    }
+}
+`
+
+	activityCode := `// Add to your Activity that handles payment:
+
+class CheckoutActivity : AppCompatActivity(), PaymentResultListener {
+
+    private lateinit var razorpayService: RazorpayService
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        razorpayService = RazorpayService(this)
+    }
+
+    private fun handlePayment(amount: Double) {
+        lifecycleScope.launch {
+            razorpayService.initiatePayment(
+                amount = amount,
+                onSuccess = { paymentId, orderId ->
+                    // Payment successful
+                    Toast.makeText(this@CheckoutActivity, "Payment successful!", Toast.LENGTH_SHORT).show()
+                    // Navigate to success screen or update UI
+                },
+                onError = { error ->
+                    // Payment failed
+                    Toast.makeText(this@CheckoutActivity, "Payment failed: $error", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
+
+    // Required: Implement PaymentResultListener
+    override fun onPaymentSuccess(razorpayPaymentID: String?) {
+        razorpayService.onPaymentSuccess(razorpayPaymentID)
+    }
+
+    override fun onPaymentError(code: Int, response: String?) {
+        razorpayService.onPaymentError(code, response)
+    }
+}
+`
+
+	gradleDependency := `// Add to app/build.gradle dependencies
+implementation 'com.razorpay:checkout:1.6.33'
+`
+
+	return IntegrateCheckoutOutput{
+		Summary: "Razorpay integration for Android (Kotlin)",
+		Files: []FileAction{
+			{Action: "create", Path: "app/src/main/java/com/example/app/payment/RazorpayService.kt", Code: paymentServiceCode, Description: "Razorpay payment service"},
+			{Action: "create", Path: "USAGE_EXAMPLE.kt", Code: activityCode, Description: "Activity usage example"},
+			{Action: "manual_edit", Path: "app/build.gradle", Description: "Add Razorpay dependency", Edits: []EditItem{
+				{Line: "In dependencies block", Add: gradleDependency, Why: "Razorpay Android SDK"},
+			}},
+		},
+		Dependencies:     []Dependency{{Name: "razorpay-checkout", InstallCommand: "Add to app/build.gradle: implementation 'com.razorpay:checkout:1.6.33'"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
+		AIInstructions: `ANDROID SETUP:
+1) Add Razorpay dependency to app/build.gradle
+2) Sync Gradle
+3) Create RazorpayService.kt in your payment package
+4) Your Activity must implement PaymentResultListener
+5) Replace YOUR_BACKEND_URL with your actual backend
+6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in Android app - only use on backend
+7) Add internet permission in AndroidManifest.xml: <uses-permission android:name="android.permission.INTERNET"/>`,
+	}
+}
+
+// =============================================================================
+// IOS (SWIFT) INTEGRATION
+// =============================================================================
+
+func getIOSIntegration(creds Credentials) IntegrateCheckoutOutput {
+	keyID, keySecret := getKeysOrPlaceholders(creds)
+
+	paymentServiceCode := `import Foundation
+import Razorpay
+
+class RazorpayService: NSObject {
+
+    static let shared = RazorpayService()
+
+    private let backendURL = "YOUR_BACKEND_URL" // Replace with your backend
+    private var razorpay: RazorpayCheckout?
+
+    private var onSuccess: ((String, String) -> Void)?
+    private var onError: ((String) -> Void)?
+
+    private override init() {
+        super.init()
+    }
+
+    func initiatePayment(
+        amount: Double,
+        viewController: UIViewController,
+        onSuccess: @escaping (String, String) -> Void,
+        onError: @escaping (String) -> Void
+    ) {
+        self.onSuccess = onSuccess
+        self.onError = onError
+
+        createOrder(amount: amount) { [weak self] result in
+            switch result {
+            case .success(let orderData):
+                self?.openCheckout(orderData: orderData, viewController: viewController)
+            case .failure(let error):
+                onError(error.localizedDescription)
+            }
+        }
+    }
+
+    private func createOrder(amount: Double, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let url = URL(string: "\(backendURL)/api/razorpay/order") else {
+            completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["amount": amount])
+
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let error = error {
+                DispatchQueue.main.async { completion(.failure(error)) }
+                return
+            }
+
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])))
+                }
+                return
+            }
+
+            DispatchQueue.main.async { completion(.success(json)) }
+        }.resume()
+    }
+
+    private func openCheckout(orderData: [String: Any], viewController: UIViewController) {
+        guard let keyId = orderData["keyId"] as? String else {
+            onError?("Missing key ID")
+            return
+        }
+
+        razorpay = RazorpayCheckout.initWithKey(keyId, andDelegate: self)
+
+        let options: [String: Any] = [
+            "name": "Your App Name",
+            "description": "Payment",
+            "order_id": orderData["orderId"] as? String ?? "",
+            "currency": orderData["currency"] as? String ?? "INR",
+            "amount": orderData["amount"] as? Int ?? 0,
+            "theme": ["color": "#528FF0"]
+        ]
+
+        razorpay?.open(options, displayController: viewController)
+    }
+}
+
+extension RazorpayService: RazorpayPaymentCompletionProtocol {
+    func onPaymentSuccess(_ payment_id: String) {
+        onSuccess?(payment_id, "")
+    }
+
+    func onPaymentError(_ code: Int32, description str: String) {
+        onError?(str)
+    }
+}
+`
+
+	usageCode := `// Usage in your ViewController:
+
+class CheckoutViewController: UIViewController {
+
+    @IBAction func payButtonTapped(_ sender: UIButton) {
+        let amount = 100.0 // Amount in your base currency
+
+        RazorpayService.shared.initiatePayment(
+            amount: amount,
+            viewController: self,
+            onSuccess: { paymentId, orderId in
+                print("Payment successful: \(paymentId)")
+                // Navigate to success screen
+                DispatchQueue.main.async {
+                    self.showSuccessAlert()
+                }
+            },
+            onError: { error in
+                print("Payment failed: \(error)")
+                DispatchQueue.main.async {
+                    self.showErrorAlert(message: error)
+                }
+            }
+        )
+    }
+
+    private func showSuccessAlert() {
+        let alert = UIAlertController(title: "Success", message: "Payment completed!", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+
+    private func showErrorAlert(message: String) {
+        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+}
+`
+
+	return IntegrateCheckoutOutput{
+		Summary: "Razorpay integration for iOS (Swift)",
+		Files: []FileAction{
+			{Action: "create", Path: "Services/RazorpayService.swift", Code: paymentServiceCode, Description: "Razorpay payment service"},
+			{Action: "create", Path: "USAGE_EXAMPLE.swift", Code: usageCode, Description: "ViewController usage example"},
+		},
+		Dependencies:     []Dependency{{Name: "razorpay-pod", InstallCommand: "Add to Podfile: pod 'razorpay-pod' && pod install"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
+		AIInstructions: `IOS SETUP:
+1) Add to Podfile: pod 'razorpay-pod'
+2) Run: cd ios && pod install
+3) Open .xcworkspace (not .xcodeproj)
+4) Create Services/RazorpayService.swift
+5) Replace YOUR_BACKEND_URL with your actual backend
+6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in iOS app - only use on backend
+7) Import Razorpay in your Swift files`,
+	}
+}
+
+// =============================================================================
+// CORDOVA INTEGRATION
+// =============================================================================
+
+func getCordovaIntegration(creds Credentials) IntegrateCheckoutOutput {
+	keyID, keySecret := getKeysOrPlaceholders(creds)
+
+	paymentServiceCode := `// www/js/razorpay-service.js
+
+var RazorpayService = {
+    backendUrl: 'YOUR_BACKEND_URL', // Replace with your backend
+
+    initiatePayment: function(amount, onSuccess, onError) {
+        var self = this;
+
+        // Create order on backend
+        this.createOrder(amount)
+            .then(function(orderData) {
+                if (!orderData.success) {
+                    throw new Error(orderData.error || 'Failed to create order');
+                }
+                return self.openCheckout(orderData);
+            })
+            .then(function(paymentData) {
+                return self.verifyPayment(paymentData);
+            })
+            .then(function(verifyData) {
+                if (verifyData.success) {
+                    onSuccess(verifyData);
+                } else {
+                    throw new Error(verifyData.error || 'Verification failed');
+                }
+            })
+            .catch(function(error) {
+                onError(error);
+            });
+    },
+
+    createOrder: function(amount) {
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', RazorpayService.backendUrl + '/api/razorpay/order');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    resolve(JSON.parse(xhr.responseText));
+                } else {
+                    reject(new Error('Failed to create order'));
+                }
+            };
+            xhr.onerror = function() { reject(new Error('Network error')); };
+            xhr.send(JSON.stringify({ amount: amount }));
+        });
+    },
+
+    openCheckout: function(orderData) {
+        return new Promise(function(resolve, reject) {
+            var options = {
+                description: 'Payment',
+                currency: orderData.currency,
+                key: orderData.keyId,
+                amount: orderData.amount,
+                name: 'Your App Name',
+                order_id: orderData.orderId,
+                theme: { color: '#528FF0' }
+            };
+
+            var successCallback = function(payment_id) {
+                resolve({
+                    razorpay_payment_id: payment_id,
+                    razorpay_order_id: orderData.orderId
+                });
+            };
+
+            var errorCallback = function(code, description) {
+                reject(new Error(description || 'Payment failed'));
+            };
+
+            RazorpayCheckout.open(options, successCallback, errorCallback);
+        });
+    },
+
+    verifyPayment: function(paymentData) {
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', RazorpayService.backendUrl + '/api/razorpay/verify');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    resolve(JSON.parse(xhr.responseText));
+                } else {
+                    reject(new Error('Verification failed'));
+                }
+            };
+            xhr.onerror = function() { reject(new Error('Network error')); };
+            xhr.send(JSON.stringify(paymentData));
+        });
+    }
+};
+`
+
+	usageCode := `// Usage in your Cordova app:
+
+document.getElementById('payButton').addEventListener('click', function() {
+    var amount = 100; // Amount in your base currency
+
+    RazorpayService.initiatePayment(
+        amount,
+        function(data) {
+            console.log('Payment successful:', data);
+            alert('Payment successful!');
+            // Navigate to success page
+        },
+        function(error) {
+            console.error('Payment failed:', error);
+            alert('Payment failed: ' + error.message);
+        }
+    );
+});
+`
+
+	return IntegrateCheckoutOutput{
+		Summary: "Razorpay integration for Cordova",
+		Files: []FileAction{
+			{Action: "create", Path: "www/js/razorpay-service.js", Code: paymentServiceCode, Description: "Razorpay payment service"},
+			{Action: "create", Path: "USAGE_EXAMPLE.js", Code: usageCode, Description: "Usage example"},
+		},
+		Dependencies:     []Dependency{{Name: "razorpay-cordova", InstallCommand: "cordova plugin add com.nicholaswilliams.nicepay.razorpay"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
+		AIInstructions: `CORDOVA SETUP:
+1) Install plugin: cordova plugin add com.nicholaswilliams.nicepay.razorpay
+2) Create www/js/razorpay-service.js
+3) Include script in index.html: <script src="js/razorpay-service.js"></script>
+4) Replace YOUR_BACKEND_URL with your actual backend
+5) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in the app - only use on backend
+6) Build: cordova build android/ios`,
+	}
+}
+
+// =============================================================================
+// IONIC INTEGRATION
+// =============================================================================
+
+func getIonicIntegration(creds Credentials) IntegrateCheckoutOutput {
+	keyID, keySecret := getKeysOrPlaceholders(creds)
+
+	paymentServiceCode := `// src/app/services/razorpay.service.ts
+
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Platform } from '@ionic/angular';
+
+declare var RazorpayCheckout: any;
+
+@Injectable({
+  providedIn: 'root'
+})
+export class RazorpayService {
+  private backendUrl = 'YOUR_BACKEND_URL'; // Replace with your backend
+
+  constructor(
+    private http: HttpClient,
+    private platform: Platform
+  ) {}
+
+  async initiatePayment(
+    amount: number,
+    onSuccess: (data: any) => void,
+    onError: (error: Error) => void
+  ): Promise<void> {
+    try {
+      const orderData = await this.createOrder(amount);
+      if (!orderData.success) {
+        throw new Error(orderData.error || 'Failed to create order');
+      }
+
+      const paymentData = await this.openCheckout(orderData);
+      const verifyData = await this.verifyPayment(paymentData);
+
+      if (verifyData.success) {
+        onSuccess(verifyData);
+      } else {
+        throw new Error(verifyData.error || 'Verification failed');
+      }
+    } catch (error: any) {
+      onError(error);
+    }
+  }
+
+  private createOrder(amount: number): Promise<any> {
+    return this.http.post(` + "`${this.backendUrl}/api/razorpay/order`" + `, { amount }).toPromise();
+  }
+
+  private openCheckout(orderData: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const options = {
+        description: 'Payment',
+        currency: orderData.currency,
+        key: orderData.keyId,
+        amount: orderData.amount,
+        name: 'Your App Name',
+        order_id: orderData.orderId,
+        theme: { color: '#528FF0' }
+      };
+
+      const successCallback = (payment_id: string) => {
+        resolve({
+          razorpay_payment_id: payment_id,
+          razorpay_order_id: orderData.orderId,
+          razorpay_signature: '' // Will be handled by server
+        });
+      };
+
+      const errorCallback = (code: number, description: string) => {
+        reject(new Error(description || 'Payment failed'));
+      };
+
+      RazorpayCheckout.open(options, successCallback, errorCallback);
+    });
+  }
+
+  private verifyPayment(paymentData: any): Promise<any> {
+    return this.http.post(` + "`${this.backendUrl}/api/razorpay/verify`" + `, paymentData).toPromise();
+  }
+}
+`
+
+	componentCode := `// Usage in your Ionic component:
+
+import { Component } from '@angular/core';
+import { RazorpayService } from '../services/razorpay.service';
+import { ToastController, LoadingController } from '@ionic/angular';
+
+@Component({
+  selector: 'app-checkout',
+  template: ` + "`" + `
+    <ion-button (click)="handlePayment()" expand="block">
+      Pay Now
+    </ion-button>
+  ` + "`" + `
+})
+export class CheckoutPage {
+  constructor(
+    private razorpayService: RazorpayService,
+    private toastController: ToastController,
+    private loadingController: LoadingController
+  ) {}
+
+  async handlePayment() {
+    const loading = await this.loadingController.create({
+      message: 'Processing payment...'
+    });
+    await loading.present();
+
+    const amount = 100; // Amount in your base currency
+
+    this.razorpayService.initiatePayment(
+      amount,
+      async (data) => {
+        await loading.dismiss();
+        const toast = await this.toastController.create({
+          message: 'Payment successful!',
+          duration: 3000,
+          color: 'success'
+        });
+        await toast.present();
+        // Navigate to success page
+      },
+      async (error) => {
+        await loading.dismiss();
+        const toast = await this.toastController.create({
+          message: 'Payment failed: ' + error.message,
+          duration: 3000,
+          color: 'danger'
+        });
+        await toast.present();
+      }
+    );
+  }
+}
+`
+
+	return IntegrateCheckoutOutput{
+		Summary: "Razorpay integration for Ionic",
+		Files: []FileAction{
+			{Action: "create", Path: "src/app/services/razorpay.service.ts", Code: paymentServiceCode, Description: "Razorpay payment service"},
+			{Action: "create", Path: "USAGE_EXAMPLE.ts", Code: componentCode, Description: "Component usage example"},
+		},
+		Dependencies: []Dependency{
+			{Name: "razorpay-cordova", InstallCommand: "ionic cordova plugin add com.nicholaswilliams.nicepay.razorpay"},
+		},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
+		AIInstructions: `IONIC SETUP:
+1) Install plugin: ionic cordova plugin add com.nicholaswilliams.nicepay.razorpay
+2) Create src/app/services/razorpay.service.ts
+3) Import HttpClientModule in app.module.ts
+4) Replace YOUR_BACKEND_URL with your actual backend
+5) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in the app - only use on backend
+6) Declare RazorpayCheckout in your service or global typings
+7) Build: ionic cordova build android/ios`,
+	}
+}
+
+// =============================================================================
+// CAPACITOR INTEGRATION
+// =============================================================================
+
+func getCapacitorIntegration(creds Credentials) IntegrateCheckoutOutput {
+	keyID, keySecret := getKeysOrPlaceholders(creds)
+
+	paymentServiceCode := `// src/services/razorpay.service.ts
+
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Capacitor } from '@capacitor/core';
+
+// For Capacitor, we use a custom plugin or web fallback
+declare var RazorpayCheckout: any;
+
+@Injectable({
+  providedIn: 'root'
+})
+export class RazorpayService {
+  private backendUrl = 'YOUR_BACKEND_URL'; // Replace with your backend
+
+  constructor(private http: HttpClient) {}
+
+  async initiatePayment(
+    amount: number,
+    onSuccess: (data: any) => void,
+    onError: (error: Error) => void
+  ): Promise<void> {
+    try {
+      const orderData: any = await this.createOrder(amount);
+      if (!orderData.success) {
+        throw new Error(orderData.error || 'Failed to create order');
+      }
+
+      if (Capacitor.isNativePlatform()) {
+        // Native platform - use Cordova plugin
+        await this.openNativeCheckout(orderData, onSuccess, onError);
+      } else {
+        // Web platform - use Razorpay web checkout
+        await this.openWebCheckout(orderData, onSuccess, onError);
+      }
+    } catch (error: any) {
+      onError(error);
+    }
+  }
+
+  private createOrder(amount: number): Promise<any> {
+    return this.http.post(` + "`${this.backendUrl}/api/razorpay/order`" + `, { amount }).toPromise();
+  }
+
+  private async openNativeCheckout(
+    orderData: any,
+    onSuccess: (data: any) => void,
+    onError: (error: Error) => void
+  ): Promise<void> {
+    const options = {
+      description: 'Payment',
+      currency: orderData.currency,
+      key: orderData.keyId,
+      amount: orderData.amount,
+      name: 'Your App Name',
+      order_id: orderData.orderId,
+      theme: { color: '#528FF0' }
+    };
+
+    RazorpayCheckout.open(
+      options,
+      async (payment_id: string) => {
+        const verifyData = await this.verifyPayment({
+          razorpay_payment_id: payment_id,
+          razorpay_order_id: orderData.orderId
+        });
+        if (verifyData.success) {
+          onSuccess(verifyData);
+        } else {
+          onError(new Error(verifyData.error || 'Verification failed'));
+        }
+      },
+      (code: number, description: string) => {
+        onError(new Error(description || 'Payment failed'));
+      }
+    );
+  }
+
+  private async openWebCheckout(
+    orderData: any,
+    onSuccess: (data: any) => void,
+    onError: (error: Error) => void
+  ): Promise<void> {
+    // Load Razorpay script if not loaded
+    if (!(window as any).Razorpay) {
+      await this.loadRazorpayScript();
+    }
+
+    const options = {
+      key: orderData.keyId,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: 'Your App Name',
+      order_id: orderData.orderId,
+      handler: async (response: any) => {
+        const verifyData: any = await this.verifyPayment(response);
+        if (verifyData.success) {
+          onSuccess(verifyData);
+        } else {
+          onError(new Error(verifyData.error || 'Verification failed'));
+        }
+      },
+      modal: {
+        ondismiss: () => {
+          onError(new Error('Payment cancelled'));
+        }
+      },
+      theme: { color: '#528FF0' }
+    };
+
+    const razorpay = new (window as any).Razorpay(options);
+    razorpay.open();
+  }
+
+  private loadRazorpayScript(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Razorpay'));
+      document.head.appendChild(script);
+    });
+  }
+
+  private verifyPayment(paymentData: any): Promise<any> {
+    return this.http.post(` + "`${this.backendUrl}/api/razorpay/verify`" + `, paymentData).toPromise();
+  }
+}
+`
+
+	usageCode := `// Usage in your Capacitor/Angular component:
+
+import { Component } from '@angular/core';
+import { RazorpayService } from '../services/razorpay.service';
+
+@Component({
+  selector: 'app-checkout',
+  template: ` + "`" + `
+    <button (click)="handlePayment()">Pay Now</button>
+  ` + "`" + `
+})
+export class CheckoutComponent {
+  constructor(private razorpayService: RazorpayService) {}
+
+  handlePayment() {
+    const amount = 100; // Amount in your base currency
+
+    this.razorpayService.initiatePayment(
+      amount,
+      (data) => {
+        console.log('Payment successful:', data);
+        alert('Payment successful!');
+        // Navigate to success page
+      },
+      (error) => {
+        console.error('Payment failed:', error);
+        alert('Payment failed: ' + error.message);
+      }
+    );
+  }
+}
+`
+
+	return IntegrateCheckoutOutput{
+		Summary: "Razorpay integration for Capacitor",
+		Files: []FileAction{
+			{Action: "create", Path: "src/services/razorpay.service.ts", Code: paymentServiceCode, Description: "Razorpay payment service with web/native support"},
+			{Action: "create", Path: "USAGE_EXAMPLE.ts", Code: usageCode, Description: "Component usage example"},
+		},
+		Dependencies: []Dependency{
+			{Name: "razorpay-cordova", InstallCommand: "npm install cordova-plugin-razorpay && npx cap sync"},
+		},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
+		AIInstructions: `CAPACITOR SETUP:
+1) Install Cordova plugin: npm install cordova-plugin-razorpay
+2) Sync: npx cap sync
+3) Create src/services/razorpay.service.ts
+4) Import HttpClientModule in app.module.ts
+5) Replace YOUR_BACKEND_URL with your actual backend
+6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in the app - only use on backend
+7) Works on both web and native (Android/iOS)
+8) For web: Razorpay script is loaded dynamically
+9) For native: Uses Cordova plugin`,
+	}
+}
+
 // Helper to get keys or placeholders
 func getKeysOrPlaceholders(creds Credentials) (string, string) {
 	keyID := creds.KeyID
@@ -2976,7 +3954,10 @@ COMMON MISTAKES TO AVOID:
 - Creating new functions instead of modifying existing checkout flow
 - Leaving COD/placeholder payment code active
 - NOT SAVING order data before payment (causes "order data not found" errors)
-- Trying to access form fields in success callback (form may be gone/reset)`,
+- Trying to access form fields in success callback (form may be gone/reset)
+- MISSING CLOSING BRACE: The function must end with } after the initiateRazorpayPayment() call:
+     );
+   }  // <-- THIS CLOSING BRACE IS REQUIRED - don't forget it!`,
 	}
 }
 
