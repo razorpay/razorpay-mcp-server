@@ -4,6 +4,7 @@ import (
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
+	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations"
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
 
@@ -104,7 +105,19 @@ func NewToolSets(
 	payments.AddReadTools(FetchSavedPaymentMethods(obs, client)).
 		AddWriteTools(RevokeToken(obs, client))
 
+	// Payment Gateway Integration toolset - helps developers integrate Razorpay checkout
+	pgIntegration := toolsets.NewToolset(
+		"pg_integration",
+		"Payment Gateway integration assistance tools for Standard Checkout").
+		AddReadTools(
+			integrations.PGStandardGetSupportedStacks(obs),
+			integrations.PGStandardGetIntegrationPlan(obs),
+			integrations.PGStandardGetSnippets(obs),
+			integrations.PGStandardGetValidationAndTestPlan(obs),
+		)
+
 	// Add toolsets to the group
+	toolsetGroup.AddToolset(pgIntegration)
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
