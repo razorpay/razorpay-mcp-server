@@ -492,8 +492,27 @@ const razorpayRoutes = require('./routes/razorpay');
          alert('Payment failed: ' + error.message);
          localStorage.removeItem('pendingOrder');
        }
-     );
-   }
+     );  // <-- closes initiateRazorpayPayment()
+   }  // <-- CRITICAL: This } closes the function! DO NOT FORGET IT!
+
+   ⚠️ BRACKET CHECK: Count your braces! The function MUST have a closing }
+   If you see ");// next function" without a } between them, you forgot the closing brace!
+
+   ⚠️ STRING REPLACEMENT WARNING: When using StrReplace/Edit to modify a function:
+   - If your old_string includes part of the function body
+   - Your new_string MUST include the closing } of the function
+   - Don't replace "function body" with "new body" - replace "function body }" with "new body }"
+   - The closing brace is part of what you're replacing!
+
+   ⚠️ CRITICAL: DO NOT ESCAPE CHARACTERS IN JAVASCRIPT!
+   When writing JavaScript code, use NORMAL characters - NO BACKSLASHES:
+   ✅ CORRECT: document.getElementById('name')
+   ❌ WRONG:   document.getElementById(BACKSLASH'name BACKSLASH')
+   ✅ CORRECT: localStorage.setItem('key', value)
+   ❌ WRONG:   localStorage.setItem(BACKSLASH'key BACKSLASH', value)
+   For template literals, use normal backtick and $ - NOT backslash-backtick or backslash-$
+
+   DO NOT add backslashes before quotes, backticks, or dollar signs in JavaScript!
 
 COMMON MISTAKES TO AVOID:
 - Adding to app.js when checkout.html uses checkout.js
@@ -520,7 +539,15 @@ COMMON MISTAKES TO AVOID:
 			{Name: "RAZORPAY_KEY_SECRET", Value: keySecret},
 		},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
-		AIInstructions: `CRITICAL INSTRUCTIONS - THE INTEGRATION IS NOT COMPLETE UNTIL ALL STEPS ARE DONE:
+		AIInstructions: `⚠️ MANDATORY: YOU MUST COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+DO NOT tell the user to "wire up payment" or give any "Next Steps" - YOU must do it all!
+If you finish without modifying the checkout function to call initiateRazorpayPayment(), YOU HAVE FAILED.
+
+⚠️ DO NOT JUST ANALYZE - YOU MUST WRITE CODE!
+If you find placeholder comments or COD-only code in checkout.js, DO NOT just report "Found the issue".
+YOU MUST USE Edit/StrReplace TO ACTUALLY FIX IT. Analyzing without fixing = FAILURE.
+
+CRITICAL INSTRUCTIONS - THE INTEGRATION IS NOT COMPLETE UNTIL ALL STEPS ARE DONE:
 
 **FIRST: DISCOVER THE PROJECT STRUCTURE**
 Before making changes, find:
@@ -540,10 +567,25 @@ DO NOT ASSUME app.js or index.html - find the ACTUAL files used for checkout!
 
 4) Create .env file with the provided RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
 
-5) Edit server.js (or main server file) - IMPORTANT ORDER:
+5) Edit server.js (or main server file) - **CRITICAL ORDER (WILL CRASH IF WRONG)**:
+
+   ⚠️ WARNING: JavaScript const/let variables CANNOT be used before declaration!
+   The require() MUST appear BEFORE the app.use() in the file, or you'll get:
+   "ReferenceError: Cannot access 'razorpayRoutes' before initialization"
+
    a) Add at TOP (line 1): require('dotenv').config();
-   b) Add after dotenv, with other requires: const razorpayRoutes = require('./routes/razorpay');
-   c) Add LATER with middleware: app.use('/api/razorpay', razorpayRoutes);
+   b) Add IMMEDIATELY AFTER with other requires at TOP of file: const razorpayRoutes = require('./routes/razorpay');
+   c) Add MUCH LATER in file with other app.use() middleware: app.use('/api/razorpay', razorpayRoutes);
+
+   CORRECT ORDER IN FILE:
+   Line 1:  require('dotenv').config();
+   Line 2+: const razorpayRoutes = require('./routes/razorpay');  // <-- DECLARE FIRST
+   ...
+   Line 50+: app.use('/api/razorpay', razorpayRoutes);  // <-- USE LATER
+
+   WRONG (WILL CRASH):
+   app.use('/api/razorpay', razorpayRoutes);  // ❌ Used before declared
+   const razorpayRoutes = require(...);        // ❌ Declared after use
 
 6) Add razorpay.js script to the CORRECT HTML file:
    - Find which HTML has the checkout (may be checkout.html, NOT index.html)
@@ -566,7 +608,26 @@ THE INTEGRATION IS **NOT COMPLETE** IF:
 - The razorpay.js script isn't in the checkout HTML
 - You tell the user to "wire up the payment" as a next step
 
-DO NOT give "Next Steps" - complete EVERYTHING including discovering the correct files.`,
+DO NOT give "Next Steps" - complete EVERYTHING including discovering the correct files.
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER - READ THIS BEFORE FINISHING:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you FIND the actual checkout HTML/JS files (not assume app.js)?
+✅ Did you ADD razorpay.js script to the checkout HTML?
+✅ Did you MODIFY the checkout function to call initiateRazorpayPayment()?
+✅ Did you put require() BEFORE app.use() in server.js?
+✅ Did you include the closing } brace for ALL functions?
+✅ Did you use NORMAL quotes (not escaped \')?
+
+❌ DO NOT give "Next Steps" - the integration must be COMPLETE
+❌ DO NOT escape quotes/backticks in JavaScript (\' is WRONG, ' is CORRECT)
+❌ DO NOT tell user to "wire up payment" - YOU must do it
+❌ DO NOT finish without modifying the checkout function
+❌ DO NOT just ANALYZE and report "Found issue" - USE Edit TO FIX IT
+
+If ANY checkbox above is NO, GO BACK AND FIX IT NOW.
+If you said "Found the issue" but didn't edit the file, GO BACK AND EDIT IT NOW.`,
 	}
 }
 
@@ -781,12 +842,25 @@ export function RazorpayCheckout({
 			{Name: "RAZORPAY_KEY_SECRET", Value: keySecret},
 		},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV",
-		AIInstructions: `IMPORTANT:
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+STEPS:
 1) Install razorpay package
 2) Create ALL the API route files
 3) Create the RazorpayCheckout component
 4) Add env vars to .env.local
-5) Do NOT ask the user to do anything or give "Next Steps" - the integration must be complete and working.`,
+5) WIRE UP the component in your checkout page - import and use <RazorpayCheckout />
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you CREATE all API routes?
+✅ Did you CREATE the RazorpayCheckout component?
+✅ Did you ADD the component to the checkout page?
+✅ Did you ADD env vars to .env.local?
+
+❌ DO NOT give "Next Steps" - integration must be COMPLETE
+❌ DO NOT tell user to "add the component" - YOU must do it`,
 	}
 }
 
@@ -2732,14 +2806,24 @@ const handlePayment = () => {
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111. Test UPI: success@razorpay",
-		AIInstructions: `MOBILE SETUP:
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+MOBILE SETUP:
 1) npm install react-native-razorpay
 2) iOS: cd ios && pod install
 3) Android: No additional setup needed
 4) Create the payment service file
 5) Replace YOUR_BACKEND_URL with your actual backend
 6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in mobile app - only use on backend
-7) Import and use initiatePayment() in your checkout screen`,
+7) Import and use initiatePayment() in your checkout screen - FIND the checkout screen and ADD the import
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you CREATE the payment service file?
+✅ Did you IMPORT it in the checkout screen?
+✅ Did you WIRE UP the payment button to call initiatePayment()?
+❌ DO NOT give "Next Steps" - YOU must complete everything`,
 	}
 }
 
@@ -2889,14 +2973,24 @@ void dispose() {
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111. Test UPI: success@razorpay",
-		AIInstructions: `MOBILE SETUP:
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+MOBILE SETUP:
 1) flutter pub add razorpay_flutter http
 2) Android: Add proguard rules if using minification
 3) iOS: No additional setup needed
 4) Create lib/services/razorpay_service.dart
 5) Replace YOUR_BACKEND_URL with your actual backend
 6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in mobile app - only use on backend
-7) Use RazorpayService in your checkout screen`,
+7) FIND the checkout screen and ADD RazorpayService import and usage
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you CREATE lib/services/razorpay_service.dart?
+✅ Did you IMPORT it in the checkout screen?
+✅ Did you WIRE UP the payment button?
+❌ DO NOT give "Next Steps" - YOU must complete everything`,
 	}
 }
 
@@ -3194,14 +3288,26 @@ implementation 'com.razorpay:checkout:1.6.33'
 		Dependencies:     []Dependency{{Name: "razorpay-checkout", InstallCommand: "Add to app/build.gradle: implementation 'com.razorpay:checkout:1.6.33'"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
-		AIInstructions: `ANDROID SETUP:
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+ANDROID SETUP:
 1) Add Razorpay dependency to app/build.gradle
 2) Sync Gradle
 3) Create RazorpayService.kt in your payment package
 4) Your Activity must implement PaymentResultListener
 5) Replace YOUR_BACKEND_URL with your actual backend
 6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in Android app - only use on backend
-7) Add internet permission in AndroidManifest.xml: <uses-permission android:name="android.permission.INTERNET"/>`,
+7) Add internet permission in AndroidManifest.xml: <uses-permission android:name="android.permission.INTERNET"/>
+8) FIND the checkout Activity and WIRE UP the payment service
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you ADD the dependency to build.gradle?
+✅ Did you CREATE RazorpayService.kt?
+✅ Did you IMPLEMENT PaymentResultListener in the Activity?
+✅ Did you WIRE UP the payment button to call initiatePayment()?
+❌ DO NOT give "Next Steps" - YOU must complete everything`,
 	}
 }
 
@@ -3358,14 +3464,25 @@ class CheckoutViewController: UIViewController {
 		Dependencies:     []Dependency{{Name: "razorpay-pod", InstallCommand: "Add to Podfile: pod 'razorpay-pod' && pod install"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
-		AIInstructions: `IOS SETUP:
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+IOS SETUP:
 1) Add to Podfile: pod 'razorpay-pod'
 2) Run: cd ios && pod install
 3) Open .xcworkspace (not .xcodeproj)
 4) Create Services/RazorpayService.swift
 5) Replace YOUR_BACKEND_URL with your actual backend
 6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in iOS app - only use on backend
-7) Import Razorpay in your Swift files`,
+7) Import Razorpay in your Swift files
+8) FIND the checkout ViewController and WIRE UP the payment service
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you ADD razorpay-pod to Podfile?
+✅ Did you CREATE RazorpayService.swift?
+✅ Did you WIRE UP the payment button in the checkout screen?
+❌ DO NOT give "Next Steps" - YOU must complete everything`,
 	}
 }
 
@@ -3499,13 +3616,25 @@ document.getElementById('payButton').addEventListener('click', function() {
 		Dependencies:     []Dependency{{Name: "razorpay-cordova", InstallCommand: "cordova plugin add com.nicholaswilliams.nicepay.razorpay"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
-		AIInstructions: `CORDOVA SETUP:
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CORDOVA SETUP:
 1) Install plugin: cordova plugin add com.nicholaswilliams.nicepay.razorpay
 2) Create www/js/razorpay-service.js
 3) Include script in index.html: <script src="js/razorpay-service.js"></script>
 4) Replace YOUR_BACKEND_URL with your actual backend
 5) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in the app - only use on backend
-6) Build: cordova build android/ios`,
+6) FIND the checkout page and WIRE UP the payment button
+7) Build: cordova build android/ios
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you INSTALL the Cordova plugin?
+✅ Did you CREATE razorpay-service.js?
+✅ Did you ADD the script tag to index.html?
+✅ Did you WIRE UP the payment button to call initiatePayment()?
+❌ DO NOT give "Next Steps" - YOU must complete everything`,
 	}
 }
 
@@ -3663,14 +3792,26 @@ export class CheckoutPage {
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
-		AIInstructions: `IONIC SETUP:
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+IONIC SETUP:
 1) Install plugin: ionic cordova plugin add com.nicholaswilliams.nicepay.razorpay
 2) Create src/app/services/razorpay.service.ts
 3) Import HttpClientModule in app.module.ts
 4) Replace YOUR_BACKEND_URL with your actual backend
 5) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in the app - only use on backend
 6) Declare RazorpayCheckout in your service or global typings
-7) Build: ionic cordova build android/ios`,
+7) FIND the checkout component and INJECT and USE the RazorpayService
+8) Build: ionic cordova build android/ios
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you INSTALL the Cordova plugin?
+✅ Did you CREATE razorpay.service.ts?
+✅ Did you IMPORT HttpClientModule?
+✅ Did you INJECT and USE the service in the checkout component?
+❌ DO NOT give "Next Steps" - YOU must complete everything`,
 	}
 }
 
@@ -3855,7 +3996,9 @@ export class CheckoutComponent {
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
-		AIInstructions: `CAPACITOR SETUP:
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CAPACITOR SETUP:
 1) Install Cordova plugin: npm install cordova-plugin-razorpay
 2) Sync: npx cap sync
 3) Create src/services/razorpay.service.ts
@@ -3864,7 +4007,17 @@ export class CheckoutComponent {
 6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in the app - only use on backend
 7) Works on both web and native (Android/iOS)
 8) For web: Razorpay script is loaded dynamically
-9) For native: Uses Cordova plugin`,
+9) For native: Uses Cordova plugin
+10) FIND the checkout component and INJECT and USE the RazorpayService
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you INSTALL cordova-plugin-razorpay and run npx cap sync?
+✅ Did you CREATE razorpay.service.ts?
+✅ Did you IMPORT HttpClientModule?
+✅ Did you INJECT and USE the service in the checkout component?
+❌ DO NOT give "Next Steps" - YOU must complete everything`,
 	}
 }
 
@@ -3887,7 +4040,21 @@ func getWirePaymentAction() FileAction {
 		Action:      "wire_payment",
 		Path:        "DISCOVER",
 		Description: "CRITICAL: Discover and modify the actual checkout flow - DO NOT assume file names",
-		Code: `STEP-BY-STEP DISCOVERY PROCESS:
+		Code: `⚠️⚠️⚠️ ACTION REQUIRED - DO NOT JUST ANALYZE ⚠️⚠️⚠️
+
+YOU MUST ACTUALLY MODIFY THE CODE - NOT JUST REPORT WHAT'S WRONG!
+
+If you find that checkout.js has placeholder comments or COD-only code:
+- DO NOT just say "Found the issue - Razorpay is missing"
+- DO NOT just list what files exist
+- YOU MUST USE Edit/StrReplace TO WRITE THE FIX
+
+Your job is to WRITE CODE, not write reports. After finding the checkout file,
+IMMEDIATELY edit it to add the initiateRazorpayPayment() call.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP-BY-STEP DISCOVERY PROCESS:
 
 1. FIND THE CHECKOUT/PAYMENT PAGE:
    - Look for: checkout.html, cart.html, payment.html, or checkout route/component
@@ -3947,8 +4114,27 @@ func getWirePaymentAction() FileAction {
          alert('Payment failed: ' + error.message);
          localStorage.removeItem('pendingOrder'); // cleanup on failure
        }
-     );
-   }
+     );  // <-- closes initiateRazorpayPayment()
+   }  // <-- CRITICAL: This } closes the function! DO NOT FORGET IT!
+
+   ⚠️ BRACKET CHECK: Count your braces! The function MUST have a closing }
+   If you see ");// next function" without a } between them, you forgot the closing brace!
+
+   ⚠️ STRING REPLACEMENT WARNING: When using StrReplace/Edit to modify a function:
+   - If your old_string includes part of the function body
+   - Your new_string MUST include the closing } of the function
+   - Don't replace "function body" with "new body" - replace "function body }" with "new body }"
+   - The closing brace is part of what you're replacing!
+
+   ⚠️ CRITICAL: DO NOT ESCAPE CHARACTERS IN JAVASCRIPT!
+   When writing JavaScript code, use NORMAL characters - NO BACKSLASHES:
+   ✅ CORRECT: document.getElementById('name')
+   ❌ WRONG:   document.getElementById(BACKSLASH'name BACKSLASH')
+   ✅ CORRECT: localStorage.setItem('key', value)
+   ❌ WRONG:   localStorage.setItem(BACKSLASH'key BACKSLASH', value)
+   For template literals, use normal backtick and $ - NOT backslash-backtick or backslash-$
+
+   DO NOT add backslashes before quotes, backticks, or dollar signs in JavaScript!
 
 COMMON MISTAKES TO AVOID:
 - Modifying wrong file (e.g., app.js when checkout.html uses checkout.js)
@@ -3959,7 +4145,11 @@ COMMON MISTAKES TO AVOID:
 - Trying to access form fields in success callback (form may be gone/reset)
 - MISSING CLOSING BRACE: The function must end with } after the initiateRazorpayPayment() call:
      );
-   }  // <-- THIS CLOSING BRACE IS REQUIRED - don't forget it!`,
+   }  // <-- THIS CLOSING BRACE IS REQUIRED - don't forget it!
+
+⚠️ CRITICAL: JUST ANALYZING = FAILURE ⚠️
+If your output says "Found the issue" or "What's missing" without ACTUALLY EDITING the file,
+YOU HAVE FAILED. Use Edit/StrReplace to modify checkout.js NOW.`,
 	}
 }
 
@@ -3989,7 +4179,24 @@ THE INTEGRATION IS **NOT COMPLETE** IF:
 - The checkout still bypasses payment (COD, direct order creation)
 - You tell the user to "wire up payment" as a next step
 
-DO NOT give "Next Steps" - complete EVERYTHING including frontend wiring.`
+DO NOT give "Next Steps" - complete EVERYTHING including frontend wiring.
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL REMINDER - CHECK BEFORE FINISHING:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you FIND the actual checkout page/file?
+✅ Did you ADD the Razorpay script to that page?
+✅ Did you MODIFY the checkout function to call Razorpay payment?
+✅ Did you include closing } braces for ALL functions?
+✅ Did you ADD env vars to .env file?
+✅ Did you use NORMAL quotes (not escaped \')?
+
+❌ DO NOT give "Next Steps" - integration must be COMPLETE
+❌ DO NOT tell user to "wire up" anything - YOU must do it
+❌ DO NOT just ANALYZE and say "Found issue" - USE Edit TO FIX IT
+❌ DO NOT escape quotes/backticks in JavaScript (\' is WRONG, ' is CORRECT)
+
+If you said "Found the issue" but didn't edit the file, GO BACK AND EDIT IT NOW.`
 }
 
 // =============================================================================
