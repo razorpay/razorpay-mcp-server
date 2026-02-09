@@ -70,6 +70,8 @@ type DetectStackOutput struct {
 }
 
 // IntegrateRazorpayCheckout returns a tool for complete Razorpay checkout integration
+//
+//nolint:gocyclo // Complex integration logic with multiple code paths
 func IntegrateRazorpayCheckout(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
