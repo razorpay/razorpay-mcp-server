@@ -52,7 +52,7 @@ func FetchPayment(
 		payment, err := client.Payment.Fetch(paymentId, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payment failed: %s", err.Error())), nil
+				formatErrorMessage("fetching payment failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(payment)
@@ -108,7 +108,7 @@ func FetchPaymentCardDetails(
 
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching card details failed: %s", err.Error())), nil
+				formatErrorMessage("fetching card details failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(cardDetails)
@@ -320,7 +320,7 @@ func FetchAllPayments(
 		payments, err := client.Payment.All(paymentListOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payments failed: %s", err.Error())), nil
+				formatErrorMessage("fetching payments failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(payments)

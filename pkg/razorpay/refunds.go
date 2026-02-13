@@ -2,7 +2,6 @@ package razorpay
 
 import (
 	"context"
-	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -76,7 +75,7 @@ func CreateRefund(
 			int(payload["amount"].(float64)), data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("creating refund failed: %s", err.Error())), nil
+				formatErrorMessage("creating refund failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(refund)
@@ -129,7 +128,7 @@ func FetchRefund(
 		refund, err := client.Refund.Fetch(payload["refund_id"].(string), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching refund failed: %s", err.Error())), nil
+				formatErrorMessage("fetching refund failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(refund)
@@ -188,7 +187,7 @@ func UpdateRefund(
 		refund, err := client.Refund.Update(payload["refund_id"].(string), data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("updating refund failed: %s", err.Error())), nil
+				formatErrorMessage("updating refund failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(refund)
@@ -260,8 +259,7 @@ func FetchMultipleRefundsForPayment(
 			fetchReq["payment_id"].(string), fetchOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching multiple refunds failed: %s",
-					err.Error())), nil
+				formatErrorMessage("fetching multiple refunds failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(refunds)
@@ -322,8 +320,7 @@ func FetchSpecificRefundForPayment(
 			nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching specific refund for payment failed: %s",
-					err.Error())), nil
+				formatErrorMessage("fetching specific refund for payment failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(refund)
@@ -386,7 +383,7 @@ func FetchAllRefunds(
 		refunds, err := client.Refund.All(queryParams, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching refunds failed: %s", err.Error())), nil
+				formatErrorMessage("fetching refunds failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(refunds)

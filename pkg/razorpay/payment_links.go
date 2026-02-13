@@ -334,7 +334,7 @@ func FetchPaymentLink(
 		paymentLink, err := client.PaymentLink.Fetch(paymentLinkId, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payment link failed: %s", err.Error())), nil
+				formatErrorMessage("fetching payment link failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(paymentLink)
@@ -547,7 +547,7 @@ func FetchAllPaymentLinks(
 		response, err := client.PaymentLink.All(plListReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payment links failed: %s", err.Error())), nil
+				formatErrorMessage("fetching payment links failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(response)

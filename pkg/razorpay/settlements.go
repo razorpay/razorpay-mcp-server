@@ -48,7 +48,7 @@ func FetchSettlement(
 		settlement, err := client.Settlement.Fetch(settlementID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching settlement failed: %s", err.Error())), nil
+				formatErrorMessage("fetching settlement failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(settlement)
@@ -199,7 +199,7 @@ func FetchAllSettlements(
 		settlements, err := client.Settlement.All(fetchAllSettlementsOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching settlements failed: %s", err.Error())), nil
+				formatErrorMessage("fetching settlements failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(settlements)
@@ -362,7 +362,7 @@ func FetchAllInstantSettlements(
 		settlements, err := client.Settlement.FetchAllOnDemandSettlement(options, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching instant settlements failed: %s", err.Error())), nil
+				formatErrorMessage("fetching instant settlements failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(settlements)
@@ -417,7 +417,7 @@ func FetchInstantSettlement(
 			settlementID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching instant settlement failed: %s", err.Error())), nil
+				formatErrorMessage("fetching instant settlement failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(settlement)

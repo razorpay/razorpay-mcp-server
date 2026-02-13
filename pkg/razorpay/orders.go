@@ -213,7 +213,7 @@ func FetchOrder(
 		order, err := client.Order.Fetch(payload["order_id"].(string), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching order failed: %s", err.Error()),
+				formatErrorMessage("fetching order failed", err),
 			), nil
 		}
 
@@ -314,7 +314,7 @@ func FetchAllOrders(
 		orders, err := client.Order.All(queryParams, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching orders failed: %s", err.Error()),
+				formatErrorMessage("fetching orders failed", err),
 			), nil
 		}
 
@@ -369,10 +369,7 @@ func FetchOrderPayments(
 		payments, err := client.Order.Payments(orderID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf(
-					"fetching payments for order failed: %s",
-					err.Error(),
-				),
+				formatErrorMessage("fetching payments for order failed", err),
 			), nil
 		}
 
