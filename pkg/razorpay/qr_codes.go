@@ -172,7 +172,7 @@ func FetchQRCode(
 		qrCode, err := client.QrCode.Fetch(qrCodeID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching QR code failed: %s", err.Error())), nil
+				formatErrorMessage("fetching QR code failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(qrCode)
@@ -248,7 +248,7 @@ func FetchAllQRCodes(
 		qrCodes, err := client.QrCode.All(fetchQROptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching QR codes failed: %s", err.Error())), nil
+				formatErrorMessage("fetching QR codes failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(qrCodes)
@@ -300,7 +300,7 @@ func FetchQRCodesByCustomerID(
 		qrCodes, err := client.QrCode.All(fetchQROptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching QR codes failed: %s", err.Error())), nil
+				formatErrorMessage("fetching QR codes failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(qrCodes)
@@ -353,7 +353,7 @@ func FetchQRCodesByPaymentID(
 		qrCodes, err := client.QrCode.All(fetchQROptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching QR codes failed: %s", err.Error())), nil
+				formatErrorMessage("fetching QR codes failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(qrCodes)
@@ -441,7 +441,7 @@ func FetchPaymentsForQRCode(
 		payments, err := client.QrCode.FetchPayments(qrCodeID, fetchQROptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payments for QR code failed: %s", err.Error())), nil
+				formatErrorMessage("fetching payments for QR code failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(payments)

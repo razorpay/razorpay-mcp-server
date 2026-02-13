@@ -459,3 +459,18 @@ func (v *Validator) ValidateAndAddToken(
 	params[name] = token
 	return v
 }
+
+// formatErrorMessage formats an error message with a prefix,
+// handling empty error messages
+func formatErrorMessage(prefix string, err error) string {
+	if err == nil {
+		return prefix + ": resource does not exist"
+	}
+
+	errMsg := err.Error()
+	if errMsg == "" {
+		return prefix + ": resource does not exist"
+	}
+
+	return prefix + ": " + errMsg
+}

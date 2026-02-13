@@ -2,7 +2,6 @@ package razorpay
 
 import (
 	"context"
-	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -50,7 +49,7 @@ func FetchPayout(
 		)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payout failed: %s", err.Error())), nil
+				formatErrorMessage("fetching payout failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(payout)
@@ -113,7 +112,7 @@ func FetchAllPayouts(
 		payout, err := client.Payout.All(FetchAllPayoutsOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching payouts failed: %s", err.Error())), nil
+				formatErrorMessage("fetching payouts failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(payout)
