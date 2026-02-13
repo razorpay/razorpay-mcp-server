@@ -1126,3 +1126,61 @@ func TestValidateAndAddTokenEdgeCases(t *testing.T) {
 		assert.Empty(t, params)
 	})
 }
+
+// Test for formatErrorMessage function
+func TestFormatErrorMessage(t *testing.T) {
+	tests := []struct {
+		name     string
+		prefix   string
+		err      error
+		expected string
+	}{
+		{
+			name:     "error with message",
+			prefix:   "fetching refund failed",
+			err:      assert.AnError,
+			expected: "fetching refund failed: assert.AnError general error for testing",
+		},
+		{
+			name:     "nil error",
+			prefix:   "fetching payment failed",
+			err:      nil,
+			expected: "fetching payment failed: resource does not exist",
+		},
+		{
+			name:     "error with empty message",
+			prefix:   "fetching order failed",
+			err:      &emptyError{},
+			expected: "fetching order failed: resource does not exist",
+		},
+		{
+			name:     "error with actual message",
+			prefix:   "creating settlement failed",
+			err:      &customError{msg: "The id provided does not exist"},
+			expected: "creating settlement failed: The id provided does not exist",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatErrorMessage(tt.prefix, tt.err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// emptyError is a custom error type that returns an empty string
+type emptyError struct{}
+
+func (e *emptyError) Error() string {
+	return ""
+}
+
+// customError is a custom error type with a message
+type customError struct {
+	msg string
+}
+
+func (e *customError) Error() string {
+	return e.msg
+}
