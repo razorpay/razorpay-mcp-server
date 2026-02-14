@@ -57,6 +57,77 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_tokens`     | Get all saved payment methods for a contact number     | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/cards/tokens/) | ✅ |
 | `revoke_token`     | Revoke a saved payment method (token) for a customer   | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-otm/collect/tokens/#24-cancel-token) | ✅ |
 
+### Payment Gateway Integration Assistance
+
+These tools help AI agents guide developers through integrating Razorpay Payment Gateway Standard Checkout across multiple tech stacks.
+
+**Key Details:**
+- Implementation located in `pkg/razorpay/integrations/`
+- All code snippets clearly reference Razorpay's API endpoint: `POST https://api.razorpay.com/v1/orders`
+- Tools are read-only and return guidance/snippets only - they do NOT modify user repositories
+
+| Tool                                      | Description                                                                      | Docs |
+|:------------------------------------------|:---------------------------------------------------------------------------------|:-----|
+| `pg_standard_get_supported_stacks`        | Returns all supported stack identifiers (web, Android, iOS, React Native, Flutter, Cordova, Ionic) and server languages | [Payment Gateway](https://razorpay.com/docs/payments/payment-gateway/) |
+| `pg_standard_get_integration_plan`        | Returns a step-by-step integration plan with canonical steps, security warnings, and recommended next calls | [Integration Steps](https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/integration-steps/) |
+| `pg_standard_get_snippets`                | Returns code snippets for order creation, checkout opening, signature verification, env templates, and webhook guidance | [Server Integration](https://razorpay.com/docs/payments/server-integration/) |
+| `pg_standard_get_validation_and_test_plan` | Returns validation commands, test plan steps, and optionally a go-live checklist | [Test Integration](https://razorpay.com/docs/payments/payments/test-integration/) |
+
+#### Example Tool Invocations
+
+**Get supported stacks:**
+```json
+{
+  "tool": "pg_standard_get_supported_stacks"
+}
+```
+
+**Get integration plan for web with Node.js:**
+```json
+{
+  "tool": "pg_standard_get_integration_plan",
+  "arguments": {
+    "stack": "web_standard",
+    "server_language": "nodejs"
+  }
+}
+```
+
+**Get order creation snippet for Python:**
+```json
+{
+  "tool": "pg_standard_get_snippets",
+  "arguments": {
+    "stack": "web_standard",
+    "server_language": "python",
+    "snippet_kind": "order_create"
+  }
+}
+```
+
+**Get checkout open snippet for Flutter:**
+```json
+{
+  "tool": "pg_standard_get_snippets",
+  "arguments": {
+    "stack": "flutter_standard",
+    "server_language": "nodejs",
+    "snippet_kind": "checkout_open"
+  }
+}
+```
+
+**Get validation and test plan with go-live checklist:**
+```json
+{
+  "tool": "pg_standard_get_validation_and_test_plan",
+  "arguments": {
+    "stack": "android_standard",
+    "server_language": "go",
+    "include_go_live": true
+  }
+}
+```
 
 ## Use Cases
 - Workflow Automation: Automate your day to day workflow using Razorpay MCP Server.
@@ -381,7 +452,7 @@ The server requires the following configuration:
 - `RAZORPAY_KEY_ID`: Your Razorpay API key ID
 - `RAZORPAY_KEY_SECRET`: Your Razorpay API key secret
 - `LOG_FILE` (optional): Path to log file for server logs
-- `TOOLSETS` (optional): Comma-separated list of toolsets to enable (default: "all")
+- `TOOLSETS` (optional): Comma-separated list of toolsets to enable (default: "all"). Available toolsets: `payments`, `payment_links`, `orders`, `refunds`, `payouts`, `qr_codes`, `settlements`, `pg_integration`
 - `READ_ONLY` (optional): Run server in read-only mode (default: false)
 
 ### Command Line Flags
