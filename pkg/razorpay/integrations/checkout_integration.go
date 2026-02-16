@@ -1,15 +1,40 @@
 //nolint:lll // File contains embedded code templates requiring longer lines
-package razorpay
+package integrations
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
+	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
+
+// getClientFromContextOrDefault returns either the provided default
+// client or gets one from context.
+func getClientFromContextOrDefault(
+	ctx context.Context,
+	defaultClient *rzpsdk.Client,
+) (*rzpsdk.Client, error) {
+	if defaultClient != nil {
+		return defaultClient, nil
+	}
+
+	clientInterface := contextkey.ClientFromContext(ctx)
+	if clientInterface == nil {
+		return nil, fmt.Errorf("no client found in context")
+	}
+
+	client, ok := clientInterface.(*rzpsdk.Client)
+	if !ok {
+		return nil, fmt.Errorf("invalid client type in context")
+	}
+
+	return client, nil
+}
 
 // Credentials holds Razorpay API credentials
 type Credentials struct {
@@ -1245,8 +1270,6 @@ func getDjangoIntegration(creds Credentials, frontend FrontendIntegration) Integ
 	viewsCode := `import json
 import time
 import razorpay
-import hmac
-import hashlib
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -1292,22 +1315,21 @@ def verify_payment(request):
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return JsonResponse({'success': False, 'error': 'Missing payment details'}, status=400)
 
-        msg = f'{razorpay_order_id}|{razorpay_payment_id}'
-        expected_signature = hmac.new(
-            settings.RAZORPAY_KEY_SECRET.encode(),
-            msg.encode(),
-            hashlib.sha256
-        ).hexdigest()
+        # Use Razorpay SDK to verify signature
+        client.utility.verify_payment_signature({
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature,
+        })
 
-        if hmac.compare_digest(expected_signature, razorpay_signature):
-            return JsonResponse({
-                'success': True,
-                'message': 'Payment verified',
-                'paymentId': razorpay_payment_id,
-                'orderId': razorpay_order_id,
-            })
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid signature'}, status=400)
+        return JsonResponse({
+            'success': True,
+            'message': 'Payment verified',
+            'paymentId': razorpay_payment_id,
+            'orderId': razorpay_order_id,
+        })
+    except razorpay.errors.SignatureVerificationError:
+        return JsonResponse({'success': False, 'error': 'Invalid signature'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 `
@@ -1316,22 +1338,35 @@ def verify_payment(request):
 from . import views
 
 urlpatterns = [
-    path('order/', views.create_order, name='razorpay_order'),
-    path('verify/', views.verify_payment, name='razorpay_verify'),
+    path('order', views.create_order, name='razorpay_order'),
+    path('verify', views.verify_payment, name='razorpay_verify'),
 ]
+`
+
+	initCode := `# Razorpay payments app
 `
 
 	return IntegrateCheckoutOutput{
 		Summary: "Complete Razorpay Standard Checkout integration for Django + " + frontend.Framework,
 		Files: []FileAction{
+			{Action: "create", Path: "razorpay_payments/__init__.py", Code: initCode, Description: "Django app init file"},
 			{Action: "create", Path: "razorpay_payments/views.py", Code: viewsCode, Description: "Django views for Razorpay"},
 			{Action: "create", Path: "razorpay_payments/urls.py", Code: urlsCode, Description: "Django URL patterns"},
 			{Action: "create", Path: frontend.FileName, Code: frontend.Code, Description: frontend.Description},
 			{
 				Action:      "manual_edit",
+				Path:        "requirements.txt",
+				Description: "Add razorpay to requirements.txt",
+				Edits: []EditItem{
+					{Line: "At end of file", Add: "razorpay>=1.2.0", Why: "Razorpay Python SDK"},
+				},
+			},
+			{
+				Action:      "manual_edit",
 				Path:        "settings.py",
 				Description: "Add to settings.py",
 				Edits: []EditItem{
+					{Line: "In INSTALLED_APPS list", Add: "'razorpay_payments',", Why: "Register the Razorpay app"},
 					{Line: "After other settings", Add: "RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')", Why: "Razorpay key ID"},
 					{Line: "After RAZORPAY_KEY_ID", Add: "RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')", Why: "Razorpay key secret"},
 				},
@@ -1349,13 +1384,73 @@ urlpatterns = [
 		Dependencies:     []Dependency{{Name: "razorpay", InstallCommand: "pip install razorpay"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV",
-		AIInstructions: `BACKEND SETUP:
-1) pip install razorpay
-2) Create razorpay_payments app with views.py and urls.py
-3) Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to settings.py
-4) Add import os at top of settings.py if not present
-5) Include razorpay_payments.urls in main urls.py
-6) Create .env with Razorpay keys` + getFrontendWiringInstructions(frontend),
+		AIInstructions: `
+███████████████████████████████████████████████████████████████████████████████
+█ IMPORTANT: USE THE CODE FROM "Files" SECTION - DON'T REPLACE IT             █
+███████████████████████████████████████████████████████████████████████████████
+
+The "Files" section above contains TESTED, WORKING code. Use it as your primary source.
+You MAY use your knowledge to integrate it properly with the existing project.
+You MUST NOT replace the provided code with generic boilerplate.
+You MUST NOT create new models or run migrations - the project already has what it needs.
+You MUST complete everything - no "Next Steps" for the user.
+
+═══════════════════════════════════════════════════════════════════════════════
+🎯 GOAL: Add Razorpay as a payment option to the EXISTING checkout page
+═══════════════════════════════════════════════════════════════════════════════
+- The site already has a working checkout
+- You are ADDING Razorpay as a payment option
+- DO NOT create a separate payment page - MODIFY the existing checkout
+
+═══════════════════════════════════════════════════════════════════════════════
+STEP-BY-STEP INSTRUCTIONS:
+═══════════════════════════════════════════════════════════════════════════════
+
+**STEP 1: INSTALL RAZORPAY SDK**
+- Check for venv/, .venv/, or env/ folder
+- If venv/ exists: ./venv/bin/pip install razorpay
+- If .venv/ exists: ./.venv/bin/pip install razorpay
+- If no venv: pip3 install razorpay
+- Add 'razorpay' to requirements.txt
+
+**STEP 2: CREATE razorpay_payments APP**
+Create these 3 files:
+- razorpay_payments/__init__.py (empty)
+- razorpay_payments/views.py (use the provided code)
+- razorpay_payments/urls.py (use the provided code)
+
+**STEP 3: UPDATE settings.py**
+Add to INSTALLED_APPS: 'razorpay_payments'
+Add at bottom (MUST use os.environ.get, NOT hardcoded strings!):
+  RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
+  RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
+
+**STEP 4: CREATE .env FILE**
+Create .env in project root with the ACTUAL keys provided
+
+**STEP 5: UPDATE main urls.py**
+Add: path('api/razorpay/', include('razorpay_payments.urls'))
+
+═══════════════════════════════════════════════════════════════════════════════
+⛔ FORBIDDEN - NEVER DO THESE:
+═══════════════════════════════════════════════════════════════════════════════
+❌ NEVER create Order/PaymentOrder models - project already has Order model
+❌ NEVER run makemigrations or migrate unless adding payment_method choice
+❌ NEVER hardcode "YOUR_KEY_ID" or "your_key_secret" - use os.environ.get()
+❌ NEVER say "Next Steps" or ask user to do things manually
+❌ NEVER replace the provided Files code with generic boilerplate
+❌ NEVER forget __init__.py in razorpay_payments/
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL CHECKLIST:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you install razorpay using the correct venv pip path?
+✅ Did you create razorpay_payments/__init__.py?
+✅ Did you add 'razorpay_payments' to INSTALLED_APPS?
+✅ Did you use os.environ.get() for credentials (NOT hardcoded)?
+✅ Did you create .env with the ACTUAL keys?
+
+If ANY answer is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -1364,8 +1459,6 @@ func getFlaskIntegration(creds Credentials, frontend FrontendIntegration) Integr
 
 	appCode := `import os
 import time
-import hmac
-import hashlib
 import razorpay
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
@@ -1411,11 +1504,15 @@ def verify_payment():
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return jsonify({'success': False, 'error': 'Missing payment details'}), 400
 
-        msg = f'{razorpay_order_id}|{razorpay_payment_id}'
-        expected = hmac.new(os.environ['RAZORPAY_KEY_SECRET'].encode(), msg.encode(), hashlib.sha256).hexdigest()
+        # Use Razorpay SDK to verify signature
+        client.utility.verify_payment_signature({
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature,
+        })
 
-        if hmac.compare_digest(expected, razorpay_signature):
-            return jsonify({'success': True, 'paymentId': razorpay_payment_id, 'orderId': razorpay_order_id})
+        return jsonify({'success': True, 'paymentId': razorpay_payment_id, 'orderId': razorpay_order_id})
+    except razorpay.errors.SignatureVerificationError:
         return jsonify({'success': False, 'error': 'Invalid signature'}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1429,6 +1526,15 @@ if __name__ == '__main__':
 		Files: []FileAction{
 			{Action: "create", Path: "razorpay_routes.py", Code: appCode, Description: "Flask routes for Razorpay"},
 			{Action: "create", Path: frontend.FileName, Code: frontend.Code, Description: frontend.Description},
+			{
+				Action:      "manual_edit",
+				Path:        "requirements.txt",
+				Description: "Add dependencies to requirements.txt",
+				Edits: []EditItem{
+					{Line: "At end of file", Add: "razorpay>=1.2.0", Why: "Razorpay Python SDK"},
+					{Line: "At end of file", Add: "python-dotenv>=1.0.0", Why: "Environment variable loading"},
+				},
+			},
 			getWirePaymentAction(),
 		},
 		Dependencies: []Dependency{
@@ -1437,11 +1543,48 @@ if __name__ == '__main__':
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) pip install razorpay python-dotenv
-2) Create razorpay_routes.py with the Razorpay endpoints
-3) Import and register the blueprint in your main app.py
-4) Create .env with Razorpay keys` + getFrontendWiringInstructions(frontend),
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: CHECK FOR VIRTUAL ENVIRONMENT AND INSTALL DEPENDENCIES**
+- Look for venv/, .venv/, env/ folders in project root
+- If venv/ exists: ./venv/bin/pip install razorpay python-dotenv
+- If .venv/ exists: ./.venv/bin/pip install razorpay python-dotenv
+- If no venv: pip3 install razorpay python-dotenv
+- Add 'razorpay' and 'python-dotenv' to requirements.txt
+
+**STEP 2: CREATE razorpay_routes.py**
+- Create razorpay_routes.py with the provided Razorpay endpoints
+- Register routes in main Flask app
+
+**STEP 3: CREATE .env FILE WITH ACTUAL KEYS (MUST DO THIS)**
+- CREATE a new .env file in project root with:
+  RAZORPAY_KEY_ID=<the actual key provided>
+  RAZORPAY_KEY_SECRET=<the actual secret provided>
+
+**STEP 4: TEMPLATE INTEGRATION**
+- Put razorpay.js in static/js/ folder
+- Add script tag in template
+- Modify checkout to call initiateRazorpayPayment() before submitting
+
+═══════════════════════════════════════════════════════════════════════════════
+⛔ FORBIDDEN - DO NOT DO ANY OF THESE:
+═══════════════════════════════════════════════════════════════════════════════
+❌ NEVER modify database models - the integration works without adding fields
+❌ NEVER run migrations - they cause conflicts and are not needed
+❌ DO NOT delete the .env file
+❌ DO NOT use bare except: - catch specific exceptions
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL CHECKLIST:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you run pip install razorpay python-dotenv?
+✅ Did you add dependencies to requirements.txt?
+✅ Did you create razorpay_routes.py?
+✅ Did you create .env file with actual keys?
+
+If ANY checkbox is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -1450,8 +1593,6 @@ func getFastAPIIntegration(creds Credentials, frontend FrontendIntegration) Inte
 
 	routerCode := `import os
 import time
-import hmac
-import hashlib
 import razorpay
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -1494,12 +1635,16 @@ async def create_order(req: OrderRequest):
 
 @router.post("/verify")
 async def verify_payment(req: VerifyRequest):
-    msg = f'{req.razorpay_order_id}|{req.razorpay_payment_id}'
-    expected = hmac.new(os.environ['RAZORPAY_KEY_SECRET'].encode(), msg.encode(), hashlib.sha256).hexdigest()
-
-    if hmac.compare_digest(expected, req.razorpay_signature):
+    try:
+        # Use Razorpay SDK to verify signature
+        client.utility.verify_payment_signature({
+            'razorpay_order_id': req.razorpay_order_id,
+            'razorpay_payment_id': req.razorpay_payment_id,
+            'razorpay_signature': req.razorpay_signature,
+        })
         return {'success': True, 'paymentId': req.razorpay_payment_id, 'orderId': req.razorpay_order_id}
-    raise HTTPException(status_code=400, detail="Invalid signature")
+    except razorpay.errors.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
 `
 
 	return IntegrateCheckoutOutput{
@@ -1507,6 +1652,15 @@ async def verify_payment(req: VerifyRequest):
 		Files: []FileAction{
 			{Action: "create", Path: "routers/razorpay.py", Code: routerCode, Description: "FastAPI router for Razorpay"},
 			{Action: "create", Path: frontend.FileName, Code: frontend.Code, Description: frontend.Description},
+			{
+				Action:      "manual_edit",
+				Path:        "requirements.txt",
+				Description: "Add dependencies to requirements.txt",
+				Edits: []EditItem{
+					{Line: "At end of file", Add: "razorpay>=1.2.0", Why: "Razorpay Python SDK"},
+					{Line: "At end of file", Add: "python-dotenv>=1.0.0", Why: "Environment variable loading"},
+				},
+			},
 			{Action: "manual_edit", Path: "main.py", Description: "Add router", Edits: []EditItem{
 				{Line: "After imports", Add: "from routers.razorpay import router as razorpay_router", Why: "Import router"},
 				{Line: "After app creation", Add: "app.include_router(razorpay_router)", Why: "Include router"},
@@ -1519,11 +1673,48 @@ async def verify_payment(req: VerifyRequest):
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) pip install razorpay python-dotenv
-2) Create routers/razorpay.py with the Razorpay endpoints
-3) Import and include router in main.py
-4) Create .env with Razorpay keys` + getFrontendWiringInstructions(frontend),
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: CHECK FOR VIRTUAL ENVIRONMENT AND INSTALL DEPENDENCIES**
+- Look for venv/, .venv/, env/ folders in project root
+- If venv/ exists: ./venv/bin/pip install razorpay python-dotenv
+- If .venv/ exists: ./.venv/bin/pip install razorpay python-dotenv
+- If no venv: pip3 install razorpay python-dotenv
+- Add 'razorpay' and 'python-dotenv' to requirements.txt
+
+**STEP 2: CREATE RAZORPAY ROUTER**
+- Create routers/razorpay.py with the provided endpoints
+- Include router in main app: app.include_router(razorpay_router)
+
+**STEP 3: CREATE .env FILE WITH ACTUAL KEYS (MUST DO THIS)**
+- CREATE a new .env file in project root with:
+  RAZORPAY_KEY_ID=<the actual key provided>
+  RAZORPAY_KEY_SECRET=<the actual secret provided>
+
+**STEP 4: TEMPLATE/FRONTEND INTEGRATION**
+- Put razorpay.js in static/js/ folder
+- Ensure StaticFiles mount exists
+- Modify checkout to call initiateRazorpayPayment() before submitting
+
+═══════════════════════════════════════════════════════════════════════════════
+⛔ FORBIDDEN - DO NOT DO ANY OF THESE:
+═══════════════════════════════════════════════════════════════════════════════
+❌ NEVER modify database models - the integration works without adding fields
+❌ NEVER run migrations - they cause conflicts and are not needed
+❌ DO NOT delete the .env file
+❌ DO NOT use bare except: - catch specific exceptions
+
+═══════════════════════════════════════════════════════════════════════════════
+FINAL CHECKLIST:
+═══════════════════════════════════════════════════════════════════════════════
+✅ Did you run pip install razorpay python-dotenv?
+✅ Did you add dependencies to requirements.txt?
+✅ Did you create routers/razorpay.py?
+✅ Did you create .env file with actual keys?
+
+If ANY checkbox is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(frontend),
 	}
 }
 

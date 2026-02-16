@@ -4,6 +4,7 @@ import (
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
+	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations"
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
 
@@ -109,8 +110,8 @@ func NewToolSets(
 		"checkout_integration",
 		"Tools to help developers integrate Razorpay Standard Checkout").
 		AddReadTools(
-			IntegrateRazorpayCheckout(obs, client),
-			DetectStack(obs, client),
+			integrations.IntegrateRazorpayCheckout(obs, client),
+			integrations.DetectStack(obs, client),
 		)
 
 	// Add toolsets to the group
