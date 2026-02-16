@@ -756,7 +756,6 @@ func Test_detectProjectStack(t *testing.T) {
 				"packageJson": map[string]interface{}{
 					"dependencies": map[string]interface{}{
 						"react-native": "^0.72.0",
-						"react":        "^18.0.0",
 					},
 				},
 			},
