@@ -373,7 +373,9 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 			require.NotNil(t, result)
 
 			if tc.expectError {
-				assert.True(t, result.IsError || containsString(result.Text, tc.expectedErrMsg),
+				isErr := result.IsError ||
+					containsString(result.Text, tc.expectedErrMsg)
+				assert.True(t, isErr,
 					"expected error containing: %s", tc.expectedErrMsg)
 				return
 			}
