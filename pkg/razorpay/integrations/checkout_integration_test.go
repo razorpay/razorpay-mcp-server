@@ -358,6 +358,202 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 				assert.NotEmpty(t, result.Files)
 			},
 		},
+		// Additional framework tests for coverage
+		{
+			name: "integrate Fastify with vanilla",
+			request: map[string]interface{}{
+				"language":          "javascript",
+				"backendFramework":  "fastify",
+				"frontendFramework": "vanilla",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Koa with React",
+			request: map[string]interface{}{
+				"language":          "javascript",
+				"backendFramework":  "koa",
+				"frontendFramework": "react",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate FastAPI with React",
+			request: map[string]interface{}{
+				"language":          "python",
+				"backendFramework":  "fastapi",
+				"frontendFramework": "react",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Echo with vanilla",
+			request: map[string]interface{}{
+				"language":          "go",
+				"backendFramework":  "echo",
+				"frontendFramework": "vanilla",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Fiber with vanilla",
+			request: map[string]interface{}{
+				"language":          "go",
+				"backendFramework":  "fiber",
+				"frontendFramework": "vanilla",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Spring with vanilla",
+			request: map[string]interface{}{
+				"language":          "java",
+				"backendFramework":  "spring",
+				"frontendFramework": "vanilla",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Actix with vanilla",
+			request: map[string]interface{}{
+				"language":          "rust",
+				"backendFramework":  "actix",
+				"frontendFramework": "vanilla",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate ASP.NET with vanilla",
+			request: map[string]interface{}{
+				"language":          "csharp",
+				"backendFramework":  "aspnet",
+				"frontendFramework": "vanilla",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Nuxt with Vue",
+			request: map[string]interface{}{
+				"language":          "typescript",
+				"backendFramework":  "nuxt",
+				"frontendFramework": "vue",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate React Native",
+			request: map[string]interface{}{
+				"language":          "javascript",
+				"backendFramework":  "react-native",
+				"frontendFramework": "native",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Android native",
+			request: map[string]interface{}{
+				"language":          "kotlin",
+				"backendFramework":  "android",
+				"frontendFramework": "native",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate iOS native",
+			request: map[string]interface{}{
+				"language":          "swift",
+				"backendFramework":  "ios",
+				"frontendFramework": "native",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Cordova",
+			request: map[string]interface{}{
+				"language":          "javascript",
+				"backendFramework":  "cordova",
+				"frontendFramework": "native",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Ionic",
+			request: map[string]interface{}{
+				"language":          "typescript",
+				"backendFramework":  "ionic",
+				"frontendFramework": "native",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
+		{
+			name: "integrate Capacitor",
+			request: map[string]interface{}{
+				"language":          "typescript",
+				"backendFramework":  "capacitor",
+				"frontendFramework": "native",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+			},
+		},
 	}
 
 	obs := createTestObservability()
@@ -434,6 +630,139 @@ func Test_detectProjectStack(t *testing.T) {
 				PackageManager: "go-mod",
 				IsFullStack:    true,
 				Confidence:     0.9,
+			},
+		},
+		{
+			name: "go with echo",
+			args: map[string]interface{}{
+				"files": []interface{}{"go.mod", "main.go"},
+				"goMod": "module test\nrequire github.com/labstack/echo v4.0.0",
+			},
+			expected: DetectStackOutput{
+				Language:       "go",
+				Framework:      "echo",
+				PackageManager: "go-mod",
+				IsFullStack:    true,
+				Confidence:     0.9,
+			},
+		},
+		{
+			name: "rust detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"Cargo.toml", "src/main.rs"},
+			},
+			expected: DetectStackOutput{
+				Language:       "rust",
+				Framework:      "actix",
+				PackageManager: "cargo",
+				IsFullStack:    true,
+				Confidence:     0.9,
+			},
+		},
+		{
+			name: "java spring detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"pom.xml", "src/main/java/App.java"},
+			},
+			expected: DetectStackOutput{
+				Language:       "java",
+				Framework:      "spring",
+				PackageManager: "maven",
+			},
+		},
+		{
+			name: "java gradle detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"build.gradle", "src/main/java/App.java"},
+			},
+			expected: DetectStackOutput{
+				Language:       "java",
+				Framework:      "spring",
+				PackageManager: "maven",
+			},
+		},
+		{
+			name: "python fastapi detection",
+			args: map[string]interface{}{
+				"files":           []interface{}{"main.py", "requirements.txt"},
+				"requirementsTxt": "fastapi==0.100.0\nuvicorn==0.23.0",
+			},
+			expected: DetectStackOutput{
+				Language:       "python",
+				Framework:      "fastapi",
+				PackageManager: "pip",
+			},
+		},
+		{
+			name: "node express with pnpm",
+			args: map[string]interface{}{
+				"files": []interface{}{
+					"index.js",
+					"package.json",
+					"pnpm-lock.yaml",
+				},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"express": "^4.18.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:       "javascript",
+				Framework:      "express",
+				PackageManager: "pnpm",
+			},
+		},
+		{
+			name: "node with bun",
+			args: map[string]interface{}{
+				"files": []interface{}{
+					"index.js",
+					"package.json",
+					"bun.lockb",
+				},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"express": "^4.18.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:       "javascript",
+				Framework:      "express",
+				PackageManager: "bun",
+			},
+		},
+		{
+			name: "vue nuxt detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"nuxt.config.js", "package.json"},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"nuxt": "^3.0.0",
+						"vue":  "^3.0.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:  "javascript",
+				Framework: "nuxt",
+			},
+		},
+		{
+			name: "react native detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"App.js", "package.json"},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"react-native": "^0.72.0",
+						"react":        "^18.0.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:  "javascript",
+				Framework: "react-native",
 			},
 		},
 	}
