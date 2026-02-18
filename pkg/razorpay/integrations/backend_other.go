@@ -97,12 +97,34 @@ Route::post('/razorpay/verify', [App\Http\Controllers\RazorpayController::class,
 		},
 		Dependencies:     []Dependency{{Name: "razorpay/razorpay", InstallCommand: "composer require razorpay/razorpay"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) composer require razorpay/razorpay
-2) Create RazorpayController.php
-3) Add routes to routes/api.php
-4) Add keys to .env` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: INSTALL DEPENDENCY**
+- Run: composer require razorpay/razorpay
+
+**STEP 2: CREATE CONTROLLER**
+- Create app/Http/Controllers/RazorpayController.php with the provided code
+- Includes order creation and payment verification endpoints
+
+**STEP 3: ADD ROUTES**
+- Add Razorpay API routes to routes/api.php
+
+**STEP 4: SET UP ENVIRONMENT**
+- Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env file
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in controllers
+❌ DO NOT skip payment verification
+
+FINAL CHECKLIST:
+✅ Did you run composer require razorpay/razorpay?
+✅ Did you create RazorpayController.php?
+✅ Did you add routes to routes/api.php?
+✅ Did you add keys to .env?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -189,12 +211,35 @@ post '/api/razorpay/verify', to: 'razorpay#verify_payment'
 		},
 		Dependencies:     []Dependency{{Name: "razorpay", InstallCommand: "bundle add razorpay"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) bundle add razorpay
-2) Create app/controllers/razorpay_controller.rb
-3) Add routes to config/routes.rb
-4) Set environment variables` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: INSTALL DEPENDENCY**
+- Run: bundle add razorpay
+
+**STEP 2: CREATE CONTROLLER**
+- Create app/controllers/razorpay_controller.rb with the provided code
+- Includes order creation and payment verification endpoints
+
+**STEP 3: ADD ROUTES**
+- Add Razorpay routes to config/routes.rb
+
+**STEP 4: SET UP ENVIRONMENT**
+- Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables
+- Use dotenv-rails or credentials.yml for local development
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in controllers
+❌ DO NOT skip payment verification
+
+FINAL CHECKLIST:
+✅ Did you run bundle add razorpay?
+✅ Did you create razorpay_controller.rb?
+✅ Did you add routes to config/routes.rb?
+✅ Did you set up environment variables?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -248,8 +293,8 @@ pub async fn create_order(req: web::Json<OrderRequest>) -> Result<HttpResponse> 
         }));
     }
 
-    let key_id = env::var("RAZORPAY_KEY_ID").unwrap();
-    let key_secret = env::var("RAZORPAY_KEY_SECRET").unwrap();
+    let key_id = env::var("RAZORPAY_KEY_ID").expect("RAZORPAY_KEY_ID must be set");
+    let key_secret = env::var("RAZORPAY_KEY_SECRET").expect("RAZORPAY_KEY_SECRET must be set");
 
     let client = Client::new();
     let amount = (req.amount * 100.0) as i64;
@@ -268,12 +313,12 @@ pub async fn create_order(req: web::Json<OrderRequest>) -> Result<HttpResponse> 
 
     match response {
         Ok(res) => {
-            let order: serde_json::Value = res.json().await.unwrap();
+            let order: serde_json::Value = res.json().await.map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse response"))?;
             Ok(HttpResponse::Ok().json(OrderResponse {
                 success: true,
-                order_id: Some(order["id"].as_str().unwrap().to_string()),
-                amount: Some(order["amount"].as_i64().unwrap()),
-                currency: Some(order["currency"].as_str().unwrap().to_string()),
+                order_id: order["id"].as_str().map(|s| s.to_string()),
+                amount: order["amount"].as_i64(),
+                currency: order["currency"].as_str().map(|s| s.to_string()),
                 key_id: Some(key_id),
                 error: None,
             }))
@@ -286,10 +331,10 @@ pub async fn create_order(req: web::Json<OrderRequest>) -> Result<HttpResponse> 
 }
 
 pub async fn verify_payment(req: web::Json<VerifyRequest>) -> Result<HttpResponse> {
-    let key_secret = env::var("RAZORPAY_KEY_SECRET").unwrap();
+    let key_secret = env::var("RAZORPAY_KEY_SECRET").expect("RAZORPAY_KEY_SECRET must be set");
 
     let data = format!("{}|{}", req.razorpay_order_id, req.razorpay_payment_id);
-    let mut mac = HmacSha256::new_from_slice(key_secret.as_bytes()).unwrap();
+    let mut mac = HmacSha256::new_from_slice(key_secret.as_bytes()).expect("HMAC key error");
     mac.update(data.as_bytes());
     let expected = hex::encode(mac.finalize().into_bytes());
 
@@ -324,12 +369,37 @@ pub async fn verify_payment(req: web::Json<VerifyRequest>) -> Result<HttpRespons
 		},
 		Dependencies:     []Dependency{{Name: "reqwest + hmac + sha2", InstallCommand: "Add to Cargo.toml"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) Add dependencies to Cargo.toml
-2) Create src/handlers/razorpay.rs
-3) Register routes in main.rs
-4) Set environment variables` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: ADD DEPENDENCIES**
+- Add reqwest, hmac, sha2, hex, and chrono to Cargo.toml
+
+**STEP 2: CREATE HANDLERS**
+- Create src/handlers/razorpay.rs with the provided code
+- Includes order creation and payment verification endpoints
+
+**STEP 3: REGISTER ROUTES**
+- In main.rs, add the Razorpay routes:
+  .route("/api/razorpay/order", web::post().to(handlers::razorpay::create_order))
+  .route("/api/razorpay/verify", web::post().to(handlers::razorpay::verify_payment))
+
+**STEP 4: SET UP ENVIRONMENT**
+- Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables
+- The app will panic with a clear message if these are not set
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in source code
+❌ DO NOT skip payment verification
+
+FINAL CHECKLIST:
+✅ Did you add dependencies to Cargo.toml?
+✅ Did you create src/handlers/razorpay.rs?
+✅ Did you register routes in main.rs?
+✅ Did you set up environment variables?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -431,12 +501,36 @@ public record VerifyRequest(string RazorpayOrderId, string RazorpayPaymentId, st
 		},
 		Dependencies:     []Dependency{{Name: "HttpClient", InstallCommand: "Built-in - just add services.AddHttpClient()"}},
 		EnvVars:          []EnvVar{{Name: "Razorpay__KeyId", Value: keyID}, {Name: "Razorpay__KeySecret", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) Create Controllers/RazorpayController.cs
-2) Add HttpClient in Program.cs
-3) Add config to appsettings.json or use environment variables
-4) Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: CREATE CONTROLLER**
+- Create Controllers/RazorpayController.cs with the provided code
+- The controller uses IConfiguration to read "Razorpay:KeyId" and "Razorpay:KeySecret"
+
+**STEP 2: CONFIGURE SERVICES**
+- In Program.cs, add: builder.Services.AddHttpClient(); before builder.Build()
+
+**STEP 3: ADD CONFIGURATION**
+- In appsettings.json, add the Razorpay section with your credentials
+- NOTE: ASP.NET uses "Razorpay:KeyId" in config (colon-separated)
+- For environment variables, use double underscore: Razorpay__KeyId, Razorpay__KeySecret
+
+**STEP 4: SET UP FRONTEND**
+- Create the frontend payment helper file
+- Add the script tag to the checkout page
+
+⛔ FORBIDDEN:
+❌ DO NOT mix up config naming - use "Razorpay:KeyId" in appsettings.json and Razorpay__KeyId for env vars
+❌ DO NOT hardcode credentials in the controller
+
+FINAL CHECKLIST:
+✅ Did you create RazorpayController.cs?
+✅ Did you add HttpClient to Program.cs?
+✅ Did you add Razorpay config to appsettings.json?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 

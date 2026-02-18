@@ -51,17 +51,15 @@ func IntegrateRazorpayCheckout(
 		backendFramework, _ := args["backendFramework"].(string)
 		frontendFramework, _ := args["frontendFramework"].(string)
 
-		// Get client from context (for remote/SSE) or use default (for stdio)
-		activeClient, err := getClientFromContextOrDefault(ctx, client)
-		if err != nil {
+		// Validate that a client is available
+		if _, err := getClientFromContextOrDefault(ctx, client); err != nil {
 			return mcpgo.NewToolResultError("Failed to get client: " + err.Error()), nil
 		}
 
-		// Get credentials from client (passed via Authorization header or env vars)
-		creds := Credentials{
-			KeyID:     activeClient.Auth.Key,
-			KeySecret: activeClient.Auth.Secret,
-		}
+		// Security: never expose real credentials to the AI agent.
+		// Placeholder values are always returned; the user fills in
+		// real keys via NEXT_STEPS.md instructions.
+		creds := Credentials{}
 
 		var output IntegrateCheckoutOutput
 
@@ -129,6 +127,9 @@ func IntegrateRazorpayCheckout(
 			output = getExpressVanillaIntegration(language, creds, frontendCode)
 		}
 
+		output.Files = append(output.Files, getNextStepsFile())
+		output.AIInstructions += getNextStepsAIInstructions()
+
 		return mcpgo.NewToolResultJSON(output)
 	}
 
@@ -136,7 +137,8 @@ func IntegrateRazorpayCheckout(
 		"integrate_razorpay_checkout",
 		"Complete Razorpay Standard Checkout integration. Returns ALL code needed - "+
 			"backend routes, frontend integration, and payment verification. "+
-			"Use this single tool to get everything needed for Razorpay payment integration. "+
+			"IMPORTANT: Before calling this tool, ALWAYS call detect_stack first to determine the "+
+			"project's language, backendFramework, and frontendFramework. Do NOT ask the user for these values. "+
 			"The AI should apply ALL returned files and modifications without asking the user for additional steps.",
 		parameters,
 		handler,

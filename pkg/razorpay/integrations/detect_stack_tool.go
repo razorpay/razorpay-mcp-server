@@ -77,7 +77,13 @@ func DetectStack(
 		"detect_stack",
 		"Detect the technology stack of a project based on file information. "+
 			"Returns language, framework, frontend framework, and package manager. "+
-			"Use this to determine which integration approach to use.",
+			"IMPORTANT: Always call this tool FIRST before calling integrate_razorpay_checkout. "+
+			"Before calling this tool, you MUST: "+
+			"1) List the project's files and pass them in the 'files' parameter, "+
+			"2) Read the relevant dependency file (package.json for Node.js, requirements.txt for Python, "+
+			"go.mod for Go, pubspec.yaml for Flutter, Cargo.toml for Rust, pom.xml for Java, etc.) "+
+			"and pass its contents in the corresponding parameter. "+
+			"Then pass the detected language, framework, and frontend to integrate_razorpay_checkout.",
 		parameters,
 		handler,
 	)
@@ -250,7 +256,7 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 			}
 		}
 
-		isTypeScript := containsSuffix(files, ".ts") || containsSuffix(files, ".tsx") || deps["typescript"]
+		isTypeScript := containsSuffix(files, "tsconfig.json") || deps["typescript"]
 		language := "javascript"
 		if isTypeScript {
 			language = "typescript"

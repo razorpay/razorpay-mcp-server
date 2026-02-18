@@ -11,15 +11,7 @@ func getExpressVanillaIntegration(language string, creds Credentials, frontend F
 		ext = "ts"
 	}
 
-	// Use actual keys if provided, otherwise use placeholders
-	keyID := creds.KeyID
-	keySecret := creds.KeySecret
-	if keyID == "" {
-		keyID = "rzp_test_YOUR_KEY_ID"
-	}
-	if keySecret == "" {
-		keySecret = "YOUR_KEY_SECRET"
-	}
+	keyID, keySecret := getKeysOrPlaceholders(creds)
 
 	razorpayRoutesCode := `const express = require('express');
 const Razorpay = require('razorpay');
@@ -353,15 +345,7 @@ If you said "Found the issue" but didn't edit the file, GO BACK AND EDIT IT NOW.
 // =============================================================================
 
 func getNextjsReactIntegration(language string, creds Credentials) IntegrateCheckoutOutput {
-	// Use actual keys if provided, otherwise use placeholders
-	keyID := creds.KeyID
-	keySecret := creds.KeySecret
-	if keyID == "" {
-		keyID = "rzp_test_YOUR_KEY_ID"
-	}
-	if keySecret == "" {
-		keySecret = "YOUR_KEY_SECRET"
-	}
+	keyID, keySecret := getKeysOrPlaceholders(creds)
 
 	orderRouteCode := `import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
@@ -659,12 +643,36 @@ module.exports = razorpayRoutes;
 			{Name: "dotenv", InstallCommand: "npm install dotenv"},
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) npm install razorpay dotenv
-2) Create routes/razorpay.js with Fastify routes
-3) Register the routes in your main app file
-4) Create .env with Razorpay keys` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: INSTALL DEPENDENCIES**
+- Run: npm install razorpay dotenv
+
+**STEP 2: CREATE ROUTES**
+- Create routes/razorpay.js with the provided Fastify route handlers
+
+**STEP 3: REGISTER ROUTES**
+- Find the main server file (commonly app.js, server.js, or index.js)
+- Add require('dotenv').config() at the top
+- Register Razorpay routes: fastify.register(require('./routes/razorpay'))
+
+**STEP 4: SET UP ENVIRONMENT**
+- Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in route files
+❌ DO NOT assume the main file is app.js - find the actual entry point
+❌ DO NOT skip payment verification
+
+FINAL CHECKLIST:
+✅ Did you run npm install razorpay dotenv?
+✅ Did you create routes/razorpay.js?
+✅ Did you register routes in the main server file?
+✅ Did you create .env with credentials?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -751,15 +759,43 @@ module.exports = router;
 		Dependencies: []Dependency{
 			{Name: "razorpay", InstallCommand: "npm install razorpay"},
 			{Name: "@koa/router", InstallCommand: "npm install @koa/router"},
+			{Name: "koa-bodyparser", InstallCommand: "npm install koa-bodyparser"},
 			{Name: "dotenv", InstallCommand: "npm install dotenv"},
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) npm install razorpay @koa/router dotenv
-2) Create routes/razorpay.js with Koa router
-3) Import and use the router in your main app
-4) Create .env with Razorpay keys` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: INSTALL DEPENDENCIES**
+- Run: npm install razorpay @koa/router koa-bodyparser dotenv
+
+**STEP 2: CREATE ROUTER**
+- Create routes/razorpay.js with the provided Koa router
+
+**STEP 3: WIRE UP ROUTER**
+- Find the main server file (commonly app.js, server.js, or index.js)
+- Add require('dotenv').config() at the top
+- Add require('koa-bodyparser') and use it: app.use(bodyParser())
+- Import and use the Razorpay router: app.use(razorpayRouter.routes())
+
+**STEP 4: SET UP ENVIRONMENT**
+- Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in route files
+❌ DO NOT assume the main file is app.js - find the actual entry point
+❌ DO NOT forget koa-bodyparser - Koa needs it to parse request bodies
+❌ DO NOT skip payment verification
+
+FINAL CHECKLIST:
+✅ Did you run npm install razorpay @koa/router koa-bodyparser dotenv?
+✅ Did you create routes/razorpay.js?
+✅ Did you register the router in the main server file?
+✅ Did you add koa-bodyparser middleware?
+✅ Did you create .env with credentials?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -881,7 +917,7 @@ export default defineEventHandler(async (event) => {
 			{Name: "razorpay", InstallCommand: "npm install razorpay"},
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
 		AIInstructions: `IMPORTANT:
 1) npm install razorpay
 2) Create the API routes in server/api/razorpay/

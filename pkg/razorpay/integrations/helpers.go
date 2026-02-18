@@ -34,17 +34,72 @@ func getClientFromContextOrDefault(
 	return client, nil
 }
 
-// Helper to get keys or placeholders
-func getKeysOrPlaceholders(creds Credentials) (string, string) {
-	keyID := creds.KeyID
-	keySecret := creds.KeySecret
-	if keyID == "" {
-		keyID = "rzp_test_YOUR_KEY_ID"
+// getKeysOrPlaceholders always returns placeholder values for security.
+// Real credentials should never be exposed to the AI agent.
+func getKeysOrPlaceholders(_ Credentials) (string, string) {
+	return "rzp_test_YOUR_KEY_ID", "YOUR_KEY_SECRET"
+}
+
+func getNextStepsFile() FileAction {
+	return FileAction{
+		Action:      "create",
+		Path:        "NEXT_STEPS.md",
+		Description: "Setup guide - add your Razorpay credentials and test the integration",
+		Code: `# Next Steps - Razorpay Integration Setup
+
+## 1. Add Your Razorpay API Credentials
+
+Open the ` + "`.env`" + ` file in your project root and replace the placeholder values:
+
+` + "```" + `
+RAZORPAY_KEY_ID=your_actual_key_id_here
+RAZORPAY_KEY_SECRET=your_actual_key_secret_here
+` + "```" + `
+
+### Where to find your credentials
+
+1. Log in to the [Razorpay Dashboard](https://dashboard.razorpay.com/)
+2. Navigate to **Settings** → **API Keys**
+3. Generate or copy your **Key ID** and **Key Secret**
+4. For testing, use **Test Mode** keys (they start with ` + "`rzp_test_`" + `)
+
+
+## 2. Test the Integration
+
+After adding your credentials, start your development server and test with these credentials:
+
+### Test Card
+| Field       | Value                |
+|-------------|----------------------|
+| Card Number | 4111 1111 1111 1111  |
+| Expiry      | Any future date      |
+| CVV         | Any 3-digit number   |
+
+### Test UPI
+| Field | Value              |
+|-------|--------------------|
+| VPA   | success@razorpay   |
+
+## 3. Go Live
+
+When you are ready for production:
+
+1. Switch to **Live Mode** on the Razorpay Dashboard
+2. Generate **Live** API keys
+3. Replace the test keys in your ` + "`.env`" + ` with the live keys
+4. Ensure your server is running over HTTPS
+`,
 	}
-	if keySecret == "" {
-		keySecret = "YOUR_KEY_SECRET"
-	}
-	return keyID, keySecret
+}
+
+func getNextStepsAIInstructions() string {
+	return `
+
+**AFTER APPLYING ALL FILES - YOU MUST DO THIS:**
+1. Create the NEXT_STEPS.md file in the project root
+2. OPEN the NEXT_STEPS.md file in the user's IDE/editor so they can see it immediately
+3. Briefly tell the user that the integration is complete and they need to add their Razorpay credentials as shown in the file
+4. DO NOT attempt to fill in real API credentials yourself - the user must do this manually`
 }
 
 // Common wire_payment action for all backends
@@ -53,21 +108,41 @@ func getWirePaymentAction() FileAction {
 		Action:      "wire_payment",
 		Path:        "DISCOVER",
 		Description: "CRITICAL: Discover and modify the actual checkout flow - DO NOT assume file names",
-		Code: `⚠️⚠️⚠️ ACTION REQUIRED - DO NOT JUST ANALYZE ⚠️⚠️⚠️
-
-YOU MUST ACTUALLY MODIFY THE CODE - NOT JUST REPORT WHAT'S WRONG!
-
-If you find that checkout.js has placeholder comments or COD-only code:
-- DO NOT just say "Found the issue - Razorpay is missing"
-- DO NOT just list what files exist
-- YOU MUST USE Edit/StrReplace TO WRITE THE FIX
-
-Your job is to WRITE CODE, not write reports. After finding the checkout file,
-IMMEDIATELY edit it to add the initiateRazorpayPayment() call.
-
+		Code: `═══════════════════════════════════════════════════════════════════════════════
+RULE #1 - CLOSING BRACES (READ THIS FIRST - MOST COMMON BUG)
 ═══════════════════════════════════════════════════════════════════════════════
 
-STEP-BY-STEP DISCOVERY PROCESS:
+When you add initiateRazorpayPayment() inside a function, the function MUST
+still have its closing }. The pattern MUST be:
+
+    initiateRazorpayPayment(
+      amount,
+      async (paymentResponse) => { ... },
+      (error) => { ... }
+    );
+  }   <-- THIS CLOSING BRACE IS REQUIRED
+
+If your edit ends with ");  " and no "}" after it, YOU HAVE A BUG.
+After EVERY edit, verify: does the function still have its closing }?
+
+When using StrReplace to modify a function:
+- Your old_string MUST include the function's closing }
+- Your new_string MUST include the function's closing }
+- Example: replace "old body }" with "new body }" - NOT just "old body" with "new body"
+
+AFTER editing any JS/TS file, run: node --check <filepath>
+If it says "Unexpected end of input" you forgot a closing brace. FIX IT.
+
+═══════════════════════════════════════════════════════════════════════════════
+RULE #2 - YOU MUST EDIT CODE, NOT JUST ANALYZE
+═══════════════════════════════════════════════════════════════════════════════
+
+YOU MUST USE Edit/StrReplace TO WRITE THE FIX. Do NOT just report what's wrong.
+If you say "Found the issue" without editing the file, YOU HAVE FAILED.
+
+═══════════════════════════════════════════════════════════════════════════════
+STEP-BY-STEP DISCOVERY PROCESS
+═══════════════════════════════════════════════════════════════════════════════
 
 1. FIND THE CHECKOUT/PAYMENT PAGE:
    - Look for: checkout.html, cart.html, payment.html, or checkout route/component
@@ -95,74 +170,43 @@ STEP-BY-STEP DISCOVERY PROCESS:
 
    Example pattern:
    async function existingCheckoutFunction() {
-     // 1. GET the payment amount
-     const total = calculateTotal(); // or get from existing code
-
-     // 2. SAVE order data BEFORE payment (so success callback can access it)
+     const total = calculateTotal();
      const pendingOrder = {
        items: getCartItems(),
-       customerInfo: {
-         name: document.getElementById('name-field').value,
-         email: document.getElementById('email-field').value,
-         // ... other fields from the form
-       },
-       shippingAddress: { /* ... */ },
-       // Include whatever data the original order creation needed
+       customerInfo: { name: document.getElementById('name-field').value },
      };
      localStorage.setItem('pendingOrder', JSON.stringify(pendingOrder));
 
-     // 3. THEN call Razorpay payment
      initiateRazorpayPayment(
        total,
        async (paymentResponse) => {
-         // 4. On SUCCESS: retrieve saved data and create order
          const orderData = JSON.parse(localStorage.getItem('pendingOrder'));
-         // Add payment info
          orderData.paymentMethod = 'razorpay';
          orderData.paymentId = paymentResponse.paymentId;
-         // Call existing order creation API with orderData
-         localStorage.removeItem('pendingOrder'); // cleanup
+         localStorage.removeItem('pendingOrder');
        },
        (error) => {
          alert('Payment failed: ' + error.message);
-         localStorage.removeItem('pendingOrder'); // cleanup on failure
+         localStorage.removeItem('pendingOrder');
        }
-     );  // <-- closes initiateRazorpayPayment()
-   }  // <-- CRITICAL: This } closes the function! DO NOT FORGET IT!
+     );
+   }  <-- CLOSING BRACE IS HERE. DO NOT FORGET IT.
 
-   ⚠️ BRACKET CHECK: Count your braces! The function MUST have a closing }
-   If you see ");// next function" without a } between them, you forgot the closing brace!
+6. VERIFY SYNTAX: Run node --check on every JS/TS file you edited.
+   If it fails, you likely forgot a closing brace. Fix it immediately.
 
-   ⚠️ STRING REPLACEMENT WARNING: When using StrReplace/Edit to modify a function:
-   - If your old_string includes part of the function body
-   - Your new_string MUST include the closing } of the function
-   - Don't replace "function body" with "new body" - replace "function body }" with "new body }"
-   - The closing brace is part of what you're replacing!
-
-   ⚠️ CRITICAL: DO NOT ESCAPE CHARACTERS IN JAVASCRIPT!
-   When writing JavaScript code, use NORMAL characters - NO BACKSLASHES:
+DO NOT escape characters in JavaScript:
    ✅ CORRECT: document.getElementById('name')
    ❌ WRONG:   document.getElementById(BACKSLASH'name BACKSLASH')
-   ✅ CORRECT: localStorage.setItem('key', value)
-   ❌ WRONG:   localStorage.setItem(BACKSLASH'key BACKSLASH', value)
-   For template literals, use normal backtick and $ - NOT backslash-backtick or backslash-$
 
-   DO NOT add backslashes before quotes, backticks, or dollar signs in JavaScript!
-
-COMMON MISTAKES TO AVOID:
+COMMON MISTAKES:
 - Modifying wrong file (e.g., app.js when checkout.html uses checkout.js)
 - Adding script to index.html when checkout is in checkout.html
 - Creating new functions instead of modifying existing checkout flow
 - Leaving COD/placeholder payment code active
 - NOT SAVING order data before payment (causes "order data not found" errors)
 - Trying to access form fields in success callback (form may be gone/reset)
-- MISSING CLOSING BRACE: The function must end with } after the initiateRazorpayPayment() call:
-     );
-   }  // <-- THIS CLOSING BRACE IS REQUIRED - don't forget it!
-
-⚠️ CRITICAL: JUST ANALYZING = FAILURE ⚠️
-If your output says "Found the issue" or "What's missing" without ACTUALLY EDITING the file,
-YOU HAVE FAILED. Use Edit/StrReplace to modify checkout.js NOW.`,
+- FORGETTING THE CLOSING BRACE after initiateRazorpayPayment() call`,
 	}
 }
 
@@ -200,7 +244,7 @@ FINAL REMINDER - CHECK BEFORE FINISHING:
 ✅ Did you FIND the actual checkout page/file?
 ✅ Did you ADD the Razorpay script to that page?
 ✅ Did you MODIFY the checkout function to call Razorpay payment?
-✅ Did you include closing } braces for ALL functions?
+✅ Did you run "node --check" on every JS/TS file you edited?
 ✅ Did you ADD env vars to .env file?
 ✅ Did you use NORMAL quotes (not escaped \')?
 
@@ -209,6 +253,7 @@ FINAL REMINDER - CHECK BEFORE FINISHING:
 ❌ DO NOT just ANALYZE and say "Found issue" - USE Edit TO FIX IT
 ❌ DO NOT escape quotes/backticks in JavaScript (\' is WRONG, ' is CORRECT)
 
+If "node --check" reports an error, FIX IT before finishing.
 If you said "Found the issue" but didn't edit the file, GO BACK AND EDIT IT NOW.`
 }
 

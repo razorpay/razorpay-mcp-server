@@ -107,12 +107,37 @@ func VerifyPayment(c *gin.Context) {
 		},
 		Dependencies:     []Dependency{{Name: "razorpay-go", InstallCommand: "go get github.com/razorpay/razorpay-go"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) go get github.com/razorpay/razorpay-go
-2) Create handlers/razorpay.go with the Razorpay handlers
-3) Add routes in main.go to wire up the handlers
-4) Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET env vars` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: INSTALL DEPENDENCY**
+- Run: go get github.com/razorpay/razorpay-go
+
+**STEP 2: CREATE HANDLERS**
+- Create handlers/razorpay.go with the provided code
+- This includes order creation and payment verification endpoints
+
+**STEP 3: WIRE UP ROUTES**
+- Find main.go and add the Razorpay routes to the Gin router
+- Add r.POST("/api/razorpay/order", handlers.CreateOrder)
+- Add r.POST("/api/razorpay/verify", handlers.VerifyPayment)
+
+**STEP 4: SET UP ENVIRONMENT**
+- Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
+- Ensure your app loads env vars (use godotenv or os.Getenv)
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in source code
+❌ DO NOT skip payment verification - it is critical for security
+
+FINAL CHECKLIST:
+✅ Did you run go get github.com/razorpay/razorpay-go?
+✅ Did you create handlers/razorpay.go?
+✅ Did you add routes in main.go?
+✅ Did you create .env with credentials?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -206,12 +231,37 @@ func VerifyPayment(c echo.Context) error {
 		},
 		Dependencies:     []Dependency{{Name: "razorpay-go", InstallCommand: "go get github.com/razorpay/razorpay-go"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) go get github.com/razorpay/razorpay-go
-2) Create handlers/razorpay.go with the Razorpay handlers
-3) Add routes in main.go to wire up the handlers
-4) Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET env vars` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: INSTALL DEPENDENCY**
+- Run: go get github.com/razorpay/razorpay-go
+
+**STEP 2: CREATE HANDLERS**
+- Create handlers/razorpay.go with the provided code
+- This includes order creation and payment verification endpoints
+
+**STEP 3: WIRE UP ROUTES**
+- Find main.go and add the Razorpay routes to the Echo instance
+- Add e.POST("/api/razorpay/order", handlers.CreateOrder)
+- Add e.POST("/api/razorpay/verify", handlers.VerifyPayment)
+
+**STEP 4: SET UP ENVIRONMENT**
+- Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
+- Ensure your app loads env vars (use godotenv or os.Getenv)
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in source code
+❌ DO NOT skip payment verification - it is critical for security
+
+FINAL CHECKLIST:
+✅ Did you run go get github.com/razorpay/razorpay-go?
+✅ Did you create handlers/razorpay.go?
+✅ Did you add routes in main.go?
+✅ Did you create .env with credentials?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -300,11 +350,36 @@ func VerifyPayment(c *fiber.Ctx) error {
 		},
 		Dependencies:     []Dependency{{Name: "razorpay-go", InstallCommand: "go get github.com/razorpay/razorpay-go"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) go get github.com/razorpay/razorpay-go
-2) Create handlers/razorpay.go with the Razorpay handlers
-3) Add routes in main.go to wire up the handlers
-4) Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET env vars` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: INSTALL DEPENDENCY**
+- Run: go get github.com/razorpay/razorpay-go
+
+**STEP 2: CREATE HANDLERS**
+- Create handlers/razorpay.go with the provided code
+- This includes order creation and payment verification endpoints
+
+**STEP 3: WIRE UP ROUTES**
+- Find main.go and add the Razorpay routes to the Fiber app
+- Add app.Post("/api/razorpay/order", handlers.CreateOrder)
+- Add app.Post("/api/razorpay/verify", handlers.VerifyPayment)
+
+**STEP 4: SET UP ENVIRONMENT**
+- Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
+- Ensure your app loads env vars (use godotenv or os.Getenv)
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in source code
+❌ DO NOT skip payment verification - it is critical for security
+
+FINAL CHECKLIST:
+✅ Did you run go get github.com/razorpay/razorpay-go?
+✅ Did you create handlers/razorpay.go?
+✅ Did you add routes in main.go?
+✅ Did you create .env with credentials?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }

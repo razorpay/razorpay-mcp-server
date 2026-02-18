@@ -367,6 +367,10 @@ if __name__ == '__main__':
 					{Line: "At end of file", Add: "python-dotenv>=1.0.0", Why: "Environment variable loading"},
 				},
 			},
+			{Action: "manual_edit", Path: "app.py", Description: "Register Razorpay routes in main Flask app", Edits: []EditItem{
+				{Line: "After imports", Add: "from razorpay_routes import app as razorpay_app", Why: "Import Razorpay routes"},
+				{Line: "After app creation", Add: "app.register_blueprint(razorpay_app) # or import routes directly", Why: "Register routes"},
+			}},
 			getWirePaymentAction(),
 		},
 		Dependencies: []Dependency{
@@ -374,7 +378,7 @@ if __name__ == '__main__':
 			{Name: "python-dotenv", InstallCommand: "pip install python-dotenv"},
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 
 CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
@@ -388,12 +392,11 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 
 **STEP 2: CREATE razorpay_routes.py**
 - Create razorpay_routes.py with the provided Razorpay endpoints
-- Register routes in main Flask app
+- Register the routes in the main Flask app (find app.py or main file and import/register the routes)
 
-**STEP 3: CREATE .env FILE WITH ACTUAL KEYS (MUST DO THIS)**
-- CREATE a new .env file in project root with:
-  RAZORPAY_KEY_ID=<the actual key provided>
-  RAZORPAY_KEY_SECRET=<the actual secret provided>
+**STEP 3: CREATE .env FILE**
+- CREATE a new .env file in project root with placeholder keys
+- The user will fill in actual credentials from the Razorpay Dashboard
 
 **STEP 4: TEMPLATE INTEGRATION**
 - Put razorpay.js in static/js/ folder
@@ -426,6 +429,7 @@ func getFastAPIIntegration(creds Credentials, frontend FrontendIntegration) Inte
 	routerCode := `import os
 import time
 import razorpay
+from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -438,7 +442,7 @@ client = razorpay.Client(auth=(os.environ['RAZORPAY_KEY_ID'], os.environ['RAZORP
 class OrderRequest(BaseModel):
     amount: float
     currency: str = "INR"
-    receipt: str = None
+    receipt: Optional[str] = None
 
 class VerifyRequest(BaseModel):
     razorpay_order_id: str
@@ -504,7 +508,7 @@ async def verify_payment(req: VerifyRequest):
 			{Name: "python-dotenv", InstallCommand: "pip install python-dotenv"},
 		},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 
 CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:

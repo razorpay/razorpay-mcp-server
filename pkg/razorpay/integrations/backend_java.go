@@ -122,12 +122,35 @@ public class RazorpayController {
 		},
 		Dependencies:     []Dependency{{Name: "razorpay-java", InstallCommand: "Add to pom.xml: com.razorpay:razorpay-java:1.4.3"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
-		TestInstructions: "Use test card: 4111 1111 1111 1111",
-		AIInstructions: `BACKEND SETUP:
-1) Add razorpay-java dependency to pom.xml
-2) Create RazorpayController.java
-3) Add config to application.properties
-4) Set environment variables` + getFrontendWiringInstructions(frontend),
+		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. Test UPI: success@razorpay",
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: ADD DEPENDENCY**
+- Add razorpay-java dependency to pom.xml (com.razorpay:razorpay-java:1.4.3)
+- Run: mvn clean install
+
+**STEP 2: CREATE CONTROLLER**
+- Create RazorpayController.java with the provided code
+- Includes order creation and payment verification endpoints
+
+**STEP 3: CONFIGURE APPLICATION**
+- Add razorpay.key.id and razorpay.key.secret to application.properties
+- These read from environment variables: ${RAZORPAY_KEY_ID} and ${RAZORPAY_KEY_SECRET}
+
+**STEP 4: SET UP ENVIRONMENT**
+- Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in source code
+❌ DO NOT skip payment verification
+
+FINAL CHECKLIST:
+✅ Did you add razorpay-java to pom.xml?
+✅ Did you create RazorpayController.java?
+✅ Did you add config to application.properties?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -267,12 +290,40 @@ razorpay.key.secret=${RAZORPAY_KEY_SECRET}
 		Dependencies:     []Dependency{{Name: "razorpay-java", InstallCommand: "Add to pom.xml: com.razorpay:razorpay-java:1.4.3"}},
 		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
-		AIInstructions: `SPRING BOOT SETUP:
-1) Add razorpay-java dependency to pom.xml
-2) Create RazorpayController.java in your controller package
-3) Add configuration to application.properties
-4) Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables
-5) Run: mvn spring-boot:run` + getFrontendWiringInstructions(frontend),
+		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
+
+CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
+
+**STEP 1: ADD DEPENDENCY**
+- Add razorpay-java dependency to pom.xml (com.razorpay:razorpay-java:1.4.3)
+- Run: mvn clean install
+
+**STEP 2: CREATE CONTROLLER**
+- Create RazorpayController.java with the provided code in your controller package
+- Includes order creation and payment verification endpoints
+- Uses @RestController, @RequestMapping, @PostMapping
+
+**STEP 3: CONFIGURE APPLICATION**
+- Add razorpay.key.id and razorpay.key.secret to application.properties
+- These read from environment variables: ${RAZORPAY_KEY_ID} and ${RAZORPAY_KEY_SECRET}
+
+**STEP 4: SET UP ENVIRONMENT**
+- Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables
+
+**STEP 5: RUN APPLICATION**
+- Run: mvn spring-boot:run
+- Ensure your main class has @SpringBootApplication
+
+⛔ FORBIDDEN:
+❌ DO NOT hardcode API keys in source code
+❌ DO NOT skip payment verification
+
+FINAL CHECKLIST:
+✅ Did you add razorpay-java to pom.xml?
+✅ Did you create RazorpayController.java?
+✅ Did you add config to application.properties?
+✅ Did you set up environment variables?
+✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
 

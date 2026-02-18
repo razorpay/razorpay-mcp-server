@@ -316,6 +316,7 @@ class RazorpayService(private val activity: Activity) : PaymentResultListener {
 
     private var onPaymentSuccess: ((String, String) -> Unit)? = null
     private var onPaymentError: ((String) -> Unit)? = null
+    private var lastOrderId: String = ""
 
     init {
         Checkout.preload(activity.applicationContext)
@@ -356,6 +357,7 @@ class RazorpayService(private val activity: Activity) : PaymentResultListener {
     }
 
     private fun openCheckout(orderData: JSONObject) {
+        lastOrderId = orderData.getString("orderId")
         val checkout = Checkout()
         checkout.setKeyID(orderData.getString("keyId"))
 
@@ -372,10 +374,42 @@ class RazorpayService(private val activity: Activity) : PaymentResultListener {
     }
 
     override fun onPaymentSuccess(razorpayPaymentID: String?) {
-        // Verify payment on backend
         razorpayPaymentID?.let { paymentId ->
-            onPaymentSuccess?.invoke(paymentId, "")
+            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val verifyResult = verifyPayment(paymentId)
+                    withContext(Dispatchers.Main) {
+                        if (verifyResult.optBoolean("success")) {
+                            onPaymentSuccess?.invoke(paymentId, verifyResult.optString("orderId", ""))
+                        } else {
+                            onPaymentError?.invoke(verifyResult.optString("error", "Verification failed"))
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        onPaymentError?.invoke("Verification failed: ${e.message}")
+                    }
+                }
+            }
         }
+    }
+
+    private suspend fun verifyPayment(paymentId: String): JSONObject = withContext(Dispatchers.IO) {
+        val url = URL("$BACKEND_URL/api/razorpay/verify")
+        val connection = url.openConnection() as HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.doOutput = true
+
+        val body = JSONObject().apply {
+            put("razorpay_payment_id", paymentId)
+            put("razorpay_order_id", lastOrderId)
+            put("razorpay_signature", "")
+        }
+        connection.outputStream.write(body.toString().toByteArray())
+
+        val response = connection.inputStream.bufferedReader().readText()
+        JSONObject(response)
     }
 
     override fun onPaymentError(code: Int, response: String?) {
@@ -478,6 +512,7 @@ class RazorpayService: NSObject {
 
     private let backendURL = "YOUR_BACKEND_URL" // Replace with your backend
     private var razorpay: RazorpayCheckout?
+    private var lastOrderId: String = ""
 
     private var onSuccess: ((String, String) -> Void)?
     private var onError: ((String) -> Void)?
@@ -535,6 +570,7 @@ class RazorpayService: NSObject {
     }
 
     private func openCheckout(orderData: [String: Any], viewController: UIViewController) {
+        lastOrderId = orderData["orderId"] as? String ?? ""
         guard let keyId = orderData["keyId"] as? String else {
             onError?("Missing key ID")
             return
@@ -557,11 +593,51 @@ class RazorpayService: NSObject {
 
 extension RazorpayService: RazorpayPaymentCompletionProtocol {
     func onPaymentSuccess(_ payment_id: String) {
-        onSuccess?(payment_id, "")
+        verifyPayment(paymentId: payment_id) { [weak self] success, orderId, error in
+            DispatchQueue.main.async {
+                if success {
+                    self?.onSuccess?(payment_id, orderId)
+                } else {
+                    self?.onError?(error ?? "Verification failed")
+                }
+            }
+        }
     }
 
     func onPaymentError(_ code: Int32, description str: String) {
         onError?(str)
+    }
+
+    private func verifyPayment(paymentId: String, completion: @escaping (Bool, String, String?) -> Void) {
+        guard let url = URL(string: "\(backendURL)/api/razorpay/verify") else {
+            completion(false, "", "Invalid URL")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "razorpay_payment_id": paymentId,
+            "razorpay_order_id": lastOrderId,
+            "razorpay_signature": ""
+        ])
+
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let error = error {
+                completion(false, "", error.localizedDescription)
+                return
+            }
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                completion(false, "", "Invalid response")
+                return
+            }
+            let success = json["success"] as? Bool ?? false
+            let orderId = json["orderId"] as? String ?? ""
+            let errorMsg = json["error"] as? String
+            completion(success, orderId, errorMsg)
+        }.resume()
     }
 }
 `
@@ -855,11 +931,11 @@ export class RazorpayService {
         theme: { color: '#528FF0' }
       };
 
-      const successCallback = (payment_id: string) => {
+      const successCallback = (data: any) => {
         resolve({
-          razorpay_payment_id: payment_id,
-          razorpay_order_id: orderData.orderId,
-          razorpay_signature: '' // Will be handled by server
+          razorpay_payment_id: data.razorpay_payment_id || data,
+          razorpay_order_id: data.razorpay_order_id || orderData.orderId,
+          razorpay_signature: data.razorpay_signature || ''
         });
       };
 

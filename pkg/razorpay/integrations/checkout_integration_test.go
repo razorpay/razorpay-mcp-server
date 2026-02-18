@@ -243,19 +243,25 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 				assert.NotEmpty(t, result.Dependencies)
 				assert.NotEmpty(t, result.EnvVars)
 
-				// Should have RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
-				hasKeyID := false
-				hasKeySecret := false
 				for _, env := range result.EnvVars {
 					if env.Name == "RAZORPAY_KEY_ID" {
-						hasKeyID = true
+						assert.Equal(t, "rzp_test_YOUR_KEY_ID", env.Value,
+							"key ID must be a placeholder, never a real credential")
 					}
 					if env.Name == "RAZORPAY_KEY_SECRET" {
-						hasKeySecret = true
+						assert.NotContains(t, env.Value, "test_secret",
+							"key secret must not contain real credentials")
 					}
 				}
-				assert.True(t, hasKeyID, "should have RAZORPAY_KEY_ID env var")
-				assert.True(t, hasKeySecret, "should have RAZORPAY_KEY_SECRET env var")
+
+				hasNextSteps := false
+				for _, f := range result.Files {
+					if f.Path == "NEXT_STEPS.md" {
+						hasNextSteps = true
+						break
+					}
+				}
+				assert.True(t, hasNextSteps, "should include NEXT_STEPS.md file")
 			},
 		},
 		{
