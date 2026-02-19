@@ -16,21 +16,12 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.PUBLIC_DOCKER_USERNAME }}
-          password: ${{ secrets.PUBLIC_DOCKER_PASSWORD }}
-
       - name: Get Build Info
         id: build_info
         run: |
           TRIGGER_SHA=${{ github.event.pull_request.head.sha || github.sha }}
           echo "trigger_sha=${TRIGGER_SHA}" >> $GITHUB_OUTPUT
-          
+
           # Generate build timestamp in UTC
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           echo "build_date=${BUILD_DATE}" >> $GITHUB_OUTPUT
@@ -46,14 +37,18 @@ jobs:
             IMAGE_TAG="${{ steps.build_info.outputs.trigger_sha }}"
             echo "tags=razorpay/mcp:${IMAGE_TAG}" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Build & Push
-        uses: docker/build-push-action@v6
+        uses: razorpay/actions/docker-image-build-push@master
         with:
+          username: ${{ secrets.PUBLIC_DOCKER_USERNAME }}
+          password: ${{ secrets.PUBLIC_DOCKER_PASSWORD }}
+          registry: docker.io
+          repository: razorpay/mcp
           context: .
-          platforms: linux/amd64,linux/arm64
+          custom-tag: ${{ steps.build_info.outputs.trigger_sha }}
+          enable-login: true
           push: true
-          tags: ${{ steps.vars.outputs.tags }}
           build-args: |
             VERSION=${{ github.ref_name }}
             COMMIT=${{ steps.build_info.outputs.trigger_sha }}
