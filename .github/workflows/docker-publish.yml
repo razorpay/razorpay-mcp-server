@@ -16,6 +16,15 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.PUBLIC_DOCKER_USERNAME }}
+          password: ${{ secrets.PUBLIC_DOCKER_PASSWORD }}
+
       - name: Get Build Info
         id: build_info
         run: |
@@ -39,16 +48,12 @@ jobs:
           fi
 
       - name: Build & Push
-        uses: razorpay/actions/docker-image-build-push@master
+        uses: docker/build-push-action@v6
         with:
-          username: ${{ secrets.PUBLIC_DOCKER_USERNAME }}
-          password: ${{ secrets.PUBLIC_DOCKER_PASSWORD }}
-          registry: docker.io
-          repository: razorpay/mcp
           context: .
-          custom-tag: ${{ steps.build_info.outputs.trigger_sha }}
-          enable-login: true
+          platforms: linux/amd64,linux/arm64
           push: true
+          tags: ${{ steps.vars.outputs.tags }}
           build-args: |
             VERSION=${{ github.ref_name }}
             COMMIT=${{ steps.build_info.outputs.trigger_sha }}
