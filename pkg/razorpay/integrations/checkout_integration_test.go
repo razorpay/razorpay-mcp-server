@@ -560,6 +560,47 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 				assert.NotEmpty(t, result.Files)
 			},
 		},
+		{
+			name: "integrate Flask with vanilla",
+			request: map[string]interface{}{
+				"language":          "python",
+				"backendFramework":  "flask",
+				"frontendFramework": "vanilla",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
+				hasRazorpay := false
+				for _, dep := range result.Dependencies {
+					if dep.Name == "razorpay" {
+						hasRazorpay = true
+						break
+					}
+				}
+				assert.True(t, hasRazorpay, "should have razorpay dependency")
+			},
+		},
+		{
+			name: "integrate Express TypeScript with vanilla",
+			request: map[string]interface{}{
+				"language":          "typescript",
+				"backendFramework":  "express",
+				"frontendFramework": "vanilla",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				hasTS := false
+				for _, f := range result.Files {
+					if f.Path == "routes/razorpay.ts" {
+						hasTS = true
+						break
+					}
+				}
+				assert.True(t, hasTS, "TypeScript Express should create .ts file")
+			},
+		},
 	}
 
 	obs := createTestObservability()
@@ -770,6 +811,166 @@ func Test_detectProjectStack(t *testing.T) {
 				Framework: "react-native",
 			},
 		},
+		{
+			name: "php laravel detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"composer.json", "artisan", "app/Http/Controllers"},
+			},
+			expected: DetectStackOutput{
+				Language:       "php",
+				Framework:      "laravel",
+				PackageManager: "composer",
+			},
+		},
+		{
+			name: "ruby rails detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"Gemfile", "config/routes.rb", "app/controllers"},
+			},
+			expected: DetectStackOutput{
+				Language:       "ruby",
+				Framework:      "rails",
+				PackageManager: "bundler",
+			},
+		},
+		{
+			name: "dotnet detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"Program.cs", "MyApp.csproj"},
+			},
+			expected: DetectStackOutput{
+				Language:       "csharp",
+				Framework:      "aspnet",
+				PackageManager: "nuget",
+			},
+		},
+		{
+			name: "dotnet sln detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"MyApp.sln", "Program.cs"},
+			},
+			expected: DetectStackOutput{
+				Language:       "csharp",
+				Framework:      "aspnet",
+				PackageManager: "nuget",
+			},
+		},
+		{
+			name: "python with pyproject.toml",
+			args: map[string]interface{}{
+				"files": []interface{}{"pyproject.toml", "src/main.py"},
+			},
+			expected: DetectStackOutput{
+				Language:       "python",
+				Framework:      "flask",
+				PackageManager: "pip",
+			},
+		},
+		{
+			name: "python django via manage.py",
+			args: map[string]interface{}{
+				"files":           []interface{}{"requirements.txt", "manage.py"},
+				"requirementsTxt": "Django==4.2\ngunicorn",
+			},
+			expected: DetectStackOutput{
+				Language:       "python",
+				Framework:      "django",
+				PackageManager: "pip",
+			},
+		},
+		{
+			name: "typescript via tsconfig.json",
+			args: map[string]interface{}{
+				"files": []interface{}{"package.json", "tsconfig.json", "src/index.ts"},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"express": "^4.18.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:       "typescript",
+				Framework:      "express",
+				PackageManager: "npm",
+			},
+		},
+		{
+			name: "typescript via dependency",
+			args: map[string]interface{}{
+				"files": []interface{}{"package.json", "src/index.ts"},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"express": "^4.18.0",
+					},
+					"devDependencies": map[string]interface{}{
+						"typescript": "^5.0.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:       "typescript",
+				Framework:      "express",
+				PackageManager: "npm",
+			},
+		},
+		{
+			name: "node with yarn",
+			args: map[string]interface{}{
+				"files": []interface{}{"package.json", "yarn.lock"},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"express": "^4.18.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:       "javascript",
+				Framework:      "express",
+				PackageManager: "yarn",
+			},
+		},
+		{
+			name: "node koa detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"package.json"},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"koa": "^2.14.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:  "javascript",
+				Framework: "koa",
+			},
+		},
+		{
+			name: "node fastify detection",
+			args: map[string]interface{}{
+				"files": []interface{}{"package.json"},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"fastify": "^4.0.0",
+					},
+				},
+			},
+			expected: DetectStackOutput{
+				Language:  "javascript",
+				Framework: "fastify",
+			},
+		},
+		{
+			name: "go with gin default",
+			args: map[string]interface{}{
+				"files": []interface{}{"go.mod", "main.go"},
+				"goMod": "module myapp\ngo 1.21\nrequire github.com/gin-gonic/gin v1.9.1",
+			},
+			expected: DetectStackOutput{
+				Language:       "go",
+				Framework:      "gin",
+				PackageManager: "go-mod",
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -782,6 +983,58 @@ func Test_detectProjectStack(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_DetectStack_InvalidArgs(t *testing.T) {
+	obs := createTestObservability()
+	client := newMockRzpClient()
+	tool := DetectStack(obs, client)
+
+	request := createMCPRequest("not a map")
+	result, err := tool.GetHandler()(context.Background(), request)
+	require.NoError(t, err)
+	assert.True(t, result.IsError, "should return error for invalid args")
+}
+
+func Test_IntegrateCheckout_InvalidArgs(t *testing.T) {
+	obs := createTestObservability()
+	client := newMockRzpClient()
+	tool := IntegrateRazorpayCheckout(obs, client)
+
+	request := createMCPRequest("not a map")
+	result, err := tool.GetHandler()(context.Background(), request)
+	require.NoError(t, err)
+	assert.True(t, result.IsError, "should return error for invalid args")
+}
+
+func Test_IntegrateCheckout_NoClient(t *testing.T) {
+	obs := createTestObservability()
+	tool := IntegrateRazorpayCheckout(obs, nil)
+
+	request := createMCPRequest(map[string]interface{}{
+		"language":          "javascript",
+		"backendFramework":  "express",
+		"frontendFramework": "vanilla",
+	})
+	result, err := tool.GetHandler()(context.Background(), request)
+	require.NoError(t, err)
+	assert.True(t, result.IsError, "should return error when no client available")
+}
+
+func Test_getClientFromContextOrDefault(t *testing.T) {
+	t.Run("returns default client when provided", func(t *testing.T) {
+		client := newMockRzpClient()
+		result, err := getClientFromContextOrDefault(context.Background(), client)
+		require.NoError(t, err)
+		assert.Equal(t, client, result)
+	})
+
+	t.Run("returns error when no client in context and no default", func(t *testing.T) {
+		result, err := getClientFromContextOrDefault(context.Background(), nil)
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "no client found")
+	})
 }
 
 // containsString checks if a string contains a substring

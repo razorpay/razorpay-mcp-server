@@ -284,17 +284,24 @@ DO NOT ASSUME app.js or index.html - find the ACTUAL files used for checkout!
 
    a) Add at TOP (line 1): require('dotenv').config();
    b) Add IMMEDIATELY AFTER with other requires at TOP of file: const razorpayRoutes = require('./routes/razorpay');
-   c) Add MUCH LATER in file with other app.use() middleware: app.use('/api/razorpay', razorpayRoutes);
+   c) Add app.use('/api/razorpay', razorpayRoutes); at the TOP LEVEL of the file.
+      It MUST be at the same indentation level as app.listen().
+      NEVER place it inside app.get(), app.post(), or any route handler/callback.
 
    CORRECT ORDER IN FILE:
    Line 1:  require('dotenv').config();
    Line 2+: const razorpayRoutes = require('./routes/razorpay');  // <-- DECLARE FIRST
    ...
-   Line 50+: app.use('/api/razorpay', razorpayRoutes);  // <-- USE LATER
+   Line 50+: app.use('/api/razorpay', razorpayRoutes);  // <-- TOP LEVEL, with other middleware
 
    WRONG (WILL CRASH):
    app.use('/api/razorpay', razorpayRoutes);  // ❌ Used before declared
    const razorpayRoutes = require(...);        // ❌ Declared after use
+
+   WRONG (ROUTES WON'T WORK):
+   app.post('/some-route', (req, res) => {
+     app.use('/api/razorpay', razorpayRoutes);  // ❌ INSIDE a route handler!
+   });
 
 6) Add razorpay.js script to the CORRECT HTML file:
    - Find which HTML has the checkout (may be checkout.html, NOT index.html)
@@ -326,6 +333,7 @@ FINAL REMINDER - READ THIS BEFORE FINISHING:
 ✅ Did you ADD razorpay.js script to the checkout HTML?
 ✅ Did you MODIFY the checkout function to call initiateRazorpayPayment()?
 ✅ Did you put require() BEFORE app.use() in server.js?
+✅ Is app.use('/api/razorpay', ...) at the TOP LEVEL (not inside any route handler)?
 ✅ Did you include the closing } brace for ALL functions?
 ✅ Did you use NORMAL quotes (not escaped \')?
 
@@ -634,7 +642,7 @@ module.exports = razorpayRoutes;
 			{Action: "create", Path: frontend.FileName, Code: frontend.Code, Description: frontend.Description},
 			{Action: "manual_edit", Path: "app.js", Description: "Register routes", Edits: []EditItem{
 				{Line: "After require statements", Add: "require('dotenv').config();", Why: "Load env vars"},
-				{Line: "After fastify instance creation", Add: "fastify.register(require('./routes/razorpay'));", Why: "Register Razorpay routes"},
+				{Line: "At TOP LEVEL after fastify instance creation (same level as fastify.listen) - NEVER inside a route handler", Add: "fastify.register(require('./routes/razorpay'));", Why: "MUST be top-level. If placed inside a route handler, Razorpay endpoints won't exist"},
 			}},
 			getWirePaymentAction(),
 		},
@@ -657,7 +665,9 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 **STEP 3: REGISTER ROUTES**
 - Find the main server file (commonly app.js, server.js, or index.js)
 - Add require('dotenv').config() at the top
-- Register Razorpay routes: fastify.register(require('./routes/razorpay'))
+- Add fastify.register(require('./routes/razorpay')) at the TOP LEVEL of the file
+  It MUST be at the same indentation level as fastify.listen().
+  NEVER place it inside a route handler, callback, or function.
 
 **STEP 4: SET UP ENVIRONMENT**
 - Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
@@ -666,11 +676,12 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 ❌ DO NOT hardcode API keys in route files
 ❌ DO NOT assume the main file is app.js - find the actual entry point
 ❌ DO NOT skip payment verification
+❌ DO NOT place fastify.register() inside a route handler - it must be top-level
 
 FINAL CHECKLIST:
 ✅ Did you run npm install razorpay dotenv?
 ✅ Did you create routes/razorpay.js?
-✅ Did you register routes in the main server file?
+✅ Did you register routes at TOP LEVEL in the main server file (not inside any handler)?
 ✅ Did you create .env with credentials?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
@@ -751,8 +762,8 @@ module.exports = router;
 			{Action: "manual_edit", Path: "app.js", Description: "Use router", Edits: []EditItem{
 				{Line: "At top", Add: "require('dotenv').config();", Why: "Load env vars"},
 
-				{Line: "After imports", Add: "const razorpayRouter = require('./routes/razorpay');", Why: "Import router"},
-				{Line: "After app creation", Add: "app.use(razorpayRouter.routes()).use(razorpayRouter.allowedMethods());", Why: "Use router"},
+				{Line: "After imports at the top of the file", Add: "const razorpayRouter = require('./routes/razorpay');", Why: "Import router"},
+				{Line: "At TOP LEVEL after app creation (same level as app.listen) - NEVER inside a route handler", Add: "app.use(razorpayRouter.routes()).use(razorpayRouter.allowedMethods());", Why: "MUST be top-level. If placed inside a route handler, Razorpay endpoints won't exist"},
 			}},
 			getWirePaymentAction(),
 		},
@@ -778,7 +789,9 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - Find the main server file (commonly app.js, server.js, or index.js)
 - Add require('dotenv').config() at the top
 - Add require('koa-bodyparser') and use it: app.use(bodyParser())
-- Import and use the Razorpay router: app.use(razorpayRouter.routes())
+- Import and use the Razorpay router at the TOP LEVEL: app.use(razorpayRouter.routes())
+  It MUST be at the same indentation level as app.listen().
+  NEVER place it inside a route handler, callback, or function.
 
 **STEP 4: SET UP ENVIRONMENT**
 - Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
@@ -788,11 +801,12 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 ❌ DO NOT assume the main file is app.js - find the actual entry point
 ❌ DO NOT forget koa-bodyparser - Koa needs it to parse request bodies
 ❌ DO NOT skip payment verification
+❌ DO NOT place app.use(router) inside a route handler - it must be top-level
 
 FINAL CHECKLIST:
 ✅ Did you run npm install razorpay @koa/router koa-bodyparser dotenv?
 ✅ Did you create routes/razorpay.js?
-✅ Did you register the router in the main server file?
+✅ Did you register the router at TOP LEVEL in the main server file (not inside any handler)?
 ✅ Did you add koa-bodyparser middleware?
 ✅ Did you create .env with credentials?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),

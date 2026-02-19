@@ -120,9 +120,10 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - This includes order creation and payment verification endpoints
 
 **STEP 3: WIRE UP ROUTES**
-- Find main.go and add the Razorpay routes to the Gin router
+- Find main.go and add routes at the TOP LEVEL in main() where other routes are defined
 - Add r.POST("/api/razorpay/order", handlers.CreateOrder)
 - Add r.POST("/api/razorpay/verify", handlers.VerifyPayment)
+- These MUST be at the same level as other r.GET/r.POST calls, NOT inside another handler
 
 **STEP 4: SET UP ENVIRONMENT**
 - Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
@@ -135,7 +136,7 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 FINAL CHECKLIST:
 ✅ Did you run go get github.com/razorpay/razorpay-go?
 ✅ Did you create handlers/razorpay.go?
-✅ Did you add routes in main.go?
+✅ Did you add routes at TOP LEVEL in main.go (not inside another handler)?
 ✅ Did you create .env with credentials?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
@@ -224,8 +225,8 @@ func VerifyPayment(c echo.Context) error {
 			{Action: "create", Path: "handlers/razorpay.go", Code: handlerCode, Description: "Echo handlers for Razorpay"},
 			{Action: "create", Path: frontend.FileName, Code: frontend.Code, Description: frontend.Description},
 			{Action: "manual_edit", Path: "main.go", Description: "Add routes", Edits: []EditItem{
-				{Line: "In router setup", Add: "e.POST(\"/api/razorpay/order\", handlers.CreateOrder)", Why: "Order endpoint"},
-				{Line: "After order route", Add: "e.POST(\"/api/razorpay/verify\", handlers.VerifyPayment)", Why: "Verify endpoint"},
+				{Line: "In the TOP-LEVEL router setup in main() (where other e.GET/e.POST routes are defined) - NEVER inside another handler function", Add: "e.POST(\"/api/razorpay/order\", handlers.CreateOrder)", Why: "Order endpoint - must be top-level in main(), not nested inside another handler"},
+				{Line: "Immediately after the order route", Add: "e.POST(\"/api/razorpay/verify\", handlers.VerifyPayment)", Why: "Verify endpoint"},
 			}},
 			getWirePaymentAction(),
 		},
@@ -244,9 +245,10 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - This includes order creation and payment verification endpoints
 
 **STEP 3: WIRE UP ROUTES**
-- Find main.go and add the Razorpay routes to the Echo instance
+- Find main.go and add routes at the TOP LEVEL in main() where other routes are defined
 - Add e.POST("/api/razorpay/order", handlers.CreateOrder)
 - Add e.POST("/api/razorpay/verify", handlers.VerifyPayment)
+- These MUST be at the same level as other e.GET/e.POST calls, NOT inside another handler
 
 **STEP 4: SET UP ENVIRONMENT**
 - Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
@@ -259,7 +261,7 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 FINAL CHECKLIST:
 ✅ Did you run go get github.com/razorpay/razorpay-go?
 ✅ Did you create handlers/razorpay.go?
-✅ Did you add routes in main.go?
+✅ Did you add routes at TOP LEVEL in main.go (not inside another handler)?
 ✅ Did you create .env with credentials?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
@@ -343,8 +345,8 @@ func VerifyPayment(c *fiber.Ctx) error {
 			{Action: "create", Path: "handlers/razorpay.go", Code: handlerCode, Description: "Fiber handlers for Razorpay"},
 			{Action: "create", Path: frontend.FileName, Code: frontend.Code, Description: frontend.Description},
 			{Action: "manual_edit", Path: "main.go", Description: "Add routes", Edits: []EditItem{
-				{Line: "In router setup", Add: "app.Post(\"/api/razorpay/order\", handlers.CreateOrder)", Why: "Order endpoint"},
-				{Line: "After order route", Add: "app.Post(\"/api/razorpay/verify\", handlers.VerifyPayment)", Why: "Verify endpoint"},
+				{Line: "In the TOP-LEVEL router setup in main() (where other app.Get/app.Post routes are defined) - NEVER inside another handler function", Add: "app.Post(\"/api/razorpay/order\", handlers.CreateOrder)", Why: "Order endpoint - must be top-level in main(), not nested inside another handler"},
+				{Line: "Immediately after the order route", Add: "app.Post(\"/api/razorpay/verify\", handlers.VerifyPayment)", Why: "Verify endpoint"},
 			}},
 			getWirePaymentAction(),
 		},
@@ -363,9 +365,10 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - This includes order creation and payment verification endpoints
 
 **STEP 3: WIRE UP ROUTES**
-- Find main.go and add the Razorpay routes to the Fiber app
+- Find main.go and add routes at the TOP LEVEL in main() where other routes are defined
 - Add app.Post("/api/razorpay/order", handlers.CreateOrder)
 - Add app.Post("/api/razorpay/verify", handlers.VerifyPayment)
+- These MUST be at the same level as other app.Get/app.Post calls, NOT inside another handler
 
 **STEP 4: SET UP ENVIRONMENT**
 - Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
@@ -378,7 +381,7 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 FINAL CHECKLIST:
 ✅ Did you run go get github.com/razorpay/razorpay-go?
 ✅ Did you create handlers/razorpay.go?
-✅ Did you add routes in main.go?
+✅ Did you add routes at TOP LEVEL in main.go (not inside another handler)?
 ✅ Did you create .env with credentials?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}

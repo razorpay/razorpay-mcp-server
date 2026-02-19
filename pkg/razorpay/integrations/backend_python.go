@@ -392,7 +392,8 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 
 **STEP 2: CREATE razorpay_routes.py**
 - Create razorpay_routes.py with the provided Razorpay endpoints
-- Register the routes in the main Flask app (find app.py or main file and import/register the routes)
+- Register the routes at TOP LEVEL in the main Flask app (find app.py or main file)
+  app.register_blueprint() MUST be at the module level, NOT inside any route function or handler
 
 **STEP 3: CREATE .env FILE**
 - CREATE a new .env file in project root with placeholder keys
@@ -417,6 +418,7 @@ FINAL CHECKLIST:
 ✅ Did you run pip install razorpay python-dotenv?
 ✅ Did you add dependencies to requirements.txt?
 ✅ Did you create razorpay_routes.py?
+✅ Did you register routes at TOP LEVEL in app.py (not inside any handler)?
 ✅ Did you create .env file with actual keys?
 
 If ANY checkbox is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(frontend),
@@ -498,8 +500,8 @@ async def verify_payment(req: VerifyRequest):
 				},
 			},
 			{Action: "manual_edit", Path: "main.py", Description: "Add router", Edits: []EditItem{
-				{Line: "After imports", Add: "from routers.razorpay import router as razorpay_router", Why: "Import router"},
-				{Line: "After app creation", Add: "app.include_router(razorpay_router)", Why: "Include router"},
+				{Line: "After imports at the top of the file", Add: "from routers.razorpay import router as razorpay_router", Why: "Import router"},
+				{Line: "At TOP LEVEL after app = FastAPI() - NEVER inside a route function or @app handler", Add: "app.include_router(razorpay_router)", Why: "MUST be top-level. If placed inside a route handler, Razorpay endpoints won't exist"},
 			}},
 			getWirePaymentAction(),
 		},
@@ -522,7 +524,8 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 
 **STEP 2: CREATE RAZORPAY ROUTER**
 - Create routers/razorpay.py with the provided endpoints
-- Include router in main app: app.include_router(razorpay_router)
+- Include router at TOP LEVEL in main app: app.include_router(razorpay_router)
+  This MUST be at the module level, NOT inside any route function or handler
 
 **STEP 3: CREATE .env FILE WITH ACTUAL KEYS (MUST DO THIS)**
 - CREATE a new .env file in project root with:
@@ -548,6 +551,7 @@ FINAL CHECKLIST:
 ✅ Did you run pip install razorpay python-dotenv?
 ✅ Did you add dependencies to requirements.txt?
 ✅ Did you create routers/razorpay.py?
+✅ Did you include router at TOP LEVEL in main.py (not inside any handler)?
 ✅ Did you create .env file with actual keys?
 
 If ANY checkbox is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(frontend),

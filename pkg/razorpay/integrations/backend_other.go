@@ -512,6 +512,7 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 
 **STEP 2: CONFIGURE SERVICES**
 - In Program.cs, add: builder.Services.AddHttpClient(); before builder.Build()
+- This MUST be at the top level of Program.cs, NOT inside any method or endpoint handler
 
 **STEP 3: ADD CONFIGURATION**
 - In appsettings.json, add the Razorpay section with your credentials
