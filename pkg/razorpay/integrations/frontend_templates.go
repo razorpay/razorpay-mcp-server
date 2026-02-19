@@ -1,7 +1,7 @@
 //nolint:lll // File contains embedded code templates requiring longer lines
 package integrations
 
-func getFrontendIntegration(framework string, creds Credentials) FrontendIntegration {
+func getFrontendIntegration(framework string) FrontendIntegration {
 	switch framework {
 	case "react":
 		return getReactFrontend()

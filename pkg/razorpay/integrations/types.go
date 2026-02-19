@@ -1,12 +1,6 @@
 //nolint:lll // File contains embedded code templates requiring longer lines
 package integrations
 
-// Credentials holds Razorpay API credentials
-type Credentials struct {
-	KeyID     string
-	KeySecret string
-}
-
 // FileAction represents an action to perform on a file
 type FileAction struct {
 	Action          string     `json:"action"`

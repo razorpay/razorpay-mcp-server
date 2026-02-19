@@ -5,13 +5,13 @@ package integrations
 // EXPRESS + VANILLA JS INTEGRATION
 // =============================================================================
 
-func getExpressVanillaIntegration(language string, creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
+func getExpressVanillaIntegration(language string, frontend FrontendIntegration) IntegrateCheckoutOutput {
 	ext := "js"
 	if language == "typescript" {
 		ext = "ts"
 	}
 
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	razorpayRoutesCode := `const express = require('express');
 const Razorpay = require('razorpay');
@@ -344,8 +344,8 @@ If you said "Found the issue" but didn't edit the file, GO BACK AND EDIT IT NOW.
 // NEXT.JS + REACT INTEGRATION
 // =============================================================================
 
-func getNextjsReactIntegration(language string, creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getNextjsReactIntegration(language string) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	orderRouteCode := `import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
@@ -569,8 +569,8 @@ FINAL REMINDER:
 // NODE.JS ADDITIONAL FRAMEWORKS (Fastify, Koa, Nuxt)
 // =============================================================================
 
-func getFastifyIntegration(language string, creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getFastifyIntegration(language string, frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	routesCode := `const Razorpay = require('razorpay');
 const crypto = require('crypto');
@@ -676,8 +676,8 @@ FINAL CHECKLIST:
 	}
 }
 
-func getKoaIntegration(language string, creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getKoaIntegration(language string, frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	routerCode := `const Router = require('@koa/router');
 const Razorpay = require('razorpay');
@@ -799,8 +799,8 @@ FINAL CHECKLIST:
 	}
 }
 
-func getNuxtIntegration(language string, creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getNuxtIntegration(language string) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	orderAPICode := `import Razorpay from 'razorpay';
 

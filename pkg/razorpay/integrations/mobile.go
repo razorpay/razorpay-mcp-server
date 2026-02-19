@@ -5,8 +5,8 @@ package integrations
 // MOBILE INTEGRATIONS (React Native, Flutter)
 // =============================================================================
 
-func getReactNativeIntegration(creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getReactNativeIntegration() IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	paymentServiceCode := `import RazorpayCheckout from 'react-native-razorpay';
 
@@ -96,7 +96,7 @@ const handlePayment = () => {
 		Dependencies: []Dependency{
 			{Name: "react-native-razorpay", InstallCommand: "npm install react-native-razorpay && cd ios && pod install"},
 		},
-		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111. Test UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 
@@ -119,8 +119,8 @@ FINAL REMINDER:
 	}
 }
 
-func getFlutterIntegration(creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getFlutterIntegration() IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	paymentServiceCode := `import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:http/http.dart' as http;
@@ -263,7 +263,7 @@ void dispose() {
 		Dependencies: []Dependency{
 			{Name: "razorpay_flutter", InstallCommand: "flutter pub add razorpay_flutter http"},
 		},
-		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111. Test UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 
@@ -294,8 +294,8 @@ FINAL REMINDER:
 // ANDROID (KOTLIN) INTEGRATION
 // =============================================================================
 
-func getAndroidIntegration(creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getAndroidIntegration() IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	paymentServiceCode := `package com.example.app.payment
 
@@ -471,7 +471,7 @@ implementation 'com.razorpay:checkout:1.6.33'
 			}},
 		},
 		Dependencies:     []Dependency{{Name: "razorpay-checkout", InstallCommand: "Add to app/build.gradle: implementation 'com.razorpay:checkout:1.6.33'"}},
-		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 
@@ -500,8 +500,8 @@ FINAL REMINDER:
 // IOS (SWIFT) INTEGRATION
 // =============================================================================
 
-func getIOSIntegration(creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getIOSIntegration() IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	paymentServiceCode := `import Foundation
 import Razorpay
@@ -689,7 +689,7 @@ class CheckoutViewController: UIViewController {
 			{Action: "create", Path: "USAGE_EXAMPLE.swift", Code: usageCode, Description: "ViewController usage example"},
 		},
 		Dependencies:     []Dependency{{Name: "razorpay-pod", InstallCommand: "Add to Podfile: pod 'razorpay-pod' && pod install"}},
-		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 
@@ -717,8 +717,8 @@ FINAL REMINDER:
 // CORDOVA INTEGRATION
 // =============================================================================
 
-func getCordovaIntegration(creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getCordovaIntegration() IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	paymentServiceCode := `// www/js/razorpay-service.js
 
@@ -841,7 +841,7 @@ document.getElementById('payButton').addEventListener('click', function() {
 			{Action: "create", Path: "USAGE_EXAMPLE.js", Code: usageCode, Description: "Usage example"},
 		},
 		Dependencies:     []Dependency{{Name: "razorpay-cordova", InstallCommand: "cordova plugin add com.nicholaswilliams.nicepay.razorpay"}},
-		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 
@@ -869,8 +869,8 @@ FINAL REMINDER:
 // IONIC INTEGRATION
 // =============================================================================
 
-func getIonicIntegration(creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getIonicIntegration() IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	paymentServiceCode := `// src/app/services/razorpay.service.ts
 
@@ -1017,7 +1017,7 @@ export class CheckoutPage {
 		Dependencies: []Dependency{
 			{Name: "razorpay-cordova", InstallCommand: "ionic cordova plugin add com.nicholaswilliams.nicepay.razorpay"},
 		},
-		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 
@@ -1046,8 +1046,8 @@ FINAL REMINDER:
 // CAPACITOR INTEGRATION
 // =============================================================================
 
-func getCapacitorIntegration(creds Credentials) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getCapacitorIntegration() IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	paymentServiceCode := `// src/services/razorpay.service.ts
 
@@ -1221,7 +1221,7 @@ export class CheckoutComponent {
 		Dependencies: []Dependency{
 			{Name: "razorpay-cordova", InstallCommand: "npm install cordova-plugin-razorpay && npx cap sync"},
 		},
-		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret + " (BACKEND ONLY - never expose in mobile app)"}},
+		EnvVars:          []EnvVar{{Name: "RAZORPAY_KEY_ID", Value: keyID}, {Name: "RAZORPAY_KEY_SECRET", Value: keySecret}},
 		TestInstructions: "Use test card: 4111 1111 1111 1111, any future expiry, any CVV. UPI: success@razorpay",
 		AIInstructions: `⚠️ MANDATORY: COMPLETE THE ENTIRE INTEGRATION - NO "NEXT STEPS" ALLOWED!
 

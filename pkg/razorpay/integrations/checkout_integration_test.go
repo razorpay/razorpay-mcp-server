@@ -243,16 +243,16 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 				assert.NotEmpty(t, result.Dependencies)
 				assert.NotEmpty(t, result.EnvVars)
 
-				for _, env := range result.EnvVars {
-					if env.Name == "RAZORPAY_KEY_ID" {
-						assert.Equal(t, "rzp_test_YOUR_KEY_ID", env.Value,
-							"key ID must be a placeholder, never a real credential")
-					}
-					if env.Name == "RAZORPAY_KEY_SECRET" {
-						assert.NotContains(t, env.Value, "test_secret",
-							"key secret must not contain real credentials")
-					}
+			for _, env := range result.EnvVars {
+				if env.Name == "RAZORPAY_KEY_ID" {
+					assert.Equal(t, "rzp_test_YOUR_KEY_ID", env.Value,
+						"key ID must be a placeholder, never a real credential")
 				}
+				if env.Name == "RAZORPAY_KEY_SECRET" {
+					assert.NotContains(t, env.Value, "test_secret",
+						"key secret must not contain real credentials")
+				}
+			}
 
 				hasNextSteps := false
 				for _, f := range result.Files {

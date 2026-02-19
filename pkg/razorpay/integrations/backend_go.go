@@ -5,8 +5,8 @@ package integrations
 // GO BACKEND INTEGRATIONS
 // =============================================================================
 
-func getGinIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getGinIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	handlerCode := `package handlers
 
@@ -145,8 +145,8 @@ FINAL CHECKLIST:
 // ECHO INTEGRATION
 // =============================================================================
 
-func getEchoIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getEchoIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	handlerCode := `package handlers
 
@@ -265,8 +265,8 @@ FINAL CHECKLIST:
 	}
 }
 
-func getFiberIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getFiberIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	handlerCode := `package handlers
 

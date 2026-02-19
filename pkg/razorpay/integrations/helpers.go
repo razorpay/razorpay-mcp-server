@@ -34,11 +34,10 @@ func getClientFromContextOrDefault(
 	return client, nil
 }
 
-// getKeysOrPlaceholders always returns placeholder values for security.
-// Real credentials should never be exposed to the AI agent.
-func getKeysOrPlaceholders(_ Credentials) (string, string) {
-	return "rzp_test_YOUR_KEY_ID", "YOUR_KEY_SECRET"
-}
+const (
+	placeholderKeyID     = "rzp_test_YOUR_KEY_ID"
+	placeholderKeySecret = "YOUR_KEY_SECRET"
+)
 
 func getNextStepsFile() FileAction {
 	return FileAction{

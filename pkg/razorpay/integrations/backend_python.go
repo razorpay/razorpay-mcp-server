@@ -1,8 +1,8 @@
 //nolint:lll // File contains embedded code templates requiring longer lines
 package integrations
 
-func getDjangoIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getDjangoIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	viewsCode := `import json
 import time
@@ -286,8 +286,8 @@ If ANY answer is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(fr
 	}
 }
 
-func getFlaskIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getFlaskIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	appCode := `import os
 import time
@@ -423,8 +423,8 @@ If ANY checkbox is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(
 	}
 }
 
-func getFastAPIIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getFastAPIIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	routerCode := `import os
 import time

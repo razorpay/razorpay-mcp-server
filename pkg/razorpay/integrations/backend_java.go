@@ -5,8 +5,8 @@ package integrations
 // JAVA (Spring Boot) INTEGRATION
 // =============================================================================
 
-func getSpringIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getSpringIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	controllerCode := `package com.example.razorpay;
 
@@ -158,8 +158,8 @@ FINAL CHECKLIST:
 // SPRING BOOT INTEGRATION
 // =============================================================================
 
-func getSpringBootIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getSpringBootIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	controllerCode := `package com.example.payment;
 

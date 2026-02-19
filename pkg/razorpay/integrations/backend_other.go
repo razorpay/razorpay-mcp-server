@@ -5,8 +5,8 @@ package integrations
 // PHP (Laravel) INTEGRATION
 // =============================================================================
 
-func getLaravelIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getLaravelIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	controllerCode := `<?php
 
@@ -132,8 +132,8 @@ FINAL CHECKLIST:
 // RUBY (Rails) INTEGRATION
 // =============================================================================
 
-func getRailsIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getRailsIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	controllerCode := `class RazorpayController < ApplicationController
   skip_before_action :verify_authenticity_token
@@ -247,8 +247,8 @@ FINAL CHECKLIST:
 // RUST (Actix-web) INTEGRATION
 // =============================================================================
 
-func getActixIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getActixIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	handlerCode := `use actix_web::{web, HttpResponse, Result};
 use hmac::{Hmac, Mac};
@@ -407,8 +407,8 @@ FINAL CHECKLIST:
 // .NET (ASP.NET Core) INTEGRATION
 // =============================================================================
 
-func getAspNetIntegration(creds Credentials, frontend FrontendIntegration) IntegrateCheckoutOutput {
-	keyID, keySecret := getKeysOrPlaceholders(creds)
+func getAspNetIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	controllerCode := `using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;

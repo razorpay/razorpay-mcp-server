@@ -56,75 +56,59 @@ func IntegrateRazorpayCheckout(
 			return mcpgo.NewToolResultError("Failed to get client: " + err.Error()), nil
 		}
 
-		// Security: never expose real credentials to the AI agent.
-		// Placeholder values are always returned; the user fills in
-		// real keys via NEXT_STEPS.md instructions.
-		creds := Credentials{}
-
 		var output IntegrateCheckoutOutput
 
-		// Get frontend code based on frontend framework
-		frontendCode := getFrontendIntegration(frontendFramework, creds)
+		frontendCode := getFrontendIntegration(frontendFramework)
 
-		// Route to appropriate backend integration
 		switch backendFramework {
-		// Python frameworks
 		case "django":
-			output = getDjangoIntegration(creds, frontendCode)
+			output = getDjangoIntegration(frontendCode)
 		case "flask":
-			output = getFlaskIntegration(creds, frontendCode)
+			output = getFlaskIntegration(frontendCode)
 		case "fastapi":
-			output = getFastAPIIntegration(creds, frontendCode)
-		// Go frameworks
+			output = getFastAPIIntegration(frontendCode)
 		case "gin":
-			output = getGinIntegration(creds, frontendCode)
+			output = getGinIntegration(frontendCode)
 		case "echo":
-			output = getEchoIntegration(creds, frontendCode)
+			output = getEchoIntegration(frontendCode)
 		case "fiber":
-			output = getFiberIntegration(creds, frontendCode)
-		// Node.js frameworks
+			output = getFiberIntegration(frontendCode)
 		case "nextjs":
-			output = getNextjsReactIntegration(language, creds)
+			output = getNextjsReactIntegration(language)
 		case "nuxt":
-			output = getNuxtIntegration(language, creds)
+			output = getNuxtIntegration(language)
 		case "fastify":
-			output = getFastifyIntegration(language, creds, frontendCode)
+			output = getFastifyIntegration(language, frontendCode)
 		case "koa":
-			output = getKoaIntegration(language, creds, frontendCode)
-		// Java
+			output = getKoaIntegration(language, frontendCode)
 		case "spring":
-			output = getSpringIntegration(creds, frontendCode)
+			output = getSpringIntegration(frontendCode)
 		case "spring-boot":
-			output = getSpringBootIntegration(creds, frontendCode)
-		// PHP
+			output = getSpringBootIntegration(frontendCode)
 		case "laravel":
-			output = getLaravelIntegration(creds, frontendCode)
-		// Ruby
+			output = getLaravelIntegration(frontendCode)
 		case "rails":
-			output = getRailsIntegration(creds, frontendCode)
-		// Rust
+			output = getRailsIntegration(frontendCode)
 		case "actix":
-			output = getActixIntegration(creds, frontendCode)
-		// .NET
+			output = getActixIntegration(frontendCode)
 		case "aspnet":
-			output = getAspNetIntegration(creds, frontendCode)
-		// Mobile
+			output = getAspNetIntegration(frontendCode)
 		case "react-native":
-			output = getReactNativeIntegration(creds)
+			output = getReactNativeIntegration()
 		case "flutter":
-			output = getFlutterIntegration(creds)
+			output = getFlutterIntegration()
 		case "android":
-			output = getAndroidIntegration(creds)
+			output = getAndroidIntegration()
 		case "ios":
-			output = getIOSIntegration(creds)
+			output = getIOSIntegration()
 		case "cordova":
-			output = getCordovaIntegration(creds)
+			output = getCordovaIntegration()
 		case "ionic":
-			output = getIonicIntegration(creds)
+			output = getIonicIntegration()
 		case "capacitor":
-			output = getCapacitorIntegration(creds)
-		default: // express
-			output = getExpressVanillaIntegration(language, creds, frontendCode)
+			output = getCapacitorIntegration()
+		default:
+			output = getExpressVanillaIntegration(language, frontendCode)
 		}
 
 		output.Files = append(output.Files, getNextStepsFile())
