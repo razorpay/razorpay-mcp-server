@@ -221,6 +221,7 @@ func Test_DetectStack(t *testing.T) {
 	}
 }
 
+//nolint:gocyclo // table-driven test with multiple validate funcs
 func Test_IntegrateRazorpayCheckout(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -1029,7 +1030,7 @@ func Test_getClientFromContextOrDefault(t *testing.T) {
 		assert.Equal(t, client, result)
 	})
 
-	t.Run("returns error when no client in context and no default", func(t *testing.T) {
+	t.Run("error when no client and no default", func(t *testing.T) {
 		result, err := getClientFromContextOrDefault(context.Background(), nil)
 		assert.Nil(t, result)
 		assert.Error(t, err)
