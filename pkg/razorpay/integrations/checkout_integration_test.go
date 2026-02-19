@@ -10,6 +10,7 @@ import (
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
+	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
@@ -1025,16 +1026,32 @@ func Test_IntegrateCheckout_NoClient(t *testing.T) {
 func Test_getClientFromContextOrDefault(t *testing.T) {
 	t.Run("returns default client when provided", func(t *testing.T) {
 		client := newMockRzpClient()
-		result, err := getClientFromContextOrDefault(context.Background(), client)
+		got, err := getClientFromContextOrDefault(context.Background(), client)
 		require.NoError(t, err)
-		assert.Equal(t, client, result)
+		assert.Equal(t, client, got)
 	})
 
 	t.Run("error when no client and no default", func(t *testing.T) {
-		result, err := getClientFromContextOrDefault(context.Background(), nil)
-		assert.Nil(t, result)
+		got, err := getClientFromContextOrDefault(context.Background(), nil)
+		assert.Nil(t, got)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no client found")
+	})
+
+	t.Run("returns client from context", func(t *testing.T) {
+		client := newMockRzpClient()
+		ctx := contextkey.WithClient(context.Background(), client)
+		got, err := getClientFromContextOrDefault(ctx, nil)
+		require.NoError(t, err)
+		assert.Equal(t, client, got)
+	})
+
+	t.Run("error on invalid client type in context", func(t *testing.T) {
+		ctx := contextkey.WithClient(context.Background(), "not a client")
+		got, err := getClientFromContextOrDefault(ctx, nil)
+		assert.Nil(t, got)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid client type")
 	})
 }
 

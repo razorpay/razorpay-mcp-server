@@ -132,9 +132,9 @@ github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:19.
 github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:20.26,22.3 1 1
 github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:24.2,25.28 2 1
 github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:25.28,27.3 1 1
-github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:29.2,30.9 2 0
-github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:30.9,32.3 1 0
-github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:34.2,34.20 1 0
+github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:29.2,30.9 2 1
+github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:30.9,32.3 1 1
+github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:34.2,34.20 1 1
 github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:42.36,92.2 1 1
 github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:94.42,102.2 1 1
 github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations/helpers.go:105.40,210.2 1 1
