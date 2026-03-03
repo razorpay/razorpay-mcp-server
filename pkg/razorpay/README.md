@@ -67,7 +67,7 @@ mcpgo.WithString(
 // Optional parameters
 mcpgo.WithNumber(
     "amount",
-    mcpgo.Description("Amount in smallest currency unit"),
+    mcpgo.Description("Amount in paise (smallest currency unit). For INR: 100 paise = ₹1"),
 )
 ```
 
@@ -167,7 +167,7 @@ func CreateResource(
     parameters := []mcpgo.ToolParameter{
         mcpgo.WithNumber(
             "amount",
-            mcpgo.Description("Amount in smallest currency unit"),
+            mcpgo.Description("Amount in paise (smallest currency unit). For INR: 100 paise = ₹1"),
             mcpgo.Required(),
         ),
         mcpgo.WithString(
