@@ -18,8 +18,8 @@ func CreatePaymentLink(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Amount to be paid using the link in smallest "+
-				"currency unit(e.g., ₹300, use 30000)"),
+			mcpgo.Description("Amount to be paid using the link in paise (smallest "+
+				"currency unit). For INR: 100 paise = ₹1. Example: for ₹300, use 30000"),
 			mcpgo.Required(),
 			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
@@ -38,7 +38,7 @@ func CreatePaymentLink(
 		),
 		mcpgo.WithNumber(
 			"first_min_partial_amount",
-			mcpgo.Description("Minimum amount that must be paid by the customer as the first partial payment. Default value is 100."), // nolint:lll
+			mcpgo.Description("Minimum amount in paise that must be paid by the customer as the first partial payment. For INR: 100 paise = ₹1. Default value is 100."), // nolint:lll
 		),
 		mcpgo.WithNumber(
 			"expire_by",
@@ -160,7 +160,7 @@ func CreateUpiPaymentLink(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Amount to be paid using the link in smallest currency unit(e.g., ₹300, use 30000), Only accepted currency is INR"), // nolint:lll
+			mcpgo.Description("Amount to be paid using the link in paise (smallest currency unit). For INR: 100 paise = ₹1. Example: for ₹300, use 30000. Only accepted currency is INR"), // nolint:lll
 			mcpgo.Required(),
 			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
@@ -179,7 +179,7 @@ func CreateUpiPaymentLink(
 		),
 		mcpgo.WithNumber(
 			"first_min_partial_amount",
-			mcpgo.Description("Minimum amount that must be paid by the customer as the first partial payment. Default value is 100."), // nolint:lll
+			mcpgo.Description("Minimum amount in paise that must be paid by the customer as the first partial payment. For INR: 100 paise = ₹1. Default value is 100."), // nolint:lll
 		),
 		mcpgo.WithNumber(
 			"expire_by",

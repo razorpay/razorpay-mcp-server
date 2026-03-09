@@ -4,6 +4,9 @@
 # Core Razorpay MCP server implementation
 /pkg/razorpay/ @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209
 
+# Razorpay checkout integrations
+/pkg/razorpay/integrations/ @shridhar52war @vaibhavchopra-wq
+
 # MCP protocol implementation
 /pkg/mcpgo/ @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209
 

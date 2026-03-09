@@ -198,8 +198,8 @@ func CapturePayment(
 		),
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("The amount to be captured (in paisa). "+
-				"Should be equal to the authorized amount"),
+			mcpgo.Description("The amount to be captured in paise. "+
+				"For INR: 100 paise = ₹1. Should be equal to the authorized amount"),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
@@ -716,8 +716,8 @@ func InitiatePayment(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Payment amount in the smallest currency sub-unit "+
-				"(e.g., for ₹100, use 10000)"),
+			mcpgo.Description("Payment amount in paise (smallest currency sub-unit). "+
+				"For INR: 100 paise = ₹1. Example: for ₹100, use 10000"),
 			mcpgo.Required(),
 			mcpgo.Min(100),
 		),

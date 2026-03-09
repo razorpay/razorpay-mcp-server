@@ -330,8 +330,9 @@ func (v *Validator) ValidateAndAddOptionalBool(
 }
 
 // validateTokenMaxAmount validates the max_amount field in token.
-// max_amount is required and must be a positive number representing
+// max_amount is required and must be a positive number in paise representing
 // the maximum amount that can be debited from the customer's account.
+// For INR: 100 paise = ₹1.
 func (v *Validator) validateTokenMaxAmount(
 	token map[string]interface{}) *Validator {
 	if maxAmount, exists := token["max_amount"]; exists {
@@ -426,7 +427,8 @@ func (v *Validator) validateTokenType(token map[string]interface{}) *Validator {
 
 // ValidateAndAddToken validates and adds a token object with proper structure.
 // The token object is used for mandate orders and must contain:
-//   - max_amount: positive number (maximum debit amount)
+//   - max_amount: positive number in paise (maximum debit amount).
+//     For INR: 100 paise = ₹1
 //   - expire_at: optional Unix timestamp (mandate expiry,
 //     defaults to today + 60 days)
 //   - frequency: string (debit frequency: as_presented, monthly, one_time,
