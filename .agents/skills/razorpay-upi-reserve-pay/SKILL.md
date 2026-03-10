@@ -5,7 +5,9 @@ description: Integrate Razorpay UPI Reserve Pay (SBMD) APIs into merchant codeba
 
 # Razorpay UPI Reserve Pay Integration
 
-Guide for integrating UPI Reserve Pay (Single-Block, Multiple-Debit) into merchant applications.
+Guide for integrating UPI Reserve Pay (Single-Block, Multiple-Debit) into merchant applications using the Razorpay SDK.
+
+**Note**: This guide uses the official Razorpay SDK for all integrations. All examples show SDK method calls rather than direct API endpoints for better reliability, type safety, and maintainability.
 
 ## Overview
 
@@ -15,6 +17,180 @@ UPI Reserve Pay allows businesses to:
 - Provide frictionless repeat payment experiences
 
 **Example**: A customer authorizes ₹2000 block. Multiple orders (₹400, ₹600) are automatically debited without PIN entry.
+
+## ⚠️ CRITICAL: Correct SDK Method Names by Language
+
+**The method names vary significantly across SDKs.** Use these EXACT method names:
+
+### Node.js (Razorpay SDK v2.9.6+)
+
+**Authorization Payment (Step 2):**
+```javascript
+const payment = await razorpay.payments.createPaymentJson({
+  amount, currency, order_id, customer_id, email, contact,
+  method: "upi", recurring: "1", upi: { flow: "intent" }
+});
+```
+
+**Debit Payment (Step 5):**
+```javascript
+const payment = await razorpay.payments.createRecurringPayment({
+  amount, currency, order_id, customer_id, token, recurring: "1",
+  email, contact, description
+});
+```
+
+❌ **Common Mistakes:**
+- `razorpay.payments.create()` - Does NOT exist
+- `razorpay.payments.createRecurring()` - Wrong method name
+- `Payment.CreateRecurring()` - Go SDK syntax, not Node.js
+
+### Python SDK
+
+**Authorization Payment (Step 2):**
+```python
+payment = client.payment.create_json({
+    "amount": amount, "currency": "INR", "order_id": order_id,
+    "customer_id": customer_id, "email": email, "contact": contact,
+    "method": "upi", "recurring": "1", "upi": {"flow": "intent"}
+})
+```
+
+**Debit Payment (Step 5):**
+```python
+payment = client.payment.create_recurring({
+    "amount": amount, "currency": "INR", "order_id": order_id,
+    "customer_id": customer_id, "token": token_id, "recurring": "1",
+    "email": email, "contact": contact
+})
+```
+
+### Go SDK
+
+**Authorization Payment (Step 2):**
+```go
+payment, err := client.Payment.CreateRecurring(razorpay.Payment{
+    Amount: amount, Currency: "INR", OrderId: orderId,
+    CustomerId: customerId, Email: email, Contact: contact,
+    Method: "upi", Recurring: "1", UPI: map[string]interface{}{"flow": "intent"},
+}, nil)
+```
+
+**Debit Payment (Step 5):**
+```go
+payment, err := client.Payment.CreateRecurring(razorpay.Payment{
+    Amount: amount, Currency: "INR", OrderId: orderId,
+    CustomerId: customerId, Token: tokenId, Recurring: "1",
+    Email: email, Contact: contact,
+}, nil)
+```
+
+### PHP SDK
+
+**Authorization Payment (Step 2):**
+```php
+$payment = $client->payment->createJson([
+    'amount' => $amount, 'currency' => 'INR', 'order_id' => $orderId,
+    'customer_id' => $customerId, 'email' => $email, 'contact' => $contact,
+    'method' => 'upi', 'recurring' => '1', 'upi' => ['flow' => 'intent']
+]);
+```
+
+**Debit Payment (Step 5):**
+```php
+$payment = $client->payment->createRecurring([
+    'amount' => $amount, 'currency' => 'INR', 'order_id' => $orderId,
+    'customer_id' => $customerId, 'token' => $tokenId, 'recurring' => '1',
+    'email' => $email, 'contact' => $contact
+]);
+```
+
+### Java SDK
+
+**Authorization Payment (Step 2):**
+```java
+JSONObject paymentRequest = new JSONObject();
+paymentRequest.put("amount", amount);
+paymentRequest.put("currency", "INR");
+paymentRequest.put("order_id", orderId);
+paymentRequest.put("customer_id", customerId);
+paymentRequest.put("email", email);
+paymentRequest.put("contact", contact);
+paymentRequest.put("method", "upi");
+paymentRequest.put("recurring", "1");
+paymentRequest.put("upi", new JSONObject().put("flow", "intent"));
+
+Payment payment = client.payments.createJson(paymentRequest);
+```
+
+**Debit Payment (Step 5):**
+```java
+JSONObject paymentRequest = new JSONObject();
+paymentRequest.put("amount", amount);
+paymentRequest.put("currency", "INR");
+paymentRequest.put("order_id", orderId);
+paymentRequest.put("customer_id", customerId);
+paymentRequest.put("token", tokenId);
+paymentRequest.put("recurring", "1");
+paymentRequest.put("email", email);
+paymentRequest.put("contact", contact);
+
+Payment payment = client.payments.createRecurring(paymentRequest);
+```
+
+## 🔑 Key Takeaways
+
+1. **Method names differ across languages** - Always check SDK documentation
+2. **Node.js uses camelCase** - `createPaymentJson()`, `createRecurringPayment()`
+3. **Python uses snake_case** - `create_json()`, `create_recurring()`
+4. **Go/PHP/Java** - Check respective SDK docs for exact method names
+5. **The generic `CreateRecurring()` in this guide** is a placeholder - use language-specific names above
+
+## SDK Setup
+
+This guide uses the official Razorpay SDK for all API interactions. Before implementing UPI Reserve Pay, ensure the Razorpay SDK is initialized:
+
+**Go SDK**:
+```go
+import (
+    razorpay "github.com/razorpay/razorpay-go"
+)
+
+client := razorpay.NewClient(keyID, keySecret)
+```
+
+**Node.js SDK**:
+```javascript
+const Razorpay = require('razorpay');
+
+const client = new Razorpay({
+    key_id: 'YOUR_KEY_ID',
+    key_secret: 'YOUR_KEY_SECRET'
+});
+```
+
+**Python SDK**:
+```python
+import razorpay
+
+client = razorpay.Client(auth=("YOUR_KEY_ID", "YOUR_KEY_SECRET"))
+```
+
+**PHP SDK**:
+```php
+use Razorpay\Api\Api;
+
+$client = new Api($keyId, $keySecret);
+```
+
+**Java SDK**:
+```java
+import com.razorpay.RazorpayClient;
+
+RazorpayClient client = new RazorpayClient("YOUR_KEY_ID", "YOUR_KEY_SECRET");
+```
+
+All code examples in this guide use Go SDK syntax, but the concepts apply to all SDKs. Refer to [Razorpay SDK documentation](https://razorpay.com/docs/api/) for language-specific implementations.
 
 ## Integration Workflow
 
@@ -40,11 +216,12 @@ Before writing any code, explore the merchant's application:
    - Order creation logic
    - Payment processing handlers
    - Customer management code
-   - Razorpay API client initialization
+   - Razorpay SDK client initialization
    - Configuration files (API keys, etc.)
 
 4. **Check existing patterns**:
-   - How are Razorpay orders currently created?
+   - How are Razorpay orders currently created using the SDK?
+   - Where is the Razorpay SDK client initialized?
    - Where is customer data stored?
    - How are payment callbacks handled?
    - Error handling patterns
@@ -79,28 +256,30 @@ Now implement the UPI Reserve Pay flow following the merchant's code patterns.
 
 ### Step 1: Create Authorization Order
 
-Create an order for the initial authorization transaction.
+Create an order for the initial authorization transaction using the Razorpay SDK.
 
-**API Endpoint**: `POST /v1/orders`
+**SDK Method**: `client.Order.Create()`
 
 **Required Parameters**:
-```json
-{
-  "amount": 200,
-  "currency": "INR",
-  "customer_id": "cust_xxx",
-  "method": "upi",
-  "token": {
-    "max_amount": 200,
-    "expire_at": 1767091469,
-    "frequency": "as_presented",
-    "type": "single_block_multiple_debit"
-  },
-  "receipt": "Receipt No. 1",
-  "notes": {
-    "notes_key_1": "Additional info"
-  }
+```go
+data := map[string]interface{}{
+    "amount": 200,
+    "currency": "INR",
+    "customer_id": "cust_xxx",
+    "method": "upi",
+    "token": map[string]interface{}{
+        "max_amount": 200,
+        "expire_at": 1767091469,
+        "frequency": "as_presented",
+        "type": "single_block_multiple_debit",
+    },
+    "receipt": "Receipt No. 1",
+    "notes": map[string]interface{}{
+        "notes_key_1": "Additional info",
+    },
 }
+
+order, err := client.Order.Create(data, nil)
 ```
 
 **Key Fields**:
@@ -110,47 +289,51 @@ Create an order for the initial authorization transaction.
 - `token.frequency`: Must be `"as_presented"` for SBMD
 - `token.type`: Must be `"single_block_multiple_debit"`
 
-**Response**: Returns `order_id` to use in authorization payment.
+**Response**: Returns order object with `order_id` to use in authorization payment.
 
 **Note**: Do NOT add `force_terminal_id` parameter - it's not required for standard integration.
 
 ### Step 2: Create Authorization Payment
 
-Initiate UPI mandate authorization via intent flow.
+Initiate UPI mandate authorization via intent flow using the Razorpay SDK.
 
-**API Endpoint**: `POST /v1/payments/create/json`
+**⚠️ IMPORTANT:** The SDK method name varies by language. See "Correct SDK Method Names by Language" section above for your language-specific method.
+
+**Generic SDK Method (See above for your language)**: Authorization payment creation method
 
 **Required Parameters**:
-```json
-{
-  "amount": 200,
-  "contact": "9123456780",
-  "currency": "INR",
-  "customer_id": "cust_xxx",
-  "email": "customer@example.com",
-  "method": "upi",
-  "order_id": "order_xxx",
-  "recurring": true,
-  "upi": {
-    "flow": "intent"
-  }
+```go
+data := map[string]interface{}{
+    "amount": 200,
+    "contact": "9123456780",
+    "currency": "INR",
+    "customer_id": "cust_xxx",
+    "email": "customer@example.com",
+    "method": "upi",
+    "order_id": "order_xxx",
+    "recurring": true,
+    "upi": map[string]interface{}{
+        "flow": "intent",
+    },
 }
+
+payment, err := client.Payment.CreateRecurring(data, nil)
 ```
 
 **Response**:
-```json
+```go
 {
-  "razorpay_payment_id": "pay_xxx",
-  "next": [
-    {
-      "action": "intent",
-      "url": "upi://mandate?pa=..."
+    "razorpay_payment_id": "pay_xxx",
+    "next": []interface{}{
+        map[string]interface{}{
+            "action": "intent",
+            "url": "upi://mandate?pa=...",
+        },
+        map[string]interface{}{
+            "action": "poll",
+            "url": "https://api.razorpay.com/v1/payments/pay_xxx",
+        },
     },
-    {
-      "action": "poll",
-      "url": "https://api.razorpay.com/v1/payments/pay_xxx"
-    }
-  ]
 }
 ```
 
@@ -159,7 +342,243 @@ Initiate UPI mandate authorization via intent flow.
 - **CONSUME** `token.confirmed` webhook to know mandate status
 - User approves mandate in TPAP apps (PhonePe/GPay/Paytm)
 
-### Step 2.1: Token Confirmation Webhook
+### Step 2.1: Handle Intent URL Based on Platform
+
+After receiving the payment response with intent URL, handle it differently based on the platform:
+
+#### For Web Browser / Website
+
+Convert the intent URL to a QR code that customers can scan with their UPI app.
+
+**Implementation Options**:
+
+**Option 1: Using QR Code Library (Recommended)**
+
+**Node.js**:
+```javascript
+const QRCode = require('qrcode');
+
+// Get intent URL from payment response
+const intentUrl = payment.next.find(action => action.action === 'intent')?.url;
+
+// Generate QR code as Data URL
+const qrCodeDataUrl = await QRCode.toDataURL(intentUrl, {
+    width: 300,
+    margin: 2,
+    color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+    }
+});
+
+// Send to frontend
+res.json({
+    razorpay_payment_id: payment.razorpay_payment_id,
+    qr_code: qrCodeDataUrl,
+    intent_url: intentUrl
+});
+```
+
+**Python**:
+```python
+import qrcode
+import io
+import base64
+
+# Get intent URL from payment response
+intent_url = next((action['url'] for action in payment['next'] if action['action'] == 'intent'), None)
+
+# Generate QR code
+qr = qrcode.QRCode(version=1, box_size=10, border=2)
+qr.add_data(intent_url)
+qr.make(fit=True)
+
+# Create image
+img = qr.make_image(fill_color="black", back_color="white")
+
+# Convert to base64
+buffer = io.BytesIO()
+img.save(buffer, format='PNG')
+qr_code_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+# Return to frontend
+return {
+    "razorpay_payment_id": payment["razorpay_payment_id"],
+    "qr_code": f"data:image/png;base64,{qr_code_base64}",
+    "intent_url": intent_url
+}
+```
+
+**Go**:
+```go
+import (
+    "encoding/base64"
+    "github.com/skip2/go-qrcode"
+)
+
+// Get intent URL from payment response
+var intentUrl string
+for _, action := range payment["next"].([]interface{}) {
+    actionMap := action.(map[string]interface{})
+    if actionMap["action"] == "intent" {
+        intentUrl = actionMap["url"].(string)
+        break
+    }
+}
+
+// Generate QR code
+qrCode, err := qrcode.Encode(intentUrl, qrcode.Medium, 300)
+if err != nil {
+    return err
+}
+
+// Convert to base64
+qrCodeBase64 := base64.StdEncoding.EncodeToString(qrCode)
+
+// Return to frontend
+response := map[string]interface{}{
+    "razorpay_payment_id": payment["razorpay_payment_id"],
+    "qr_code": "data:image/png;base64," + qrCodeBase64,
+    "intent_url": intentUrl,
+}
+```
+
+**Frontend Display**:
+```html
+<div class="qr-container">
+    <h3>Scan QR Code to Authorize UPI Mandate</h3>
+    <img src="{{ qr_code }}" alt="UPI QR Code" />
+    <p>Scan this QR code with PhonePe, Google Pay, or Paytm to approve the mandate</p>
+</div>
+```
+
+#### For Mobile App
+
+Open the TPAP app directly using the intent URL.
+
+**Android (Java/Kotlin)**:
+
+```kotlin
+// Get intent URL from payment response
+val intentUrl = payment.next
+    .find { it.action == "intent" }
+    ?.url ?: return
+
+// Open TPAP app
+try {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(intentUrl))
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    startActivity(intent)
+} catch (e: ActivityNotFoundException) {
+    // Handle case where no UPI app is installed
+    Toast.makeText(
+        context,
+        "No UPI app found. Please install PhonePe, Google Pay, or Paytm",
+        Toast.LENGTH_LONG
+    ).show()
+}
+```
+
+**Android (React Native)**:
+```javascript
+import { Linking, Alert } from 'react-native';
+
+// Get intent URL from payment response
+const intentUrl = payment.next.find(action => action.action === 'intent')?.url;
+
+// Open TPAP app
+const openTPAPApp = async (url) => {
+    try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+            await Linking.openURL(url);
+        } else {
+            Alert.alert(
+                'No UPI App Found',
+                'Please install PhonePe, Google Pay, or Paytm to continue'
+            );
+        }
+    } catch (error) {
+        console.error('Error opening UPI app:', error);
+        Alert.alert('Error', 'Failed to open UPI app');
+    }
+};
+
+await openTPAPApp(intentUrl);
+```
+
+**iOS (Swift)**:
+```swift
+// Get intent URL from payment response
+guard let intentUrl = payment.next
+    .first(where: { $0.action == "intent" })?
+    .url else { return }
+
+// Open TPAP app
+guard let url = URL(string: intentUrl) else { return }
+
+if UIApplication.shared.canOpenURL(url) {
+    UIApplication.shared.open(url, options: [:]) { success in
+        if !success {
+            // Handle failure
+            print("Failed to open UPI app")
+        }
+    }
+} else {
+    // Show alert - no UPI app installed
+    let alert = UIAlertController(
+        title: "No UPI App Found",
+        message: "Please install PhonePe, Google Pay, or Paytm",
+        preferredStyle: .alert
+    )
+    alert.addAction(UIAlertAction(title: "OK", style: .default))
+    present(alert, animated: true)
+}
+```
+
+**Flutter**:
+```dart
+import 'package:url_launcher/url_launcher.dart';
+
+// Get intent URL from payment response
+final intentUrl = payment['next']
+    .firstWhere((action) => action['action'] == 'intent')['url'];
+
+// Open TPAP app
+Future<void> openTPAPApp(String url) async {
+  final uri = Uri.parse(url);
+  
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } else {
+    // Show error dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('No UPI App Found'),
+        content: Text('Please install PhonePe, Google Pay, or Paytm'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+await openTPAPApp(intentUrl);
+```
+
+**Important Notes**:
+- **Web**: Display QR code and poll for payment status using the poll URL
+- **Mobile**: Deep link directly opens the installed TPAP app
+- **Polling**: Implement polling mechanism to check authorization status
+- **Timeout**: Set appropriate timeout (2-5 minutes) for mandate approval
+- **Fallback**: Handle cases where no UPI app is installed on mobile
+
+### Step 2.2: Token Confirmation Webhook
 
 After customer approves mandate, you'll receive a webhook.
 
@@ -203,41 +622,46 @@ After customer approves mandate, you'll receive a webhook.
 
 ### Step 3: Fetch Token Using Customer ID
 
-After authorization, retrieve the token to use for subsequent payments.
+After authorization, retrieve the token to use for subsequent payments using the Razorpay SDK.
 
-**API Endpoint**: `GET /v1/customers/{customer_id}/tokens`
+**SDK Method**: `client.Customer.FetchAllTokens()`
+
+**Code Example**:
+```go
+tokens, err := client.Customer.FetchAllTokens(customerID, nil)
+```
 
 **Response**:
-```json
+```go
 {
-  "entity": "collection",
-  "count": 1,
-  "items": [
-    {
-      "id": "token_xxx",
-      "method": "upi",
-      "vpa": {
-        "username": "user",
-        "handle": "upi",
-        "name": "CUSTOMER NAME"
-      },
-      "recurring_details": {
-        "type": "single_block_multiple_debit",
-        "status": "confirmed",
-        "failure_reason": null,
-        "amount_blocked": 200,
-        "amount_debited": 100
-      },
-      "max_amount": 200,
-      "expired_at": 1767091469
-    }
-  ]
+    "entity": "collection",
+    "count": 1,
+    "items": []interface{}{
+        map[string]interface{}{
+            "id": "token_xxx",
+            "method": "upi",
+            "vpa": map[string]interface{}{
+                "username": "user",
+                "handle": "upi",
+                "name": "CUSTOMER NAME",
+            },
+            "recurring_details": map[string]interface{}{
+                "type": "single_block_multiple_debit",
+                "status": "confirmed",
+                "failure_reason": nil,
+                "amount_blocked": 200,
+                "amount_debited": 100,
+            },
+            "max_amount": 200,
+            "expired_at": 1767091469,
+        },
+    },
 }
 ```
 
-**Alternative Methods**:
-- Fetch token by payment ID: `GET /v1/payments/{payment_id}` (includes `token_id` field)
-- Fetch specific token: `GET /v1/customers/{customer_id}/tokens/{token_id}`
+**Alternative SDK Methods**:
+- Fetch token by payment ID: `client.Payment.Fetch(paymentID, nil)` (includes `token_id` field)
+- Fetch specific token: `client.Customer.FetchToken(customerID, tokenID, nil)`
 
 **Important Token Fields**:
 - `id`: Token ID to use for subsequent debits
@@ -253,54 +677,60 @@ After authorization, retrieve the token to use for subsequent payments.
 
 ### Step 4: Create Subsequent Debit Order
 
-Create a new order for each debit transaction.
+Create a new order for each debit transaction using the Razorpay SDK.
 
-**API Endpoint**: `POST /v1/orders`
+**SDK Method**: `client.Order.Create()`
 
 **Required Parameters**:
-```json
-{
-  "amount": 100,
-  "currency": "INR",
-  "receipt": "Receipt No. 2",
-  "payment_capture": "0"
+```go
+data := map[string]interface{}{
+    "amount": 100,
+    "currency": "INR",
+    "receipt": "Receipt No. 2",
+    "payment_capture": 0,
 }
+
+order, err := client.Order.Create(data, nil)
 ```
 
 **Important**: This is a standard order, NOT an authorization order. Do not include the `token` object.
 
-**Response**: Returns `order_id` for the debit payment.
+**Response**: Returns order object with `order_id` for the debit payment.
 
 ### Step 5: Create Subsequent Payment (Debit from Mandate)
 
-Charge the customer using the saved token.
+Charge the customer using the saved token with the Razorpay SDK.
 
-**API Endpoint**: `POST /v1/payments/create/json`
+**⚠️ IMPORTANT:** The SDK method name varies by language. See "Correct SDK Method Names by Language" section above for your language-specific method.
+
+**Generic SDK Method (See above for your language)**: Recurring payment creation method
 
 **Required Parameters**:
-```json
-{
-  "amount": 100,
-  "currency": "INR",
-  "order_id": "order_yyy",
-  "customer_id": "cust_xxx",
-  "token": "token_xxx",
-  "recurring": "1",
-  "contact": "9000090000",
-  "email": "customer@example.com",
-  "description": "Creating recurring payment for Customer Name",
-  "notes": {
-    "note_key_1": "Additional info"
-  }
+```go
+data := map[string]interface{}{
+    "amount": 100,
+    "currency": "INR",
+    "order_id": "order_yyy",
+    "customer_id": "cust_xxx",
+    "token": "token_xxx",
+    "recurring": "1",
+    "contact": "9000090000",
+    "email": "customer@example.com",
+    "description": "Creating recurring payment for Customer Name",
+    "notes": map[string]interface{}{
+        "note_key_1": "Additional info",
+    },
 }
+
+payment, err := client.Payment.CreateRecurring(data, nil)
 ```
 
 **Response**:
-```json
+```go
 {
-  "razorpay_payment_id": "pay_xxx",
-  "razorpay_order_id": "order_yyy",
-  "razorpay_signature": "signature_xxx"
+    "razorpay_payment_id": "pay_xxx",
+    "razorpay_order_id": "order_yyy",
+    "razorpay_signature": "signature_xxx",
 }
 ```
 
@@ -313,14 +743,20 @@ Charge the customer using the saved token.
 ## Token Management
 
 ### Cancel Token (Release Funds at Bank)
-**API**: `PUT /v1/customers/{customer_id}/tokens/{token_id}/cancel`
+
+**SDK Method**: `client.Customer.CancelToken()`
 
 **Purpose**: Initiates mandate cancellation to release blocked funds.
 
+**Code Example**:
+```go
+token, err := client.Customer.CancelToken(customerID, tokenID, nil)
+```
+
 **Response**:
-```json
+```go
 {
-  "status": "cancellation_initiated"
+    "status": "cancellation_initiated",
 }
 ```
 
@@ -331,15 +767,18 @@ Charge the customer using the saved token.
 ## Refunds
 
 ### Create Refund
-**API**: `POST /v1/payments/{payment_id}/refund`
+
+**SDK Method**: `client.Payment.Refund()`
 
 **Required Parameters**:
-```json
-{
-  "amount": 100,
-  "speed": "normal",
-  "receipt": "refund12324"
+```go
+data := map[string]interface{}{
+    "amount": 100,
+    "speed": "normal",
+    "receipt": "refund12324",
 }
+
+refund, err := client.Payment.Refund(paymentID, data, nil)
 ```
 
 **Webhook Events**:
@@ -386,6 +825,34 @@ More details: https://razorpay.com/docs/webhooks/refunds
 | `transaction_limit_exceeded` | Exceeded amount limits | Reduce amount or contact customer |
 | `insufficient_funds` | Not enough balance | Wait or contact customer |
 
+## SDK Error Handling
+
+The Razorpay SDK returns errors that should be handled appropriately:
+
+**Go SDK Error Handling**:
+```go
+order, err := client.Order.Create(data, nil)
+if err != nil {
+    // Handle error - check error type
+    // SDK errors contain status code and error details
+    log.Printf("Order creation failed: %v", err)
+    return err
+}
+```
+
+**Common SDK Error Patterns**:
+- **Authentication errors**: Invalid API keys - check client initialization
+- **Validation errors**: Missing or invalid parameters - verify data structure
+- **API errors**: Rate limits, server errors - implement retry logic
+- **Network errors**: Timeouts, connection issues - handle gracefully
+
+**Best Practices**:
+- Always check for errors after SDK method calls
+- Log errors with context for debugging
+- Return user-friendly error messages
+- Implement retry logic for transient failures
+- Handle webhook failures gracefully
+
 ## Implementation Checklist
 
 When implementing UPI Reserve Pay:
@@ -406,17 +873,20 @@ Phase 2: Database & Schema
 - [ ] Plan token-to-order linking
 
 Phase 3: Authorization Flow
-- [ ] Create customer (if not exists)
-- [ ] Create authorization order with token parameters
-- [ ] Call /v1/payments/create/json with recurring=true and upi.flow=intent
-- [ ] Handle intent URL response (redirect to UPI app)
+- [ ] Create customer using SDK (if not exists): client.Customer.Create()
+- [ ] Create authorization order with token parameters: client.Order.Create()
+- [ ] Call client.Payment.CreateRecurring() with recurring=true and upi.flow=intent
+- [ ] Handle intent URL response:
+  - [ ] For Web: Generate QR code from intent URL (using qrcode library)
+  - [ ] For Mobile: Implement deep link to open TPAP app (PhonePe/GPay/Paytm)
+- [ ] Implement polling mechanism for payment status
 - [ ] IGNORE payment.failed webhook during authorization
 - [ ] Implement token.confirmed webhook handler
-- [ ] Fetch and store token_id in database
+- [ ] Fetch and store token_id in database using client.Customer.FetchAllTokens()
 
 Phase 4: Debit Flow
-- [ ] Create standard debit orders (no token object)
-- [ ] Call /v1/payments/create/json with token parameter
+- [ ] Create standard debit orders (no token object): client.Order.Create()
+- [ ] Call client.Payment.CreateRecurring() with token parameter
 - [ ] Handle payment.authorized webhook for success
 - [ ] Handle payment.failed webhook for failures
 - [ ] Implement proper error handling and retry logic
@@ -439,28 +909,30 @@ Phase 5: Testing & Integration
 - Match their API response structure
 
 **Reuse existing components**:
-- Use their Razorpay client initialization
+- Use their Razorpay SDK client initialization
+- Leverage existing SDK method patterns
 - Leverage existing customer lookup functions
 - Use their database access patterns
 - Integrate with their webhook handlers
 
 ### Common Integration Patterns
 
-#### Pattern 1: Existing Razorpay Integration
+#### Pattern 1: Existing Razorpay SDK Integration
 
-If Razorpay is already integrated:
+If Razorpay SDK is already integrated:
 ```
-1. Find existing order creation code
-2. Create similar function for authorization orders
-3. Add token parameters to existing structure
-4. Reuse existing payment handler patterns
+1. Find existing order creation code using client.Order.Create()
+2. Create similar function for authorization orders with token parameters
+3. Use client.Payment.CreateRecurring() for both auth and debit flows
+4. Reuse existing payment handler patterns and webhook processing
 ```
 
-#### Pattern 2: No Existing Razorpay
+#### Pattern 2: No Existing Razorpay SDK
 
 If starting fresh:
 ```
-1. Set up Razorpay client with API keys
+1. Initialize Razorpay SDK client with API keys:
+   client := razorpay.NewClient(keyID, keySecret)
 2. Create dedicated service/module for UPI Reserve Pay
 3. Follow merchant's service architecture pattern
 4. Integrate webhooks into their webhook handler
@@ -471,9 +943,10 @@ If starting fresh:
 If using microservices:
 ```
 1. Identify payment service
-2. Add UPI Reserve Pay endpoints to payment service
-3. Use message queue for async operations if they do
-4. Follow their inter-service communication pattern
+2. Initialize Razorpay SDK client in payment service
+3. Add UPI Reserve Pay endpoints using SDK methods
+4. Use message queue for async operations if they do
+5. Follow their inter-service communication pattern
 ```
 
 ## Key Differences from Regular Payments
@@ -482,8 +955,8 @@ If using microservices:
 2. **Debit orders** are standard orders (no token object)
 3. **Authorization payment** uses `upi.flow = "intent"` and returns intent URL
 4. **Success indicator** is `token.confirmed` webhook (IGNORE `payment.failed`)
-5. **Debit payment** uses `/v1/payments/create/json` with token parameter
-6. **Both auth and debit** use same endpoint: `/v1/payments/create/json`
+5. **Debit payment** uses `client.Payment.CreateRecurring()` with token parameter
+6. **Both auth and debit** use same SDK method: `client.Payment.CreateRecurring()`
 
 
 ### Verification Steps
@@ -507,7 +980,8 @@ When starting integration, clarify:
 
 2. **Technical Context**:
    - What backend language/framework are you using?
-   - Is Razorpay already integrated?
+   - Is Razorpay SDK already integrated?
+   - Where is the Razorpay SDK client initialized?
    - Where is your order creation logic?
    - How do you store customer data?
    - Do you have webhook handling set up?
@@ -519,28 +993,38 @@ When starting integration, clarify:
 
 ## Testing Tips
 
-1. **Use test mode**: Use Razorpay test credentials (never production during development)
+1. **Use test mode**: Initialize Razorpay SDK with test credentials (never production during development)
+   ```go
+   client := razorpay.NewClient(testKeyID, testKeySecret)
+   ```
 
 2. **Test authorization flow**:
-   - Create customer, order, and initiate payment
+   - Create customer using `client.Customer.Create()`
+   - Create order using `client.Order.Create()` with token parameters
+   - Initiate payment using `client.Payment.CreateRecurring()`
+   - Test platform-specific intent handling:
+     - **Web**: Verify QR code generated correctly and can be scanned
+     - **Mobile**: Verify deep link opens TPAP app correctly
    - Use real UPI app (PhonePe/GPay) to approve in test mode
+   - Test polling mechanism works correctly
    - Monitor for `token.confirmed` webhook
-   - Verify token stored with correct status
+   - Verify token stored with correct status using `client.Customer.FetchAllTokens()`
 
 3. **Test debit flow**:
-   - Create debit order with amount ≤ max_amount
-   - Initiate payment with saved token
+   - Create debit order using `client.Order.Create()` with amount ≤ max_amount
+   - Initiate payment using `client.Payment.CreateRecurring()` with saved token
    - Check `payment.authorized` webhook
-   - Verify `amount_debited` increases in token
+   - Verify `amount_debited` increases in token using `client.Customer.FetchToken()`
 
 4. **Test error scenarios**:
-   - Debit amount > max_amount (should fail)
+   - Debit amount > max_amount using SDK (should fail gracefully)
    - Debit from expired token
    - Debit from cancelled token
    - Multiple concurrent debits
+   - Handle SDK error responses properly
 
 5. **Test cancellation**:
-   - Cancel token via API
+   - Cancel token using `client.Customer.CancelToken()`
    - Verify `token.cancellation_initiated` webhook
    - Check token status updated
    - Attempt debit on cancelled token (should fail)
@@ -561,29 +1045,48 @@ When starting integration, clarify:
 
 Once you understand the codebase, follow this sequence:
 
-1. **Add database fields** for token_id, token_status, amount_blocked, amount_debited (all nullable)
-2. **Create authorization endpoint** following existing route patterns
-3. **Implement authorization order creation** with token parameters (type="single_block_multiple_debit")
-4. **Call /v1/payments/create/json** with recurring=true and upi.flow=intent
-5. **Add webhook handler for token.confirmed** to store token_id (IGNORE payment.failed)
-6. **Implement timeout logic** for pending mandate approvals
-7. **Create debit endpoint** that calls /v1/payments/create/json with token parameter
-8. **Add webhook handlers** for payment.authorized and payment.failed
-9. **Implement token management** (cancel to release funds, avoid delete)
-10. **Add refund support** if needed
-11. **Test isolation** - verify existing flows unaffected
-12. **Document** new endpoints for merchant's team
+1. **Initialize Razorpay SDK client** if not already done: `client := razorpay.NewClient(keyID, keySecret)`
+2. **Add database fields** for token_id, token_status, amount_blocked, amount_debited (all nullable)
+3. **Create authorization endpoint** following existing route patterns
+4. **Implement authorization order creation** using `client.Order.Create()` with token parameters (type="single_block_multiple_debit")
+5. **Call client.Payment.CreateRecurring()** with recurring=true and upi.flow=intent
+6. **Handle intent URL based on platform**:
+   - For Web: Generate QR code from intent URL using QR library
+   - For Mobile: Implement deep linking to open TPAP app directly
+7. **Implement polling mechanism** to check payment status
+8. **Add webhook handler for token.confirmed** to store token_id (IGNORE payment.failed)
+9. **Implement timeout logic** for pending mandate approvals
+10. **Create debit endpoint** that calls `client.Payment.CreateRecurring()` with token parameter
+11. **Add webhook handlers** for payment.authorized and payment.failed
+12. **Implement token management** using `client.Customer.CancelToken()` to release funds
+13. **Add refund support** using `client.Payment.Refund()` if needed
+14. **Test isolation** - verify existing flows unaffected
+15. **Document** new endpoints for merchant's team
 
 ## Additional Resources
 
-- API Reference: https://razorpay.com/docs/api/payments/recurring-payments/upi-reserve-pay/
+### Documentation
 - UPI Reserve Pay Guide: https://razorpay.com/docs/payments/recurring-payments/upi-reserve-pay/
+- API Reference: https://razorpay.com/docs/api/payments/recurring-payments/upi-reserve-pay/
 - Webhooks: https://razorpay.com/docs/webhooks/
+
+### SDK Documentation
+- Go SDK: https://github.com/razorpay/razorpay-go
+- Node.js SDK: https://github.com/razorpay/razorpay-node
+- Python SDK: https://github.com/razorpay/razorpay-python
+- PHP SDK: https://github.com/razorpay/razorpay-php
+- Java SDK: https://github.com/razorpay/razorpay-java
 
 ## Related MCP Tools
 
-If implementing as MCP tools, consider creating:
-- `create_upi_reserve_authorization_order`
-- `fetch_recurring_tokens`
-- `create_recurring_payment`
-- `cancel_recurring_token`
+If implementing as MCP tools use below tools:
+- `create_upi_reserve_authorization_order` - Wraps `client.Order.Create()` with token parameters
+- `create_upi_reserve_authorization_payment` - Wraps `client.Payment.CreateRecurring()` for mandate auth
+- `fetch_recurring_tokens` - Wraps `client.Customer.FetchAllTokens()` or `client.Customer.FetchToken()`
+- `create_recurring_payment` - Wraps `client.Payment.CreateRecurring()` with token parameter
+- `cancel_recurring_token` - Wraps `client.Customer.CancelToken()`
+
+Each tool should:
+- Initialize or reuse existing Razorpay SDK client
+- Handle SDK method calls and error responses
+- Return structured data suitable for MCP protocol
