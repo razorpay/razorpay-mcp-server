@@ -47,7 +47,13 @@ func FetchPayment(
 			return result, err
 		}
 
-		paymentId := params["payment_id"].(string)
+		paymentId, ok := params["payment_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_id parameter"), nil
+		}
+		if err := validateRazorpayID(paymentId, "pay"); err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
 
 		payment, err := client.Payment.Fetch(paymentId, nil, nil)
 		if err != nil {
@@ -101,7 +107,10 @@ func FetchPaymentCardDetails(
 			return result, err
 		}
 
-		paymentId := params["payment_id"].(string)
+		paymentId, ok := params["payment_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_id parameter"), nil
+		}
 
 		cardDetails, err := client.Payment.FetchCardDetails(
 			paymentId, nil, nil)
@@ -164,7 +173,10 @@ func UpdatePayment(
 			return result, err
 		}
 
-		paymentId := params["payment_id"].(string)
+		paymentId, ok := params["payment_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_id parameter"), nil
+		}
 
 		// Update the payment
 		updatedPayment, err := client.Payment.Edit(paymentId, paymentUpdateReq, nil)
@@ -232,8 +244,15 @@ func CapturePayment(
 			return result, err
 		}
 
-		paymentId := params["payment_id"].(string)
-		amount := int(params["amount"].(int64))
+		paymentId, ok := params["payment_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_id parameter"), nil
+		}
+		amountVal, ok := params["amount"].(int64)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid amount parameter"), nil
+		}
+		amount := int(amountVal)
 
 		// Capture the payment
 		payment, err := client.Payment.Capture(
@@ -337,7 +356,9 @@ func FetchAllPayments(
 // extractPaymentID extracts the payment ID from the payment response
 func extractPaymentID(payment map[string]interface{}) string {
 	if id, exists := payment["razorpay_payment_id"]; exists && id != nil {
-		return id.(string)
+		if s, ok := id.(string); ok {
+			return s
+		}
 	}
 	return ""
 }
@@ -359,6 +380,12 @@ func extractNextActions(
 	return actions
 }
 
+// isRazorpayURL checks whether the given hostname belongs to razorpay.com,
+// using strict suffix matching to prevent SSRF bypasses like razorpay.com.evil.com
+func isRazorpayURL(host string) bool {
+	return host == "razorpay.com" || strings.HasSuffix(host, ".razorpay.com")
+}
+
 // OTPResponse represents the response from OTP generation API
 
 // sendOtp sends an OTP to the customer and returns the response
@@ -376,7 +403,8 @@ func sendOtp(otpUrl string) error {
 		return fmt.Errorf("OTP URL must use HTTPS")
 	}
 
-	if !strings.Contains(parsedURL.Host, "razorpay.com") {
+	host := strings.ToLower(parsedURL.Hostname())
+	if !isRazorpayURL(host) {
 		return fmt.Errorf("OTP URL must be from Razorpay domain")
 	}
 
@@ -432,11 +460,16 @@ func buildInitiatePaymentResponse(
 
 		for _, action := range actions {
 			if actionType, exists := action["action"]; exists {
-				actionStr := actionType.(string)
+				actionStr, ok := actionType.(string)
+				if !ok {
+					continue
+				}
 				actionTypes = append(actionTypes, actionStr)
 				if actionStr == "otp_generate" {
 					hasOTP = true
-					otpUrl = action["url"].(string)
+					if u, ok := action["url"].(string); ok {
+						otpUrl = u
+					}
 				}
 
 				if actionStr == "redirect" {
@@ -521,11 +554,9 @@ func addContactAndEmailToPaymentData(
 		paymentData["contact"] = contact
 	}
 
-	// Add email if provided, otherwise generate from contact
+	// Add email if provided (email is optional, no longer fabricated)
 	if email, exists := params["email"]; exists && email != "" {
 		paymentData["email"] = email
-	} else if contact, exists := paymentData["contact"]; exists && contact != "" {
-		paymentData["email"] = contact.(string) + "@mcp.razorpay.com"
 	}
 }
 
@@ -598,7 +629,10 @@ func createOrGetCustomer(
 		return nil, nil
 	}
 
-	contact := contactValue.(string)
+	contact, ok := contactValue.(string)
+	if !ok {
+		return nil, fmt.Errorf("contact must be a string")
+	}
 	customerData := map[string]interface{}{
 		"contact":       contact,
 		"fail_existing": "0", // Get existing customer if exists
@@ -810,7 +844,9 @@ func InitiatePayment(
 		// Set default currency
 		currency := "INR"
 		if c, exists := params["currency"]; exists && c != "" {
-			currency = c.(string)
+			if cs, ok := c.(string); ok {
+				currency = cs
+			}
 		}
 
 		// Process UPI parameters (VPA for collect flow, upi_intent for intent flow)
@@ -819,7 +855,9 @@ func InitiatePayment(
 		// Handle customer ID
 		var customerID string
 		if custID, exists := params["customer_id"]; exists && custID != "" {
-			customerID = custID.(string)
+			if cs, ok := custID.(string); ok {
+				customerID = cs
+			}
 		} else {
 			// Create or get customer if contact is provided
 			customer, err := createOrGetCustomer(client, params)
@@ -900,7 +938,10 @@ func ResendOtp(
 			return result, err
 		}
 
-		paymentID := params["payment_id"].(string)
+		paymentID, ok := params["payment_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_id parameter"), nil
+		}
 
 		// Resend OTP using Razorpay SDK
 		otpResponse, err := client.Payment.OtpResend(paymentID, nil, nil)
@@ -997,9 +1038,16 @@ func SubmitOtp(
 			return result, err
 		}
 
-		paymentID := params["payment_id"].(string)
+		paymentID, ok := params["payment_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_id parameter"), nil
+		}
+		otpStr, ok := params["otp_string"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid otp_string parameter"), nil
+		}
 		data := map[string]interface{}{
-			"otp": params["otp_string"].(string),
+			"otp": otpStr,
 		}
 		otpResponse, err := client.Payment.OtpSubmit(paymentID, data, nil)
 
