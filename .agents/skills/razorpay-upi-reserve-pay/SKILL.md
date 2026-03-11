@@ -9,6 +9,8 @@ Guide for integrating UPI Reserve Pay (Single-Block, Multiple-Debit) into mercha
 
 **Note**: This guide uses the official Razorpay SDK for all integrations. All examples show SDK method calls rather than direct API endpoints for better reliability, type safety, and maintainability.
 
+**⚠️ IMPORTANT - Currency Units**: All amounts in Razorpay API are specified in **paise** (smallest currency unit), not rupees. **100 paise = ₹1**. Always multiply rupee amounts by 100 before passing to the API.
+
 ## Overview
 
 UPI Reserve Pay allows businesses to:
@@ -16,7 +18,100 @@ UPI Reserve Pay allows businesses to:
 - Debit multiple times from the reserved fund without additional approvals
 - Provide frictionless repeat payment experiences
 
-**Example**: A customer authorizes ₹2000 block. Multiple orders (₹400, ₹600) are automatically debited without PIN entry.
+**Example**: A customer authorizes ₹20 block (amount = 2000 paise). Multiple orders of ₹4 (400 paise) and ₹6 (600 paise) are automatically debited without PIN entry.
+
+## 💰 Currency Handling: Paise vs Rupees
+
+**CRITICAL**: All amounts in Razorpay API must be in **paise**, not rupees.
+
+### Conversion Reference
+
+| Rupees | Paise (API Value) |
+|--------|-------------------|
+| ₹1     | 100               |
+| ₹10    | 1,000             |
+| ₹100   | 10,000            |
+| ₹500   | 50,000            |
+| ₹1,000 | 1,00,000          |
+
+### Code Examples
+
+**Convert rupees to paise before API calls:**
+
+```javascript
+// JavaScript/Node.js
+const amountInRupees = 20;
+const amountInPaise = amountInRupees * 100;  // 2000
+
+const order = await client.orders.create({
+    amount: amountInPaise,  // Pass 2000, not 20
+    currency: "INR"
+});
+```
+
+```python
+# Python
+amount_in_rupees = 20
+amount_in_paise = amount_in_rupees * 100  # 2000
+
+order = client.order.create({
+    "amount": amount_in_paise,  # Pass 2000, not 20
+    "currency": "INR"
+})
+```
+
+```go
+// Go
+amountInRupees := 20
+amountInPaise := amountInRupees * 100  // 2000
+
+order, err := client.Order.Create(map[string]interface{}{
+    "amount": amountInPaise,  // Pass 2000, not 20
+    "currency": "INR",
+}, nil)
+```
+
+**Convert paise to rupees for display:**
+
+```javascript
+// JavaScript
+const amountInPaise = 2000;
+const amountInRupees = amountInPaise / 100;  // 20
+console.log(`Amount: ₹${amountInRupees}`);  // "Amount: ₹20"
+```
+
+```python
+# Python
+amount_in_paise = 2000
+amount_in_rupees = amount_in_paise / 100  # 20
+print(f"Amount: ₹{amount_in_rupees}")  # "Amount: ₹20"
+```
+
+```go
+// Go
+amountInPaise := 2000
+amountInRupees := float64(amountInPaise) / 100  // 20.0
+fmt.Printf("Amount: ₹%.2f\n", amountInRupees)  // "Amount: ₹20.00"
+```
+
+### Common Mistakes
+
+❌ **Wrong**: Passing rupee values directly
+```javascript
+const order = await client.orders.create({
+    amount: 20,  // This will create order for ₹0.20, not ₹20!
+    currency: "INR"
+});
+```
+
+✅ **Correct**: Converting to paise first
+```javascript
+const amountInRupees = 20;
+const order = await client.orders.create({
+    amount: amountInRupees * 100,  // 2000 paise = ₹20
+    currency: "INR"
+});
+```
 
 ## ⚠️ CRITICAL: Correct SDK Method Names by Language
 
@@ -263,12 +358,12 @@ Create an order for the initial authorization transaction using the Razorpay SDK
 **Required Parameters**:
 ```go
 data := map[string]interface{}{
-    "amount": 200,
+    "amount": 200,              // Amount in paise (200 paise = ₹2.00)
     "currency": "INR",
     "customer_id": "cust_xxx",
     "method": "upi",
     "token": map[string]interface{}{
-        "max_amount": 200,
+        "max_amount": 200,      // Max amount per debit in paise (200 paise = ₹2.00)
         "expire_at": 1767091469,
         "frequency": "as_presented",
         "type": "single_block_multiple_debit",
@@ -283,8 +378,8 @@ order, err := client.Order.Create(data, nil)
 ```
 
 **Key Fields**:
-- `amount`: Initial authorization amount (in paise) - typically equals max_amount
-- `token.max_amount`: Maximum amount that can be debited in a single charge (in paise)
+- `amount`: Initial authorization amount **in paise** (e.g., 200 paise = ₹2.00) - typically equals max_amount
+- `token.max_amount`: Maximum amount that can be debited in a single charge **in paise** (e.g., 200 paise = ₹2.00)
 - `token.expire_at`: Unix timestamp for mandate expiry (default and max: 90 days from now)
 - `token.frequency`: Must be `"as_presented"` for SBMD
 - `token.type`: Must be `"single_block_multiple_debit"`
@@ -304,7 +399,7 @@ Initiate UPI mandate authorization via intent flow using the Razorpay SDK.
 **Required Parameters**:
 ```go
 data := map[string]interface{}{
-    "amount": 200,
+    "amount": 200,                      // Amount in paise (200 paise = ₹2.00)
     "contact": "9123456780",
     "currency": "INR",
     "customer_id": "cust_xxx",
@@ -616,7 +711,8 @@ After customer approves mandate, you'll receive a webhook.
 
 **Key Points**:
 - `recurring_details.status = "confirmed"` indicates success
-- `amount_blocked` shows the mandate limit
+- `amount_blocked` shows the mandate limit **in paise** (e.g., 200 = ₹2.00)
+- `amount_debited` shows amount already used **in paise**
 - Store the `token.id` for subsequent debits
 - Implement timeout logic as users may not act on mandate immediately
 
@@ -667,10 +763,10 @@ tokens, err := client.Customer.FetchAllTokens(customerID, nil)
 - `id`: Token ID to use for subsequent debits
 - `recurring_details.type`: Should be "single_block_multiple_debit"
 - `recurring_details.status`: "confirmed", "cancellation_initiated", etc.
-- `recurring_details.amount_blocked`: Total blocked amount
-- `recurring_details.amount_debited`: Amount already debited
+- `recurring_details.amount_blocked`: Total blocked amount **in paise**
+- `recurring_details.amount_debited`: Amount already debited **in paise**
 - `recurring_details.failure_reason`: Error message if any
-- `max_amount`: Maximum per-transaction limit
+- `max_amount`: Maximum per-transaction limit **in paise**
 - `expired_at`: Mandate expiry timestamp
 - `used_at`: Last debit timestamp
 - `vpa`: Customer's UPI ID and name
@@ -684,7 +780,7 @@ Create a new order for each debit transaction using the Razorpay SDK.
 **Required Parameters**:
 ```go
 data := map[string]interface{}{
-    "amount": 100,
+    "amount": 100,              // Amount in paise (100 paise = ₹1.00)
     "currency": "INR",
     "receipt": "Receipt No. 2",
     "payment_capture": 0,
@@ -693,7 +789,9 @@ data := map[string]interface{}{
 order, err := client.Order.Create(data, nil)
 ```
 
-**Important**: This is a standard order, NOT an authorization order. Do not include the `token` object.
+**Important**: 
+- This is a standard order, NOT an authorization order. Do not include the `token` object.
+- The `amount` must be **in paise** and ≤ `max_amount` specified during authorization
 
 **Response**: Returns order object with `order_id` for the debit payment.
 
@@ -708,7 +806,7 @@ Charge the customer using the saved token with the Razorpay SDK.
 **Required Parameters**:
 ```go
 data := map[string]interface{}{
-    "amount": 100,
+    "amount": 100,                      // Amount in paise (100 paise = ₹1.00)
     "currency": "INR",
     "order_id": "order_yyy",
     "customer_id": "cust_xxx",
@@ -773,7 +871,7 @@ token, err := client.Customer.CancelToken(customerID, tokenID, nil)
 **Required Parameters**:
 ```go
 data := map[string]interface{}{
-    "amount": 100,
+    "amount": 100,              // Refund amount in paise (100 paise = ₹1.00)
     "speed": "normal",
     "receipt": "refund12324",
 }
@@ -957,6 +1055,7 @@ If using microservices:
 4. **Success indicator** is `token.confirmed` webhook (IGNORE `payment.failed`)
 5. **Debit payment** uses `client.Payment.CreateRecurring()` with token parameter
 6. **Both auth and debit** use same SDK method: `client.Payment.CreateRecurring()`
+7. **All amounts must be in paise** - multiply rupee values by 100
 
 
 ### Verification Steps
@@ -1011,13 +1110,13 @@ When starting integration, clarify:
    - Verify token stored with correct status using `client.Customer.FetchAllTokens()`
 
 3. **Test debit flow**:
-   - Create debit order using `client.Order.Create()` with amount ≤ max_amount
+   - Create debit order using `client.Order.Create()` with amount ≤ max_amount (in paise)
    - Initiate payment using `client.Payment.CreateRecurring()` with saved token
    - Check `payment.authorized` webhook
    - Verify `amount_debited` increases in token using `client.Customer.FetchToken()`
 
 4. **Test error scenarios**:
-   - Debit amount > max_amount using SDK (should fail gracefully)
+   - Debit amount > max_amount using SDK (should fail gracefully) - remember amounts are in paise
    - Debit from expired token
    - Debit from cancelled token
    - Multiple concurrent debits
@@ -1036,9 +1135,10 @@ When starting integration, clarify:
    - Refund flow works correctly
 
 7. **Important notes**:
+   - **All amounts must be in paise**: ₹1 = 100 paise, ₹10 = 1000 paise
    - During testing, mandate rejection option may not be available in TPAP apps
    - Implement timeout logic for pending mandate approvals
-   - Test with small amounts in test mode
+   - Test with small amounts in test mode (e.g., 100 paise = ₹1)
    - Verify polling mechanism for intent flow
 
 ## Quick Reference: Integration Steps
