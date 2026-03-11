@@ -329,7 +329,10 @@ func FetchPaymentLink(
 			return result, err
 		}
 
-		paymentLinkId := fields["payment_link_id"].(string)
+		paymentLinkId, ok := fields["payment_link_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_link_id parameter"), nil
+		}
 
 		paymentLink, err := client.PaymentLink.Fetch(paymentLinkId, nil, nil)
 		if err != nil {
@@ -391,8 +394,14 @@ func ResendPaymentLinkNotification(
 			return result, err
 		}
 
-		paymentLinkId := fields["payment_link_id"].(string)
-		medium := fields["medium"].(string)
+		paymentLinkId, ok := fields["payment_link_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_link_id parameter"), nil
+		}
+		medium, ok := fields["medium"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid medium parameter"), nil
+		}
 
 		// Call the SDK function
 		response, err := client.PaymentLink.NotifyBy(paymentLinkId, medium, nil, nil)
@@ -473,7 +482,10 @@ func UpdatePaymentLink(
 			return result, err
 		}
 
-		paymentLinkId := otherFields["payment_link_id"].(string)
+		paymentLinkId, ok := otherFields["payment_link_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid payment_link_id parameter"), nil
+		}
 
 		// Ensure we have at least one field to update
 		if len(plUpdateReq) == 0 {

@@ -3,7 +3,6 @@ package integrations
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
@@ -288,5 +287,3 @@ func containsSubstring(s, substr string) bool {
 	return false
 }
 
-// Ensure json import is used
-var _ = json.Marshal

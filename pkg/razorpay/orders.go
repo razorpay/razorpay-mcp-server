@@ -210,7 +210,15 @@ func FetchOrder(
 			return result, err
 		}
 
-		order, err := client.Order.Fetch(payload["order_id"].(string), nil, nil)
+		orderID, ok := payload["order_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid order_id parameter"), nil
+		}
+		if err := validateRazorpayID(orderID, "order"); err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		order, err := client.Order.Fetch(orderID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("fetching order failed", err),
@@ -365,7 +373,13 @@ func FetchOrderPayments(
 
 		// Fetch payments for the order using Razorpay SDK
 		// Note: Using the Order.Payments method from SDK
-		orderID := orderPaymentsReq["order_id"].(string)
+		orderID, ok := orderPaymentsReq["order_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid order_id parameter"), nil
+		}
+		if err := validateRazorpayID(orderID, "order"); err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
 		payments, err := client.Order.Payments(orderID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
@@ -428,7 +442,13 @@ func UpdateOrder(
 		}
 
 		data["notes"] = orderUpdateReq["notes"]
-		orderID := orderUpdateReq["order_id"].(string)
+		orderID, ok := orderUpdateReq["order_id"].(string)
+		if !ok {
+			return mcpgo.NewToolResultError("invalid order_id parameter"), nil
+		}
+		if err := validateRazorpayID(orderID, "order"); err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
 
 		order, err := client.Order.Update(orderID, data, nil)
 		if err != nil {
