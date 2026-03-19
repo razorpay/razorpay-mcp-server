@@ -112,6 +112,67 @@ func ToolName(
 }
 ```
 
+#### Writing LLM-Friendly Tool Descriptions
+
+The description string in `mcpgo.NewTool` is what LLMs read to decide which tool to call. A bad description means the tool gets ignored or misused. Every description **must** answer three questions:
+
+1. **What** does this tool do?
+2. **When** should an LLM pick this tool? (trigger conditions, prerequisites)
+3. **What** constraints or gotchas should the LLM know? (units, required states, return format)
+
+**Structure** (2-4 sentences):
+
+```
+[Action verb] + [what it does] + [key context].
+[When to use / prerequisites]. [Constraints, units, or return format].
+```
+
+**Bad examples** (too vague, no context):
+
+```go
+// Vague — LLM doesn't know when to pick this
+"Fetch an order's details using its ID"
+
+// No constraints — LLM won't know about paise
+"Create a new standard payment link in Razorpay with a specified amount"
+
+// Missing trigger context
+"Fetch all QR codes with optional filtering and pagination"
+```
+
+**Good examples** (actionable, LLM knows when/why):
+
+```go
+// Clear what, when, and constraints
+"Retrieve details of a specific payment by its ID. " +
+	"Use when you need payment status, method, or amount. " +
+	"Amount returned is in paise (100 paise = ₹1)."
+
+// Prerequisites + constraints
+"Capture a previously authorized payment to settle funds. " +
+	"Only works on payments with status 'authorized'. " +
+	"Amount in paise; partial capture supported."
+
+// Trigger context + return format
+"Get all saved payment methods (cards, UPI) " +
+	"for a contact number. " +
+	"Use when the user wants to pay with a saved method. " +
+	"Returns token IDs that can be used with initiate_payment."
+
+// When to use + what makes it different
+"Create a UPI-specific payment link (generates a UPI QR). " +
+	"Use instead of create_payment_link when the customer " +
+	"will pay via UPI. Only supports INR currency."
+```
+
+**Rules:**
+- Start with an action verb (Fetch, Create, Update, Capture, Revoke)
+- Mention units if amounts are involved (`paise`, `smallest currency unit`)
+- Mention prerequisite states (`status must be 'authorized'`)
+- If similar tools exist, explain when to pick THIS one over others
+- If the tool returns data used by other tools, say which ones
+- Keep it under 3-4 sentences; break long lines with `+` concatenation
+
 Required imports:
 
 ```go
