@@ -1,0 +1,5 @@
+# Local settings (personal, not shared)
+settings.local.json
+
+# Local agent memory (personal, not shared)
+agent-memory-local/

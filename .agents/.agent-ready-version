@@ -1,0 +1,10 @@
+{
+  "plugin_version": "3.1.0",
+  "swe_agent_template_version": "2.0.0",
+  "agentfill_version": "1.0.0",
+  "skills_source": "razorpay/agent-skills",
+  "skills_managed_by": "install-skills.sh (sparse git clone)",
+  "last_extraction": "2026-03-19",
+  "last_skills_update": "2026-03-19",
+  "last_update_check": "2026-03-19"
+}

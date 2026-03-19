@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "$CURSOR_PROJECT_DIR/.agents/polyfills/agentsmd/cursor.sh"
+      }
+    ]
+  }
+}
