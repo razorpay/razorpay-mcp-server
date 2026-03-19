@@ -42,6 +42,7 @@ func NewToolSets(
 		AddWriteTools(
 			CreatePaymentLink(obs, client),
 			CreateUpiPaymentLink(obs, client),
+			CreateSubscriptionRegistrationLink(obs, client),
 			ResendPaymentLinkNotification(obs, client),
 			UpdatePaymentLink(obs, client),
 		)
