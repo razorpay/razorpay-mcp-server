@@ -655,24 +655,24 @@ func Test_CreateSubscriptionRegistrationLink(t *testing.T) {
 	path := "/v1/subscription_registration/auth_links"
 
 	successResp := map[string]interface{}{
-		"id":              "inv_ST0YqhlqxyGKVp",
-		"entity":          "invoice",
-		"type":            "link",
-		"status":          "issued",
-		"amount":          float64(100),
-		"currency":        "MYR",
-		"short_url":       "https://rzp.io/rzp/ISJmviU",
+		"id":               "inv_ST0YqhlqxyGKVp",
+		"entity":           "invoice",
+		"type":             "link",
+		"status":           "issued",
+		"amount":           float64(100),
+		"currency":         "MYR",
+		"short_url":        "https://rzp.io/rzp/ISJmviU",
 		"auth_link_status": "issued",
 	}
 
 	successRespMinimal := map[string]interface{}{
-		"id":              "inv_MinimalResp",
-		"entity":          "invoice",
-		"type":            "link",
-		"status":          "issued",
-		"amount":          float64(100),
-		"currency":        "INR",
-		"short_url":       "https://rzp.io/rzp/minimal",
+		"id":               "inv_MinimalResp",
+		"entity":           "invoice",
+		"type":             "link",
+		"status":           "issued",
+		"amount":           float64(100),
+		"currency":         "INR",
+		"short_url":        "https://rzp.io/rzp/minimal",
 		"auth_link_status": "issued",
 	}
 
@@ -701,11 +701,11 @@ func Test_CreateSubscriptionRegistrationLink(t *testing.T) {
 					"expire_at":  float64(1798703336),
 					"frequency":  "as_presented",
 				},
-				"description":   "Registration Link for Nur Aisyah",
-				"receipt":       "Receipt No. 1323",
-				"email_notify":  true,
-				"sms_notify":    true,
-				"expire_by":     float64(1798703336),
+				"description":  "Registration Link for Nur Aisyah",
+				"receipt":      "Receipt No. 1323",
+				"email_notify": true,
+				"sms_notify":   true,
+				"expire_by":    float64(1798703336),
 				"notes": map[string]interface{}{
 					"note_key_1": "Beam me up Scotty",
 					"note_key_2": "Tea. Earl Gray. Hot.",
