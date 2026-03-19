@@ -156,7 +156,7 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 	})
 
 	hooks.AddAfterCallTool(func(ctx context.Context, id any,
-		message *mcp.CallToolRequest, result any) {
+		message *mcp.CallToolRequest, result *mcp.CallToolResult) {
 		obs.Logger.Infof(ctx, "TOOL_CALL_COMPLETED",
 			"id", id,
 			"request", message,
