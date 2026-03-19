@@ -1,0 +1,11 @@
+{
+  "helmfile_directory": "$HOME/Documents/kube-manifests/helmfile",
+  "auto_detect": true,
+  "fallback_paths": [
+    "kube-manifests/helmfile",
+    "helmfile",
+    "../kube-manifests/helmfile"
+  ],
+  "delete_before_sync": true,
+  "skip_image_validation": false
+}

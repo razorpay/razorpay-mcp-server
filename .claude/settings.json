@@ -1,0 +1,15 @@
+{
+   "hooks" : {
+      "SessionStart" : [
+         {
+            "hooks" : [
+               {
+                  "command" : "$CLAUDE_PROJECT_DIR/.agents/polyfills/agentsmd/claude.sh",
+                  "type" : "command"
+               }
+            ],
+            "matcher" : "startup"
+         }
+      ]
+   }
+}
