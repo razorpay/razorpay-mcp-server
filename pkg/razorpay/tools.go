@@ -101,6 +101,13 @@ func NewToolSets(
 			CreateInstantSettlement(obs, client),
 		)
 
+	subscriptionRegistration := toolsets.NewToolset(
+		"subscription_registration",
+		"Razorpay Subscription Registration related tools").
+		AddWriteTools(
+			CreateSubscriptionRegistrationAuthLink(obs, client),
+		)
+
 	// Add the single custom tool to an existing toolset
 	payments.AddWriteTools(FetchSavedPaymentMethods(obs, client)).
 		AddWriteTools(RevokeToken(obs, client))
@@ -123,6 +130,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(payouts)
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
+	toolsetGroup.AddToolset(subscriptionRegistration)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
