@@ -208,6 +208,31 @@ func Test_CreateRegistrationLink(t *testing.T) {
 			ExpectedErrMsg: "creating registration link " +
 				"failed: Invalid currency",
 		},
+		{
+			Name: "successful creation without customer fields",
+			Request: map[string]interface{}{
+				"type":        "link",
+				"amount":      float64(100),
+				"currency":    "MYR",
+				"description": "Registration Link without customer",
+				"subscription_registration": map[string]interface{}{
+					"method": "card",
+				},
+			},
+			MockHttpClient: func() (
+				*http.Client, *httptest.Server,
+			) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     apiPath,
+						Method:   "POST",
+						Response: successResponse,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successResponse,
+		},
 	}
 
 	for _, tc := range tests {
