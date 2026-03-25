@@ -54,7 +54,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_instant_settlement_with_id`   | Fetch instant settlement with ID                       | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-with-id) | ✅ |
 | `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/) | ✅ |
 | `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id) | ✅ |
-| `fetch_tokens`     | Get all saved payment methods for a contact number     | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/cards/tokens/) | ✅ |
+| `fetch_tokens`     | Get all saved payment methods by customer ID or contact number | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/cards/tokens/) | ✅ |
 | `revoke_token`     | Revoke a saved payment method (token) for a customer   | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-otm/collect/tokens/#24-cancel-token) | ✅ |
 | `create_registration_link`           | Create a registration link (auth link) for subscription registration | [Registration Link](https://razorpay.com/docs/api/payments/recurring-payments/registration-link/) | ❌ |
 | `detect_stack` | Detect project language/framework for checkout integration | N/A (MCP Integration Helper) | ✅ |
@@ -404,3 +404,4 @@ You can use the standard Go debugging tools to troubleshoot issues with the serv
 ## License
 
 This project is licensed under the terms of the MIT open source license. Please refer to [LICENSE](./LICENSE) for the full terms.
+
