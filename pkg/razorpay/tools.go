@@ -121,6 +121,21 @@ func NewToolSets(
 			integrations.DetectStack(obs, client),
 		)
 
+	bills := toolsets.NewToolset("bills",
+		"Razorpay Bills related tools").
+		AddReadTools(
+			FetchBill(obs, client),
+			FetchAllBills(obs, client),
+		).
+		AddWriteTools(
+			CreateBill(obs, client),
+			UpdateBill(obs, client),
+			IssueBill(obs, client),
+			CancelBill(obs, client),
+			DeleteBill(obs, client),
+			SendBillNotification(obs, client),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(checkoutIntegration)
 	toolsetGroup.AddToolset(payments)
@@ -131,6 +146,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
 	toolsetGroup.AddToolset(registrationLinks)
+	toolsetGroup.AddToolset(bills)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {

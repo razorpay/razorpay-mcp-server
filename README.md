@@ -57,6 +57,14 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_tokens`     | Get all saved payment methods by customer ID or contact number | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/cards/tokens/) | ✅ |
 | `revoke_token`     | Revoke a saved payment method (token) for a customer   | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-otm/collect/tokens/#24-cancel-token) | ✅ |
 | `create_registration_link`           | Create a registration link (auth link) for subscription registration | [Registration Link](https://razorpay.com/docs/api/payments/recurring-payments/registration-link/) | ❌ |
+| `create_bill`                        | Create a new bill (invoice) with line items             | [Bill](https://razorpay.com/docs/api/bills/) | ❌ |
+| `fetch_bill`                         | Fetch details of a bill by its ID                       | [Bill](https://razorpay.com/docs/api/bills/) | ✅ |
+| `fetch_all_bills`                    | Fetch all bills with optional filtering and pagination  | [Bill](https://razorpay.com/docs/api/bills/) | ✅ |
+| `update_bill`                        | Update the notes of an existing bill                    | [Bill](https://razorpay.com/docs/api/bills/) | ❌ |
+| `issue_bill`                         | Issue a draft bill to make it active                    | [Bill](https://razorpay.com/docs/api/bills/) | ❌ |
+| `cancel_bill`                        | Cancel an issued bill                                   | [Bill](https://razorpay.com/docs/api/bills/) | ❌ |
+| `delete_bill`                        | Delete a draft bill permanently                         | [Bill](https://razorpay.com/docs/api/bills/) | ❌ |
+| `send_bill_notification`             | Send bill notification to customer via SMS or email     | [Bill](https://razorpay.com/docs/api/bills/) | ❌ |
 | `detect_stack` | Detect project language/framework for checkout integration | N/A (MCP Integration Helper) | ✅ |
 | `integrate_razorpay_checkout` | Generate end-to-end Razorpay Standard Checkout integration code for supported frameworks | N/A (MCP Integration Helper) | ✅ |
 
