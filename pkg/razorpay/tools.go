@@ -105,6 +105,13 @@ func NewToolSets(
 	payments.AddWriteTools(FetchSavedPaymentMethods(obs, client)).
 		AddWriteTools(RevokeToken(obs, client))
 
+	subscriptionRegistration := toolsets.NewToolset(
+		"subscription_registration",
+		"Razorpay Subscription Registration related tools").
+		AddWriteTools(
+			CreateSubscriptionRegistrationAuthLink(obs, client),
+		)
+
 	// Checkout Integration toolset - helps integrate Razorpay checkout
 	checkoutIntegration := toolsets.NewToolset(
 		"checkout_integration",
@@ -123,6 +130,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(payouts)
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
+	toolsetGroup.AddToolset(subscriptionRegistration)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
