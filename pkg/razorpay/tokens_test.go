@@ -23,6 +23,12 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 		constants.CUSTOMER_URL,
 	)
 
+	fetchCustomerPathFmt := fmt.Sprintf(
+		"/%s%s/%%s",
+		constants.VERSION_V1,
+		constants.CUSTOMER_URL,
+	)
+
 	fetchTokensPathFmt := fmt.Sprintf(
 		"/%s/customers/%%s/tokens",
 		constants.VERSION_V1,
@@ -125,6 +131,13 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 		},
 	}
 
+	customerNotFoundResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "Customer not found",
+		},
+	}
+
 	// Customer response without ID (invalid)
 	invalidCustomerResp := map[string]interface{}{
 		"entity":     "customer",
@@ -134,10 +147,10 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 		"gstin":      nil,
 		"notes":      map[string]interface{}{},
 		"created_at": float64(1234567890),
-		// Missing "id" field
 	}
 
 	tests := []RazorpayToolTestCase{
+		// --- contact-based tests (existing behaviour) ---
 		{
 			Name: "successful fetch of saved cards with valid contact",
 			Request: map[string]interface{}{
@@ -151,7 +164,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 						Response: customerResp,
 					},
 					mock.Endpoint{
-						Path:     fmt.Sprintf(fetchTokensPathFmt, "cust_1Aa00000000003"),
+						Path: fmt.Sprintf(
+							fetchTokensPathFmt, "cust_1Aa00000000003"),
 						Method:   "GET",
 						Response: tokensResp,
 					},
@@ -183,7 +197,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 						Response: customerRespIntl,
 					},
 					mock.Endpoint{
-						Path:     fmt.Sprintf(fetchTokensPathFmt, "cust_1Aa00000000004"),
+						Path: fmt.Sprintf(
+							fetchTokensPathFmt, "cust_1Aa00000000004"),
 						Method:   "GET",
 						Response: tokensResp,
 					},
@@ -235,7 +250,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 						Response: customerResp,
 					},
 					mock.Endpoint{
-						Path:     fmt.Sprintf(fetchTokensPathFmt, "cust_1Aa00000000003"),
+						Path: fmt.Sprintf(
+							fetchTokensPathFmt, "cust_1Aa00000000003"),
 						Method:   "GET",
 						Response: tokensAPIFailedResp,
 					},
@@ -263,33 +279,6 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 			ExpectedErrMsg: "Customer ID not found in response",
 		},
 		{
-			Name:    "missing contact parameter",
-			Request: map[string]interface{}{
-				// No contact parameter
-			},
-			MockHttpClient: nil, // No HTTP client needed for validation error
-			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: contact",
-		},
-		{
-			Name: "empty contact parameter",
-			Request: map[string]interface{}{
-				"contact": "",
-			},
-			MockHttpClient: nil, // No HTTP client needed for validation error
-			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: contact",
-		},
-		{
-			Name: "null contact parameter",
-			Request: map[string]interface{}{
-				"contact": nil,
-			},
-			MockHttpClient: nil, // No HTTP client needed for validation error
-			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: contact",
-		},
-		{
 			Name: "successful fetch with empty tokens list",
 			Request: map[string]interface{}{
 				"contact": "9876543210",
@@ -307,7 +296,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 						Response: customerResp,
 					},
 					mock.Endpoint{
-						Path:     fmt.Sprintf(fetchTokensPathFmt, "cust_1Aa00000000003"),
+						Path: fmt.Sprintf(
+							fetchTokensPathFmt, "cust_1Aa00000000003"),
 						Method:   "GET",
 						Response: emptyTokensResp,
 					},
@@ -322,6 +312,144 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 					"items":  []interface{}{},
 				},
 			},
+		},
+		// --- customer_id-based tests (new behaviour) ---
+		{
+			Name: "successful fetch with customer_id",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchCustomerPathFmt, "cust_1Aa00000000003"),
+						Method:   "GET",
+						Response: customerResp,
+					},
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchTokensPathFmt, "cust_1Aa00000000003"),
+						Method:   "GET",
+						Response: tokensResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: expectedSuccessResp,
+		},
+		{
+			Name: "customer_id takes priority over contact",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+				"contact":     "9876543210",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchCustomerPathFmt, "cust_1Aa00000000003"),
+						Method:   "GET",
+						Response: customerResp,
+					},
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchTokensPathFmt, "cust_1Aa00000000003"),
+						Method:   "GET",
+						Response: tokensResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: expectedSuccessResp,
+		},
+		{
+			Name: "customer_id fetch failure",
+			Request: map[string]interface{}{
+				"customer_id": "cust_nonexistent",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchCustomerPathFmt, "cust_nonexistent"),
+						Method:   "GET",
+						Response: customerNotFoundResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "Failed to fetch customer cust_nonexistent: " +
+				"Customer not found",
+		},
+		{
+			Name: "tokens API failure after successful customer_id fetch", //nolint:lll
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchCustomerPathFmt, "cust_1Aa00000000003"),
+						Method:   "GET",
+						Response: customerResp,
+					},
+					mock.Endpoint{
+						Path: fmt.Sprintf(
+							fetchTokensPathFmt, "cust_1Aa00000000003"),
+						Method:   "GET",
+						Response: tokensAPIFailedResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "Failed to fetch saved payment methods for " +
+				"customer cust_1Aa00000000003: Customer not found",
+		},
+		// --- validation error tests ---
+		{
+			Name:           "neither customer_id nor contact provided",
+			Request:        map[string]interface{}{},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "either customer_id or contact must be provided",
+		},
+		{
+			Name: "empty contact parameter",
+			Request: map[string]interface{}{
+				"contact": "",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "either customer_id or contact must be provided",
+		},
+		{
+			Name: "null contact parameter",
+			Request: map[string]interface{}{
+				"contact": nil,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "either customer_id or contact must be provided",
+		},
+		{
+			Name: "empty customer_id parameter",
+			Request: map[string]interface{}{
+				"customer_id": "",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "either customer_id or contact must be provided",
+		},
+		{
+			Name: "null customer_id parameter",
+			Request: map[string]interface{}{
+				"customer_id": nil,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "either customer_id or contact must be provided",
 		},
 	}
 
