@@ -46,6 +46,13 @@ func NewToolSets(
 			UpdatePaymentLink(obs, client),
 		)
 
+	subscriptionRegistrationLinks := toolsets.NewToolset(
+		"subscription_registration_links",
+		"Razorpay Subscription Registration Links related tools").
+		AddWriteTools(
+			CreateSubscriptionRegistrationLink(obs, client),
+		)
+
 	orders := toolsets.NewToolset("orders", "Razorpay Orders related tools").
 		AddReadTools(
 			FetchOrder(obs, client),
@@ -125,6 +132,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(checkoutIntegration)
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
+	toolsetGroup.AddToolset(subscriptionRegistrationLinks)
 	toolsetGroup.AddToolset(orders)
 	toolsetGroup.AddToolset(refunds)
 	toolsetGroup.AddToolset(payouts)
