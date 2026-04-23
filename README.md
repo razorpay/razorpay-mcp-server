@@ -186,6 +186,38 @@ Add the following to your VS Code settings (JSON):
 
 Learn more about MCP servers in VS Code's [agent mode documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
 
+### Usage with Kiro
+
+[![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=razorpay-mcp-server&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22--rm%22%2C%22-i%22%2C%22-e%22%2C%22RAZORPAY_KEY_ID%22%2C%22-e%22%2C%22RAZORPAY_KEY_SECRET%22%2C%22razorpay%2Fmcp%22%5D%2C%22env%22%3A%7B%22RAZORPAY_KEY_ID%22%3A%22your_razorpay_key_id%22%2C%22RAZORPAY_KEY_SECRET%22%3A%22your_razorpay_key_secret%22%7D%7D)
+
+Or add the following to your Kiro MCP config file (`~/.kiro/settings/mcp.json` for global, or `.kiro/settings/mcp.json` for project-scoped). See the [Kiro MCP documentation](https://kiro.dev/docs/mcp/) for more details.
+
+```json
+{
+  "mcpServers": {
+    "razorpay-mcp-server": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "RAZORPAY_KEY_ID",
+        "-e",
+        "RAZORPAY_KEY_SECRET",
+        "razorpay/mcp"
+      ],
+      "env": {
+        "RAZORPAY_KEY_ID": "your_razorpay_key_id",
+        "RAZORPAY_KEY_SECRET": "your_razorpay_key_secret"
+      }
+    }
+  }
+}
+```
+
+Please replace `your_razorpay_key_id` and `your_razorpay_key_secret` with your keys.
+
 ## Authentication
 
 The Remote MCP Server uses merchant token-based authentication. To generate your merchant token:
