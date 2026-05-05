@@ -88,6 +88,13 @@ func NewToolSets(
 			CloseQRCode(obs, client),
 		)
 
+	registrationLinks := toolsets.NewToolset(
+		"registration_links",
+		"Razorpay Registration Links related tools").
+		AddWriteTools(
+			CreateRegistrationLink(obs, client),
+		)
+
 	settlements := toolsets.NewToolset("settlements",
 		"Razorpay Settlements related tools").
 		AddReadTools(
@@ -123,6 +130,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(payouts)
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
+	toolsetGroup.AddToolset(registrationLinks)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {

@@ -18,8 +18,8 @@ func CreateOrder(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Payment amount in the smallest "+
-				"currency sub-unit (e.g., for ₹295, use 29500)"),
+			mcpgo.Description("Payment amount in paise (smallest currency sub-unit). "+
+				"For INR: 100 paise = ₹1. Example: for ₹295, use 29500"),
 			mcpgo.Required(),
 			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
@@ -49,8 +49,8 @@ func CreateOrder(
 		),
 		mcpgo.WithNumber(
 			"first_payment_min_amount",
-			mcpgo.Description("Minimum amount for first partial "+
-				"payment (only if partial_payment is true)"),
+			mcpgo.Description("Minimum amount in paise for first partial "+
+				"payment (only if partial_payment is true). For INR: 100 paise = ₹1"),
 			mcpgo.Min(100),
 		),
 		mcpgo.WithArray(
@@ -69,7 +69,7 @@ func CreateOrder(
 					},
 					"amount": map[string]interface{}{
 						"type":        "number",
-						"description": "Amount to transfer in currency subunits",
+						"description": "Amount to transfer in paise (currency subunits). For INR: 100 paise = ₹1", //nolint:lll
 						"minimum":     1,
 					},
 					"currency": map[string]interface{}{
@@ -99,7 +99,7 @@ func CreateOrder(
 			"token",
 			mcpgo.Description("Token object for mandate orders. "+
 				"REQUIRED for mandate orders. Must contain: max_amount "+
-				"(positive number, maximum debit amount), frequency "+
+				"(positive number in paise, maximum debit amount - For INR: 100 paise = ₹1), frequency "+ //nolint:lll
 				"(as_presented/monthly/one_time/yearly/weekly/daily), "+
 				"type='single_block_multiple_debit' (only supported type), "+
 				"and optionally expire_at (Unix timestamp, defaults to today+60days). "+
@@ -161,7 +161,7 @@ func CreateOrder(
 			"amount, currency, method='upi', customer_id (starts with 'cust_'), "+
 			"and token object. "+
 			"\n\nThe token object is required for mandate orders and must contain: "+
-			"max_amount (positive number), frequency "+
+			"max_amount (positive number in paise - For INR: 100 paise = ₹1), frequency "+ //nolint:lll
 			"(as_presented/monthly/one_time/yearly/weekly/daily), "+
 			"type='single_block_multiple_debit', and optionally expire_at "+
 			"(defaults to today+60days). "+
