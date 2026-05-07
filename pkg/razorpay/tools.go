@@ -125,6 +125,9 @@ func NewToolSets(
 	partnerships := toolsets.NewToolset(
 		"partnerships",
 		"Razorpay Partnerships sub-merchant onboarding tools").
+		AddReadTools(
+			FetchAccount(obs, client),
+		).
 		AddWriteTools(
 			CreateAccount(obs, client),
 		)
