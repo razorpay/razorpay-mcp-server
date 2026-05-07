@@ -121,6 +121,14 @@ func NewToolSets(
 			integrations.DetectStack(obs, client),
 		)
 
+	// Partnerships toolset - sub-merchant onboarding for aggregator/platform partners
+	partnerships := toolsets.NewToolset(
+		"partnerships",
+		"Razorpay Partnerships sub-merchant onboarding tools").
+		AddWriteTools(
+			CreateAccount(obs, client),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(checkoutIntegration)
 	toolsetGroup.AddToolset(payments)
@@ -131,6 +139,7 @@ func NewToolSets(
 	toolsetGroup.AddToolset(qrCodes)
 	toolsetGroup.AddToolset(settlements)
 	toolsetGroup.AddToolset(registrationLinks)
+	toolsetGroup.AddToolset(partnerships)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
