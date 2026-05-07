@@ -168,3 +168,58 @@ func CreateAccount(
 		handler,
 	)
 }
+
+// FetchAccount returns a tool to fetch a sub-merchant account's details by ID
+// using the Razorpay Partnerships Onboarding API (GET /v2/accounts/:account_id).
+func FetchAccount(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+) mcpgo.Tool {
+	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"account_id",
+			mcpgo.Description("Unique identifier of the sub-merchant account to fetch. "+
+				"Must start with 'acc_' (e.g. acc_GP4lfNA0iIMn5B)."),
+			mcpgo.Required(),
+		),
+	}
+
+	handler := func(
+		ctx context.Context,
+		r mcpgo.CallToolRequest,
+	) (*mcpgo.ToolResult, error) {
+		client, err := getClientFromContextOrDefault(ctx, client)
+		if err != nil {
+			return mcpgo.NewToolResultError(err.Error()), nil
+		}
+
+		payload := make(map[string]interface{})
+
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(payload, "account_id")
+
+		if result, err := validator.HandleErrorsIfAny(); result != nil {
+			return result, err
+		}
+
+		account, err := client.Account.Fetch(payload["account_id"].(string), nil, nil)
+		if err != nil {
+			return mcpgo.NewToolResultError(
+				formatErrorMessage("fetching account failed", err),
+			), nil
+		}
+
+		return mcpgo.NewToolResultJSON(account)
+	}
+
+	return mcpgo.NewTool(
+		"fetch_account",
+		"Fetch a sub-merchant account's details by its ID using the "+
+			"Razorpay Partnerships Onboarding API (GET /v2/accounts/:account_id). "+
+			"\n\nReturns full account details including status (created/under_review/"+
+			"needs_clarification/activated/rejected), activation timestamps, "+
+			"profile, legal info, and contact details.",
+		parameters,
+		handler,
+	)
+}
