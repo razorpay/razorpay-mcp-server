@@ -5,6 +5,8 @@ import (
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations"
+	partnershipsauth "github.com/razorpay/razorpay-mcp-server/pkg/razorpay/partnerships/auth"
+	onboardingapis "github.com/razorpay/razorpay-mcp-server/pkg/razorpay/partnerships/onboarding_apis"
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
 
@@ -121,15 +123,15 @@ func NewToolSets(
 			integrations.DetectStack(obs, client),
 		)
 
-	// Partnerships toolset - sub-merchant onboarding for aggregator/platform partners
 	partnerships := toolsets.NewToolset(
 		"partnerships",
 		"Razorpay Partnerships sub-merchant onboarding tools").
 		AddReadTools(
-			FetchAccount(obs, client),
+			onboardingapis.FetchAccount(obs, client),
 		).
 		AddWriteTools(
-			CreateAccount(obs, client),
+			partnershipsauth.GenerateAccessToken(obs, client),
+			onboardingapis.CreateAccount(obs, client),
 		)
 
 	// Add toolsets to the group

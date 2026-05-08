@@ -1,8 +1,7 @@
-package razorpay
+package onboardingapis
 
 import (
 	"context"
-	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -69,7 +68,7 @@ func CreateAccount(
 				"government, healthcare, housing, it_and_software, logistics, media_and_entertainment, "+
 				"not_for_profit, services, social, tours_and_travel, transport, utilities, others), "+
 				"subcategory (required, e.g. 'ecommerce_marketplace', 'saas', 'grocery' — see docs for full list), "+
-				"description (string, max 255 chars, letters/spaces/comma/@/#/hyphen/period/%%/slash only), "+
+				"description (string, max 255 chars), "+
 				"addresses (object with 'registered' (required) and 'operation' (optional) — "+
 				"each address has: street1 (required, max 100 chars), street2 (required, max 100 chars), "+
 				"city (required), state (required, valid Indian state code e.g. 'MH', 'KA'), "+
@@ -121,30 +120,30 @@ func CreateAccount(
 
 		payload := make(map[string]interface{})
 
-		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(payload, "phone").
-			ValidateAndAddOptionalString(payload, "email").
-			ValidateAndAddOptionalString(payload, "legal_business_name").
-			ValidateAndAddOptionalString(payload, "business_type").
-			ValidateAndAddOptionalString(payload, "contact_name").
-			ValidateAndAddOptionalString(payload, "customer_facing_business_name").
-			ValidateAndAddOptionalString(payload, "reference_id").
-			ValidateAndAddOptionalString(payload, "type").
-			ValidateAndAddOptionalMap(payload, "profile").
-			ValidateAndAddOptionalMap(payload, "legal_info").
-			ValidateAndAddOptionalMap(payload, "brand").
-			ValidateAndAddOptionalMap(payload, "notes").
-			ValidateAndAddOptionalMap(payload, "contact_info").
-			ValidateAndAddOptionalMap(payload, "apps")
+		v := newValidator(&r).
+			requireString(payload, "phone").
+			optionalString(payload, "email").
+			optionalString(payload, "legal_business_name").
+			optionalString(payload, "business_type").
+			optionalString(payload, "contact_name").
+			optionalString(payload, "customer_facing_business_name").
+			optionalString(payload, "reference_id").
+			optionalString(payload, "type").
+			optionalMap(payload, "profile").
+			optionalMap(payload, "legal_info").
+			optionalMap(payload, "brand").
+			optionalMap(payload, "notes").
+			optionalMap(payload, "contact_info").
+			optionalMap(payload, "apps")
 
-		if result, err := validator.HandleErrorsIfAny(); result != nil {
+		if result, err := v.handleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
 		account, err := client.Account.Create(payload, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("creating account failed: %s", err.Error()),
+				formatErrorMessage("creating account failed", err),
 			), nil
 		}
 
@@ -195,10 +194,10 @@ func FetchAccount(
 
 		payload := make(map[string]interface{})
 
-		validator := NewValidator(&r).
-			ValidateAndAddRequiredString(payload, "account_id")
+		v := newValidator(&r).
+			requireString(payload, "account_id")
 
-		if result, err := validator.HandleErrorsIfAny(); result != nil {
+		if result, err := v.handleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
