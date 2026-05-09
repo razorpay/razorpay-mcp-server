@@ -1,0 +1,8 @@
+pkg/razorpay/partnerships/auth/helpers.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:27:08.105Z 1
+pkg/razorpay/partnerships/auth/token.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:27:20.403Z 57
+pkg/razorpay/partnerships/onboarding_apis/helpers.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:27:02.378Z 1
+---
+{"schema_version": "authorship/3.0.0", "base_commit_sha": "HEAD~1", "prompts": {"b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:27:08.105Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 1, "overriden_lines": 0}, "b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:27:20.403Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 1, "overriden_lines": 0}, "b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:27:02.378Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 1, "overriden_lines": 0}}}
