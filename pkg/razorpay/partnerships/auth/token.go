@@ -1,12 +1,14 @@
 package auth
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -14,7 +16,21 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
-const tokenURL = "https://auth.razorpay.com/token"
+const (
+	prodTokenURL    = "https://auth.razorpay.com/token"
+	nonProdTokenURL = "https://auth.dev.razorpay.in/token"
+)
+
+// tokenURL returns the auth token endpoint based on APP_ENV.
+// devstack/dev environments use the non-prod endpoint.
+func tokenURL() string {
+	switch strings.ToLower(os.Getenv("APP_ENV")) {
+	case "devstack", "dev":
+		return nonProdTokenURL
+	default:
+		return prodTokenURL
+	}
+}
 
 // GenerateAccessToken returns a tool that generates an OAuth access token
 // for the Razorpay Partnerships Onboarding API using the client_credentials grant.
@@ -57,29 +73,26 @@ func GenerateAccessToken(
 			return result, err
 		}
 
-		body := map[string]string{
-			"grant_type":    "client_credentials",
-			"client_id":     params["client_id"].(string),
-			"client_secret": params["client_secret"].(string),
-		}
+		form := url.Values{}
+		form.Set("grant_type", "client_credentials")
+		form.Set("client_id", params["client_id"].(string))
+		form.Set("client_secret", params["client_secret"].(string))
 		if mode, ok := params["mode"].(string); ok {
-			body["mode"] = mode
+			form.Set("mode", mode)
 		}
 
-		payload, err := json.Marshal(body)
-		if err != nil {
-			return mcpgo.NewToolResultError(
-				formatErrorMessage("marshalling token request failed", err),
-			), nil
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodPost,
+			tokenURL(),
+			strings.NewReader(form.Encode()),
+		)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("creating token request failed", err),
 			), nil
 		}
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -115,7 +128,7 @@ func GenerateAccessToken(
 	return mcpgo.NewTool(
 		"generate_access_token",
 		"Generate an OAuth access token for the Razorpay Partnerships Onboarding API "+
-			"using the client_credentials grant (POST https://auth.razorpay.com/token). "+
+			"using the client_credentials grant. "+
 			"\n\nPrerequisite: the cobranded_onboarding feature must be enabled on your Razorpay account. "+
 			"\n\nReturns access_token (use as 'Authorization: Bearer <token>' in onboarding API calls), "+
 			"token_type (Bearer), expires_in (TTL in seconds), and razorpay_account_id. "+
