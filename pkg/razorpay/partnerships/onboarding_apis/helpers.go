@@ -133,3 +133,27 @@ func (v *validator) optionalMap(params map[string]interface{}, name string) *val
 	}
 	return v
 }
+
+// Standalone extractors used by buildAccountPayload.
+
+func extractString(r *mcpgo.CallToolRequest, name string, required bool) (*string, error) {
+	return extractParam[string](r, name, required)
+}
+
+func extractNumber(r *mcpgo.CallToolRequest, name string, required bool) (*float64, error) {
+	return extractParam[float64](r, name, required)
+}
+
+func extractStringArray(r *mcpgo.CallToolRequest, name string) ([]string, error) {
+	val, err := extractParam[[]interface{}](r, name, false)
+	if err != nil || val == nil {
+		return nil, err
+	}
+	result := make([]string, 0, len(*val))
+	for _, item := range *val {
+		if s, ok := item.(string); ok {
+			result = append(result, s)
+		}
+	}
+	return result, nil
+}

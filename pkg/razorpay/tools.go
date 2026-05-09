@@ -128,6 +128,7 @@ func NewToolSets(
 		"Razorpay Partnerships sub-merchant onboarding tools").
 		AddReadTools(
 			onboardingapis.FetchAccount(obs, client),
+			onboardingapis.PreviewCreateAccount(obs, client),
 		).
 		AddWriteTools(
 			partnershipsauth.GenerateAccessToken(obs, client),
