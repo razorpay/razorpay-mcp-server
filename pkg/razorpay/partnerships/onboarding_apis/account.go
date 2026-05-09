@@ -67,12 +67,13 @@ func CreateAccount(
 				"category (required, one of: ecommerce, education, financial_services, food, gaming, "+
 				"government, healthcare, housing, it_and_software, logistics, media_and_entertainment, "+
 				"not_for_profit, services, social, tours_and_travel, transport, utilities, others), "+
-				"subcategory (required, e.g. 'ecommerce_marketplace', 'saas', 'grocery' — see docs for full list), "+
+				"subcategory (required, e.g. 'ecommerce_marketplace', 'saas', 'grocery', 'clinic', 'hospital' — see docs for full list), "+
 				"description (string, max 255 chars), "+
+				"business_model (string, description of the business model e.g. 'b2c'), "+
 				"addresses (object with 'registered' (required) and 'operation' (optional) — "+
 				"each address has: street1 (required, max 100 chars), street2 (required, max 100 chars), "+
-				"city (required), state (required, valid Indian state code e.g. 'MH', 'KA'), "+
-				"postal_code (required), country (required))"),
+				"city (required), state (required, valid Indian state/full name e.g. 'Karnataka', 'MH'), "+
+				"postal_code (required, integer e.g. 560034), country (required, ISO code e.g. 'IN'))"),
 		),
 		mcpgo.WithObject(
 			"legal_info",
