@@ -17,7 +17,7 @@ import (
 
 const (
 	prodAccountsURL    = "https://api.razorpay.com/v2/accounts"
-	nonProdAccountsURL = "https://api-web.ext.dev.razorpay.in/v2/accounts"
+	nonProdAccountsURL = "https://api-web.dev.razorpay.in/v2/accounts"
 )
 
 // accountsBaseURL returns the right base URL based on APP_ENV.
