@@ -1,3 +1,4 @@
+//nolint:lll // long lines in error messages and function signatures are acceptable here
 package onboardingapis
 
 import (

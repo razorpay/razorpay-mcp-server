@@ -54,7 +54,7 @@ func GenerateAccessToken(
 		),
 		mcpgo.WithString(
 			"mode",
-			mcpgo.Description("API mode. Accepted values: test, live. Defaults to live."),
+			mcpgo.Description("API mode. Accepted values: test, live."),
 			mcpgo.Enum("test", "live"),
 		),
 	}

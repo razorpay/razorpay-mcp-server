@@ -1,3 +1,4 @@
+//nolint:lll // long lines in function signatures are acceptable here
 package auth
 
 import (
