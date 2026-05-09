@@ -17,12 +17,13 @@ import (
 )
 
 const (
+	//nolint:gosec // these are API endpoint URLs, not credentials
 	prodTokenURL    = "https://auth.razorpay.com/token"
-	nonProdTokenURL = "https://auth.dev.razorpay.in/token"
+	nonProdTokenURL = "https://auth.dev.razorpay.in/token" //nolint:gosec
 )
 
 // tokenURL returns the auth token endpoint based on APP_ENV.
-// devstack/dev environments use the non-prod endpoint.
+// devstack/dev use the non-prod endpoint; everything else uses prod.
 func tokenURL() string {
 	switch strings.ToLower(os.Getenv("APP_ENV")) {
 	case "devstack", "dev":
@@ -33,8 +34,8 @@ func tokenURL() string {
 }
 
 // GenerateAccessToken returns a tool that generates an OAuth access token
-// for the Razorpay Partnerships Onboarding API using the client_credentials grant.
-// The returned access_token is used as a Bearer token in subsequent onboarding API calls.
+// for the Razorpay Partnerships Onboarding API (client_credentials grant).
+// The returned access_token is passed as Bearer token to onboarding tools.
 func GenerateAccessToken(
 	obs *observability.Observability,
 	_ *rzpsdk.Client,
@@ -111,7 +112,8 @@ func GenerateAccessToken(
 
 		if resp.StatusCode != http.StatusOK {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("token request failed with status %d: %s", resp.StatusCode, string(respBody)),
+				fmt.Sprintf("token request failed with status %d: %s",
+					resp.StatusCode, string(respBody)),
 			), nil
 		}
 
@@ -127,12 +129,11 @@ func GenerateAccessToken(
 
 	return mcpgo.NewTool(
 		"generate_access_token",
-		"Generate an OAuth access token for the Razorpay Partnerships Onboarding API "+
-			"using the client_credentials grant. "+
-			"\n\nPrerequisite: the cobranded_onboarding feature must be enabled on your Razorpay account. "+
-			"\n\nReturns access_token (use as 'Authorization: Bearer <token>' in onboarding API calls), "+
-			"token_type (Bearer), expires_in (TTL in seconds), and razorpay_account_id. "+
-			"\n\nTokens expire and must be regenerated. Store expires_in to know when to refresh.",
+		"Generate an OAuth access token for the Razorpay Partnerships "+
+			"Onboarding API (client_credentials grant). "+
+			"\n\nReturns access_token, token_type (Bearer), expires_in (seconds), "+
+			"and razorpay_account_id. Pass access_token as bearer_token to "+
+			"create_account and fetch_account.",
 		parameters,
 		handler,
 	)

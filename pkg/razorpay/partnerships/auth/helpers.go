@@ -42,10 +42,14 @@ func (v *validator) handleErrorsIfAny() (*mcpgo.ToolResult, error) {
 	for _, e := range v.errors {
 		msgs = append(msgs, e.Error())
 	}
-	return mcpgo.NewToolResultError("Validation errors:\n- " + strings.Join(msgs, "\n- ")), nil
+	return mcpgo.NewToolResultError(
+		"Validation errors:\n- " + strings.Join(msgs, "\n- "),
+	), nil
 }
 
-func extractString(r *mcpgo.CallToolRequest, name string, required bool) (*string, error) {
+func extractString(
+	r *mcpgo.CallToolRequest, name string, required bool,
+) (*string, error) {
 	args, ok := r.Arguments.(map[string]interface{})
 	if !ok {
 		return nil, errors.New("invalid arguments type")
@@ -71,7 +75,9 @@ func extractString(r *mcpgo.CallToolRequest, name string, required bool) (*strin
 	return &s, nil
 }
 
-func (v *validator) requireString(params map[string]interface{}, name string) *validator {
+func (v *validator) requireString(
+	params map[string]interface{}, name string,
+) *validator {
 	val, err := extractString(v.request, name, true)
 	if err != nil {
 		return v.addError(err)
@@ -82,7 +88,9 @@ func (v *validator) requireString(params map[string]interface{}, name string) *v
 	return v
 }
 
-func (v *validator) optionalString(params map[string]interface{}, name string) *validator {
+func (v *validator) optionalString(
+	params map[string]interface{}, name string,
+) *validator {
 	val, err := extractString(v.request, name, false)
 	if err != nil {
 		return v.addError(err)

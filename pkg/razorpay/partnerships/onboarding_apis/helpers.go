@@ -56,7 +56,8 @@ func doAccountsRequest(
 	req.Header.Set("Content-Type", "application/json")
 
 	// Devstack-specific routing headers
-	if env := strings.ToLower(os.Getenv("APP_ENV")); env == "devstack" || env == "dev" {
+	env := strings.ToLower(os.Getenv("APP_ENV"))
+	if env == "devstack" || env == "dev" {
 		req.Header.Set("X-Org-Id", "org_100000razorpay")
 		req.Header.Set("kong-debug", "1")
 		if label := os.Getenv("DEVSTACK_LABEL"); label != "" {
@@ -77,7 +78,10 @@ func doAccountsRequest(
 
 	var result map[string]interface{}
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("parsing response (status %d): %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf(
+			"parsing response (status %d): %s",
+			resp.StatusCode, string(respBody),
+		)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

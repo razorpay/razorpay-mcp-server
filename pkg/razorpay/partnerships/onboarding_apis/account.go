@@ -1,3 +1,4 @@
+//nolint:lll // descriptions contain long API field documentation strings
 package onboardingapis
 
 import (
@@ -17,14 +18,10 @@ import (
 // preview_create_account and create_account.
 func accountParameters() []mcpgo.ToolParameter {
 	return []mcpgo.ToolParameter{
-		// --- Auth ---
 		mcpgo.WithString("bearer_token",
-			mcpgo.Description("(Mandatory) OAuth access token obtained from generate_access_token. "+
-				"Used as 'Authorization: Bearer <token>'."),
+			mcpgo.Description("(Mandatory) OAuth access token from generate_access_token."),
 			mcpgo.Required(),
 		),
-
-		// --- Mandatory fields ---
 		mcpgo.WithString("email",
 			mcpgo.Description("(Mandatory) Business email address of the sub-merchant."),
 			mcpgo.Required(),
@@ -38,35 +35,33 @@ func accountParameters() []mcpgo.ToolParameter {
 			mcpgo.Required(),
 		),
 		mcpgo.WithString("business_type",
-			mcpgo.Description("(Mandatory) Type of business. One of: proprietorship, individual, partnership, "+
-				"private_limited, public_limited, llp, ngo, educational_institutes, trust, society, "+
-				"not_yet_registered, other, huf, government, judicial_person, local_authority, section_8_company."),
+			mcpgo.Description("(Mandatory) Type of business. One of: proprietorship, individual, "+
+				"partnership, private_limited, public_limited, llp, ngo, "+
+				"educational_institutes, trust, society, not_yet_registered, "+
+				"other, huf, government, judicial_person, local_authority, section_8_company."),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString("contact_name",
 			mcpgo.Description("(Mandatory) Full name of the contact person (4-255 characters)."),
 			mcpgo.Required(),
 		),
-
-		// --- Top-level optional fields ---
 		mcpgo.WithString("customer_facing_business_name",
-			mcpgo.Description("(Optional) Name shown to customers on payment pages. Defaults to legal_business_name."),
+			mcpgo.Description("(Optional) Name shown to customers. Defaults to legal_business_name."),
 		),
 		mcpgo.WithString("reference_id",
-			mcpgo.Description("(Optional) Partner's own unique reference ID for this sub-merchant (max 512 characters)."),
+			mcpgo.Description("(Optional) Partner's unique reference ID (max 512 characters)."),
 			mcpgo.Max(512),
 		),
-
-		// --- Profile fields ---
 		mcpgo.WithString("profile_category",
-			mcpgo.Description("(Optional, required if any profile field is set) Business category. One of: "+
-				"ecommerce, education, financial_services, food, gaming, government, healthcare, housing, "+
-				"it_and_software, logistics, media_and_entertainment, not_for_profit, services, social, "+
+			mcpgo.Description("(Optional, required if any profile field is set) Business category. "+
+				"One of: ecommerce, education, financial_services, food, gaming, "+
+				"government, healthcare, housing, it_and_software, logistics, "+
+				"media_and_entertainment, not_for_profit, services, social, "+
 				"tours_and_travel, transport, utilities, others."),
 		),
 		mcpgo.WithString("profile_subcategory",
-			mcpgo.Description("(Optional, required if any profile field is set) Business subcategory e.g. "+
-				"'clinic', 'hospital', 'ecommerce_marketplace', 'saas', 'grocery'. See Razorpay docs for full list."),
+			mcpgo.Description("(Optional, required if any profile field is set) Business subcategory "+
+				"e.g. 'clinic', 'hospital', 'ecommerce_marketplace', 'saas'."),
 		),
 		mcpgo.WithString("profile_description",
 			mcpgo.Description("(Optional) Short description of the business (max 255 characters)."),
@@ -75,30 +70,26 @@ func accountParameters() []mcpgo.ToolParameter {
 		mcpgo.WithString("profile_business_model",
 			mcpgo.Description("(Optional) Description of the business model e.g. 'b2c', 'b2b'."),
 		),
-
-		// --- Registered address (required when profile is set) ---
 		mcpgo.WithString("registered_street1",
-			mcpgo.Description("(Optional, required when profile is set) Registered address line 1 (max 100 chars)."),
+			mcpgo.Description("(Optional, required when profile is set) Registered address line 1."),
 			mcpgo.Max(100),
 		),
 		mcpgo.WithString("registered_street2",
-			mcpgo.Description("(Optional, required when profile is set) Registered address line 2 (max 100 chars)."),
+			mcpgo.Description("(Optional, required when profile is set) Registered address line 2."),
 			mcpgo.Max(100),
 		),
 		mcpgo.WithString("registered_city",
 			mcpgo.Description("(Optional, required when profile is set) City of registered address."),
 		),
 		mcpgo.WithString("registered_state",
-			mcpgo.Description("(Optional, required when profile is set) State of registered address e.g. 'Karnataka', 'MH'."),
+			mcpgo.Description("(Optional, required when profile is set) State e.g. 'Karnataka', 'MH'."),
 		),
 		mcpgo.WithNumber("registered_postal_code",
-			mcpgo.Description("(Optional, required when profile is set) Postal code as integer e.g. 560034."),
+			mcpgo.Description("(Optional, required when profile is set) Postal code e.g. 560034."),
 		),
 		mcpgo.WithString("registered_country",
 			mcpgo.Description("(Optional, required when profile is set) Country ISO code e.g. 'IN'."),
 		),
-
-		// --- Operation address (optional even when profile is set) ---
 		mcpgo.WithString("operation_street1",
 			mcpgo.Description("(Optional) Operation address line 1 (max 100 chars)."),
 			mcpgo.Max(100),
@@ -114,13 +105,11 @@ func accountParameters() []mcpgo.ToolParameter {
 			mcpgo.Description("(Optional) State of operation address e.g. 'Karnataka', 'MH'."),
 		),
 		mcpgo.WithNumber("operation_postal_code",
-			mcpgo.Description("(Optional) Operation address postal code as integer e.g. 560034."),
+			mcpgo.Description("(Optional) Operation address postal code e.g. 560034."),
 		),
 		mcpgo.WithString("operation_country",
 			mcpgo.Description("(Optional) Operation address country ISO code e.g. 'IN'."),
 		),
-
-		// --- Legal info ---
 		mcpgo.WithString("pan",
 			mcpgo.Description("(Optional) Business PAN card number."),
 		),
@@ -130,20 +119,14 @@ func accountParameters() []mcpgo.ToolParameter {
 		mcpgo.WithString("cin",
 			mcpgo.Description("(Optional) Corporate Identity Number."),
 		),
-
-		// --- Brand ---
 		mcpgo.WithString("brand_color",
-			mcpgo.Description("(Optional) Brand hex color WITHOUT # prefix e.g. 'FFFFFF', 'FF5733'."),
+			mcpgo.Description("(Optional) Brand hex color WITHOUT # prefix e.g. 'FFFFFF'."),
 			mcpgo.Pattern("^[0-9a-fA-F]{6}$"),
 		),
-
-		// --- Notes ---
 		mcpgo.WithObject("notes",
 			mcpgo.Description("(Optional) Key-value pairs for internal reference (max 15 pairs)."),
 			mcpgo.MaxProperties(15),
 		),
-
-		// --- Contact info ---
 		mcpgo.WithString("chargeback_email",
 			mcpgo.Description("(Optional) Email for chargeback communication."),
 		),
@@ -180,8 +163,6 @@ func accountParameters() []mcpgo.ToolParameter {
 		mcpgo.WithString("dispute_policy_url",
 			mcpgo.Description("(Optional) Policy URL for disputes."),
 		),
-
-		// --- Apps ---
 		mcpgo.WithArray("websites",
 			mcpgo.Description("(Optional) List of website URLs where payments are accepted."),
 			mcpgo.Items(map[string]interface{}{"type": "string"}),
@@ -189,9 +170,173 @@ func accountParameters() []mcpgo.ToolParameter {
 	}
 }
 
-// buildAccountPayload constructs the nested API request body from flat params
-// and returns validation warnings for missing mandatory/conditional fields.
-func buildAccountPayload(r *mcpgo.CallToolRequest) (map[string]interface{}, []string, error) {
+// buildProfileBlock constructs the profile object from flat request params.
+func buildProfileBlock(r *mcpgo.CallToolRequest) (map[string]interface{}, []string) {
+	var warnings []string
+
+	cat, _ := extractString(r, "profile_category", false)
+	sub, _ := extractString(r, "profile_subcategory", false)
+	desc, _ := extractString(r, "profile_description", false)
+	bm, _ := extractString(r, "profile_business_model", false)
+
+	rs1, _ := extractString(r, "registered_street1", false)
+	rs2, _ := extractString(r, "registered_street2", false)
+	rc, _ := extractString(r, "registered_city", false)
+	rst, _ := extractString(r, "registered_state", false)
+	rp, _ := extractNumber(r, "registered_postal_code", false)
+	rco, _ := extractString(r, "registered_country", false)
+
+	os1, _ := extractString(r, "operation_street1", false)
+	os2, _ := extractString(r, "operation_street2", false)
+	oc, _ := extractString(r, "operation_city", false)
+	ost, _ := extractString(r, "operation_state", false)
+	op, _ := extractNumber(r, "operation_postal_code", false)
+	oco, _ := extractString(r, "operation_country", false)
+
+	hasProfile := cat != nil || sub != nil || desc != nil || bm != nil || rs1 != nil
+	if !hasProfile {
+		return nil, nil
+	}
+
+	profile := map[string]interface{}{}
+	if cat == nil {
+		warnings = append(warnings,
+			"MISSING: profile_category is required when profile is provided")
+	} else {
+		profile["category"] = *cat
+	}
+	if sub == nil {
+		warnings = append(warnings,
+			"MISSING: profile_subcategory is required when profile is provided")
+	} else {
+		profile["subcategory"] = *sub
+	}
+	if desc != nil {
+		profile["description"] = *desc
+	}
+	if bm != nil {
+		profile["business_model"] = *bm
+	}
+
+	registered, regWarnings := buildAddress("registered", rs1, rs2, rc, rst, rp, rco)
+	warnings = append(warnings, regWarnings...)
+
+	addresses := map[string]interface{}{"registered": registered}
+	if os1 != nil || os2 != nil || oc != nil {
+		op_ := buildOperationAddress(os1, os2, oc, ost, op, oco)
+		addresses["operation"] = op_
+	}
+	profile["addresses"] = addresses
+
+	return profile, warnings
+}
+
+func buildAddress(
+	kind string,
+	s1, s2, city, state *string,
+	postal *float64,
+	country *string,
+) (map[string]interface{}, []string) {
+	addr := map[string]interface{}{}
+	var missing []string
+	check := func(field string, val *string) {
+		if val != nil {
+			addr[field] = *val
+		} else {
+			missing = append(missing,
+				fmt.Sprintf("%s_%s", kind, field))
+		}
+	}
+	check("street1", s1)
+	check("street2", s2)
+	check("city", city)
+	check("state", state)
+	if postal != nil {
+		addr["postal_code"] = int(*postal)
+	} else {
+		missing = append(missing, kind+"_postal_code")
+	}
+	check("country", country)
+
+	var warnings []string
+	if len(missing) > 0 {
+		warnings = append(warnings,
+			"MISSING: "+kind+" address fields required when profile is set: "+
+				strings.Join(missing, ", "))
+	}
+	return addr, warnings
+}
+
+func buildOperationAddress(
+	s1, s2, city, state *string,
+	postal *float64,
+	country *string,
+) map[string]interface{} {
+	addr := map[string]interface{}{}
+	set := func(key string, v *string) {
+		if v != nil {
+			addr[key] = *v
+		}
+	}
+	set("street1", s1)
+	set("street2", s2)
+	set("city", city)
+	set("state", state)
+	if postal != nil {
+		addr["postal_code"] = int(*postal)
+	}
+	set("country", country)
+	return addr
+}
+
+// buildLegalInfoBlock constructs the legal_info object.
+func buildLegalInfoBlock(r *mcpgo.CallToolRequest) map[string]interface{} {
+	pan, _ := extractString(r, "pan", false)
+	gst, _ := extractString(r, "gst", false)
+	cin, _ := extractString(r, "cin", false)
+	if pan == nil && gst == nil && cin == nil {
+		return nil
+	}
+	legal := map[string]interface{}{}
+	if pan != nil {
+		legal["pan"] = *pan
+	}
+	if gst != nil {
+		legal["gst"] = *gst
+	}
+	if cin != nil {
+		legal["cin"] = *cin
+	}
+	return legal
+}
+
+// buildContactInfoBlock constructs the contact_info object.
+func buildContactInfoBlock(r *mcpgo.CallToolRequest) map[string]interface{} {
+	sections := []string{"chargeback", "refund", "support", "dispute"}
+	fields := []string{"email", "phone", "policy_url"}
+	contactInfo := map[string]interface{}{}
+	for _, section := range sections {
+		obj := map[string]interface{}{}
+		for _, field := range fields {
+			val, _ := extractString(r, section+"_"+field, false)
+			if val != nil {
+				obj[field] = *val
+			}
+		}
+		if len(obj) > 0 {
+			contactInfo[section] = obj
+		}
+	}
+	if len(contactInfo) == 0 {
+		return nil
+	}
+	return contactInfo
+}
+
+// buildAccountPayload constructs the nested API request body from flat params.
+func buildAccountPayload(
+	r *mcpgo.CallToolRequest,
+) (map[string]interface{}, []string, error) {
 	v := newValidator(r)
 	p := make(map[string]interface{})
 	var warnings []string
@@ -203,9 +348,7 @@ func buildAccountPayload(r *mcpgo.CallToolRequest) (map[string]interface{}, []st
 		requireString(p, "business_type").
 		requireString(p, "contact_name")
 
-	if result, _ := v.handleErrorsIfAny(); result != nil {
-		// Collect mandatory missing fields as warnings for preview,
-		// errors for create.
+	if _, _ = v.handleErrorsIfAny(); len(v.errors) > 0 {
 		for _, e := range v.errors {
 			warnings = append(warnings, "MISSING MANDATORY: "+e.Error())
 		}
@@ -220,133 +363,14 @@ func buildAccountPayload(r *mcpgo.CallToolRequest) (map[string]interface{}, []st
 		p[k] = val
 	}
 
-	// Profile block
-	profileCategory, _ := extractString(r, "profile_category", false)
-	profileSubcategory, _ := extractString(r, "profile_subcategory", false)
-	profileDescription, _ := extractString(r, "profile_description", false)
-	profileBusinessModel, _ := extractString(r, "profile_business_model", false)
-
-	regStreet1, _ := extractString(r, "registered_street1", false)
-	regStreet2, _ := extractString(r, "registered_street2", false)
-	regCity, _ := extractString(r, "registered_city", false)
-	regState, _ := extractString(r, "registered_state", false)
-	regPostal, _ := extractNumber(r, "registered_postal_code", false)
-	regCountry, _ := extractString(r, "registered_country", false)
-
-	opStreet1, _ := extractString(r, "operation_street1", false)
-	opStreet2, _ := extractString(r, "operation_street2", false)
-	opCity, _ := extractString(r, "operation_city", false)
-	opState, _ := extractString(r, "operation_state", false)
-	opPostal, _ := extractNumber(r, "operation_postal_code", false)
-	opCountry, _ := extractString(r, "operation_country", false)
-
-	hasProfile := profileCategory != nil || profileSubcategory != nil ||
-		profileDescription != nil || profileBusinessModel != nil ||
-		regStreet1 != nil
-
-	if hasProfile {
-		profile := map[string]interface{}{}
-
-		if profileCategory == nil {
-			warnings = append(warnings, "MISSING: profile_category is required when profile is provided")
-		} else {
-			profile["category"] = *profileCategory
-		}
-		if profileSubcategory == nil {
-			warnings = append(warnings, "MISSING: profile_subcategory is required when profile is provided")
-		} else {
-			profile["subcategory"] = *profileSubcategory
-		}
-		if profileDescription != nil {
-			profile["description"] = *profileDescription
-		}
-		if profileBusinessModel != nil {
-			profile["business_model"] = *profileBusinessModel
-		}
-
-		// Registered address (required when profile is set)
-		registered := map[string]interface{}{}
-		missingReg := []string{}
-		if regStreet1 != nil {
-			registered["street1"] = *regStreet1
-		} else {
-			missingReg = append(missingReg, "registered_street1")
-		}
-		if regStreet2 != nil {
-			registered["street2"] = *regStreet2
-		} else {
-			missingReg = append(missingReg, "registered_street2")
-		}
-		if regCity != nil {
-			registered["city"] = *regCity
-		} else {
-			missingReg = append(missingReg, "registered_city")
-		}
-		if regState != nil {
-			registered["state"] = *regState
-		} else {
-			missingReg = append(missingReg, "registered_state")
-		}
-		if regPostal != nil {
-			registered["postal_code"] = int(*regPostal)
-		} else {
-			missingReg = append(missingReg, "registered_postal_code")
-		}
-		if regCountry != nil {
-			registered["country"] = *regCountry
-		} else {
-			missingReg = append(missingReg, "registered_country")
-		}
-		if len(missingReg) > 0 {
-			warnings = append(warnings, "MISSING: registered address fields required when profile is set: "+strings.Join(missingReg, ", "))
-		}
-
-		addresses := map[string]interface{}{"registered": registered}
-
-		// Operation address (fully optional)
-		hasOp := opStreet1 != nil || opStreet2 != nil || opCity != nil
-		if hasOp {
-			op := map[string]interface{}{}
-			if opStreet1 != nil {
-				op["street1"] = *opStreet1
-			}
-			if opStreet2 != nil {
-				op["street2"] = *opStreet2
-			}
-			if opCity != nil {
-				op["city"] = *opCity
-			}
-			if opState != nil {
-				op["state"] = *opState
-			}
-			if opPostal != nil {
-				op["postal_code"] = int(*opPostal)
-			}
-			if opCountry != nil {
-				op["country"] = *opCountry
-			}
-			addresses["operation"] = op
-		}
-
-		profile["addresses"] = addresses
+	// Profile
+	if profile, profileWarnings := buildProfileBlock(r); profile != nil {
 		p["profile"] = profile
+		warnings = append(warnings, profileWarnings...)
 	}
 
 	// Legal info
-	pan, _ := extractString(r, "pan", false)
-	gst, _ := extractString(r, "gst", false)
-	cin, _ := extractString(r, "cin", false)
-	if pan != nil || gst != nil || cin != nil {
-		legal := map[string]interface{}{}
-		if pan != nil {
-			legal["pan"] = *pan
-		}
-		if gst != nil {
-			legal["gst"] = *gst
-		}
-		if cin != nil {
-			legal["cin"] = *cin
-		}
+	if legal := buildLegalInfoBlock(r); legal != nil {
 		p["legal_info"] = legal
 	}
 
@@ -365,42 +389,8 @@ func buildAccountPayload(r *mcpgo.CallToolRequest) (map[string]interface{}, []st
 	}
 
 	// Contact info
-	contactSections := map[string]map[string]*string{
-		"chargeback": {
-			"email":      mustExtractString(r, "chargeback_email"),
-			"phone":      mustExtractString(r, "chargeback_phone"),
-			"policy_url": mustExtractString(r, "chargeback_policy_url"),
-		},
-		"refund": {
-			"email":      mustExtractString(r, "refund_email"),
-			"phone":      mustExtractString(r, "refund_phone"),
-			"policy_url": mustExtractString(r, "refund_policy_url"),
-		},
-		"support": {
-			"email":      mustExtractString(r, "support_email"),
-			"phone":      mustExtractString(r, "support_phone"),
-			"policy_url": mustExtractString(r, "support_policy_url"),
-		},
-		"dispute": {
-			"email":      mustExtractString(r, "dispute_email"),
-			"phone":      mustExtractString(r, "dispute_phone"),
-			"policy_url": mustExtractString(r, "dispute_policy_url"),
-		},
-	}
-	contactInfo := map[string]interface{}{}
-	for section, fields := range contactSections {
-		obj := map[string]interface{}{}
-		for field, val := range fields {
-			if val != nil {
-				obj[field] = *val
-			}
-		}
-		if len(obj) > 0 {
-			contactInfo[section] = obj
-		}
-	}
-	if len(contactInfo) > 0 {
-		p["contact_info"] = contactInfo
+	if ci := buildContactInfoBlock(r); ci != nil {
+		p["contact_info"] = ci
 	}
 
 	// Apps - websites
@@ -412,14 +402,8 @@ func buildAccountPayload(r *mcpgo.CallToolRequest) (map[string]interface{}, []st
 	return p, warnings, nil
 }
 
-// mustExtractString extracts an optional string, returning nil on error.
-func mustExtractString(r *mcpgo.CallToolRequest, name string) *string {
-	val, _ := extractString(r, name, false)
-	return val
-}
-
-// PreviewCreateAccount returns a tool that constructs and previews the
-// create account request body without making the API call.
+// PreviewCreateAccount returns a tool that previews the request body
+// without making the API call.
 func PreviewCreateAccount(
 	obs *observability.Observability,
 	_ *rzpsdk.Client,
@@ -444,19 +428,19 @@ func PreviewCreateAccount(
 		sb.WriteString("\n```\n")
 
 		if len(warnings) > 0 {
-			sb.WriteString("\n## ⚠️ Validation Issues\n\n")
+			sb.WriteString("\n## Validation Issues\n\n")
 			for _, w := range warnings {
 				sb.WriteString(fmt.Sprintf("- %s\n", w))
 			}
 			sb.WriteString("\nPlease provide the missing fields before proceeding.\n")
 		} else {
-			sb.WriteString("\n✅ All mandatory fields are present.\n")
+			sb.WriteString("\nAll mandatory fields are present.\n")
 		}
 
 		sb.WriteString("\n---\n")
 		sb.WriteString("Would you like to:\n")
-		sb.WriteString("- **Add more fields?** Tell me what else you'd like to include.\n")
-		sb.WriteString("- **Proceed?** Call `create_account` with the same fields to submit.\n")
+		sb.WriteString("- **Add more fields?** Tell me what else to include.\n")
+		sb.WriteString("- **Proceed?** Call `create_account` with the same fields.\n")
 
 		return mcpgo.NewToolResultText(sb.String()), nil
 	}
@@ -464,18 +448,15 @@ func PreviewCreateAccount(
 	return mcpgo.NewTool(
 		"preview_create_account",
 		"Preview the sub-merchant account creation request body before submitting. "+
-			"Accepts all fields individually (flat), assembles the nested JSON, validates mandatory fields, "+
-			"and returns the constructed payload for review. "+
-			"\n\nMandatory fields: email, phone, legal_business_name, business_type, contact_name. "+
-			"\n\nIf profile fields are provided, registered address fields are also required. "+
-			"\n\nAfter reviewing the preview, call create_account with the same fields to submit.",
+			"Accepts all fields individually, assembles nested JSON, "+
+			"and validates mandatory fields. "+
+			"After reviewing, call create_account with the same fields to submit.",
 		accountParameters(),
 		handler,
 	)
 }
 
-// CreateAccount returns a tool that creates a new sub-merchant account
-// using the Razorpay Partnerships Onboarding API (POST /v2/accounts).
+// CreateAccount returns a tool that creates a new sub-merchant account.
 func CreateAccount(
 	obs *observability.Observability,
 	_ *rzpsdk.Client,
@@ -484,7 +465,6 @@ func CreateAccount(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		// Extract bearer token
 		token, err := extractString(&r, "bearer_token", true)
 		if err != nil || token == nil {
 			return mcpgo.NewToolResultError("bearer_token is required"), nil
@@ -492,7 +472,6 @@ func CreateAccount(
 
 		payload, warnings, _ := buildAccountPayload(&r)
 
-		// Block on mandatory field errors
 		var mandatoryErrors []string
 		for _, w := range warnings {
 			if strings.HasPrefix(w, "MISSING MANDATORY") {
@@ -506,7 +485,9 @@ func CreateAccount(
 			), nil
 		}
 
-		account, err := doAccountsRequest(ctx, http.MethodPost, accountsBaseURL(), *token, payload)
+		account, err := doAccountsRequest(
+			ctx, http.MethodPost, accountsBaseURL(), *token, payload,
+		)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("creating account failed", err),
@@ -518,30 +499,28 @@ func CreateAccount(
 
 	return mcpgo.NewTool(
 		"create_account",
-		"Create a new sub-merchant account under the partner using the "+
-			"Razorpay Partnerships Onboarding API (POST /v2/accounts). "+
-			"\n\nRequires a bearer_token from generate_access_token. "+
-			"\n\nMandatory: bearer_token, email, phone, legal_business_name, business_type, contact_name. "+
-			"\n\nTip: call preview_create_account first to review the constructed payload before submitting.",
+		"Create a new sub-merchant account using the Razorpay Partnerships "+
+			"Onboarding API (POST /v2/accounts). "+
+			"Requires bearer_token from generate_access_token. "+
+			"Tip: call preview_create_account first to review the payload.",
 		accountParameters(),
 		handler,
 	)
 }
 
-// FetchAccount returns a tool to fetch a sub-merchant account's details by ID.
+// FetchAccount returns a tool to fetch a sub-merchant account's details.
 func FetchAccount(
 	obs *observability.Observability,
 	_ *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
-		mcpgo.WithString(
-			"bearer_token",
-			mcpgo.Description("(Mandatory) OAuth access token obtained from generate_access_token."),
+		mcpgo.WithString("bearer_token",
+			mcpgo.Description("(Mandatory) OAuth access token from generate_access_token."),
 			mcpgo.Required(),
 		),
-		mcpgo.WithString(
-			"account_id",
-			mcpgo.Description("Unique identifier of the sub-merchant account. Must start with 'acc_'."),
+		mcpgo.WithString("account_id",
+			mcpgo.Description("Unique identifier of the sub-merchant account. "+
+				"Must start with 'acc_'."),
 			mcpgo.Required(),
 		),
 	}
@@ -558,8 +537,12 @@ func FetchAccount(
 			return result, err
 		}
 
-		url := fmt.Sprintf("%s/%s", accountsBaseURL(), p["account_id"].(string))
-		account, err := doAccountsRequest(ctx, http.MethodGet, url, p["bearer_token"].(string), nil)
+		url := fmt.Sprintf(
+			"%s/%s", accountsBaseURL(), p["account_id"].(string),
+		)
+		account, err := doAccountsRequest(
+			ctx, http.MethodGet, url, p["bearer_token"].(string), nil,
+		)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("fetching account failed", err),
@@ -573,9 +556,7 @@ func FetchAccount(
 		"fetch_account",
 		"Fetch a sub-merchant account's details by ID "+
 			"(GET /v2/accounts/:account_id). "+
-			"\n\nRequires a bearer_token from generate_access_token. "+
-			"\n\nReturns status (created/under_review/needs_clarification/activated/rejected), "+
-			"profile, legal info, and contact details.",
+			"Requires bearer_token from generate_access_token.",
 		parameters,
 		handler,
 	)
