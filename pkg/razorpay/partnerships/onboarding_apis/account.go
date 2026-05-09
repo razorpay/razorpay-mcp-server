@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
@@ -16,6 +17,13 @@ import (
 // preview_create_account and create_account.
 func accountParameters() []mcpgo.ToolParameter {
 	return []mcpgo.ToolParameter{
+		// --- Auth ---
+		mcpgo.WithString("bearer_token",
+			mcpgo.Description("(Mandatory) OAuth access token obtained from generate_access_token. "+
+				"Used as 'Authorization: Bearer <token>'."),
+			mcpgo.Required(),
+		),
+
 		// --- Mandatory fields ---
 		mcpgo.WithString("email",
 			mcpgo.Description("(Mandatory) Business email address of the sub-merchant."),
@@ -470,15 +478,16 @@ func PreviewCreateAccount(
 // using the Razorpay Partnerships Onboarding API (POST /v2/accounts).
 func CreateAccount(
 	obs *observability.Observability,
-	client *rzpsdk.Client,
+	_ *rzpsdk.Client,
 ) mcpgo.Tool {
 	handler := func(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		client, err := getClientFromContextOrDefault(ctx, client)
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
+		// Extract bearer token
+		token, err := extractString(&r, "bearer_token", true)
+		if err != nil || token == nil {
+			return mcpgo.NewToolResultError("bearer_token is required"), nil
 		}
 
 		payload, warnings, _ := buildAccountPayload(&r)
@@ -497,7 +506,7 @@ func CreateAccount(
 			), nil
 		}
 
-		account, err := client.Account.Create(payload, nil)
+		account, err := doAccountsRequest(ctx, http.MethodPost, accountsBaseURL(), *token, payload)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("creating account failed", err),
@@ -511,8 +520,8 @@ func CreateAccount(
 		"create_account",
 		"Create a new sub-merchant account under the partner using the "+
 			"Razorpay Partnerships Onboarding API (POST /v2/accounts). "+
-			"\n\nAccepts all fields individually. "+
-			"\n\nMandatory: email, phone, legal_business_name, business_type, contact_name. "+
+			"\n\nRequires a bearer_token from generate_access_token. "+
+			"\n\nMandatory: bearer_token, email, phone, legal_business_name, business_type, contact_name. "+
 			"\n\nTip: call preview_create_account first to review the constructed payload before submitting.",
 		accountParameters(),
 		handler,
@@ -522,9 +531,14 @@ func CreateAccount(
 // FetchAccount returns a tool to fetch a sub-merchant account's details by ID.
 func FetchAccount(
 	obs *observability.Observability,
-	client *rzpsdk.Client,
+	_ *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
+		mcpgo.WithString(
+			"bearer_token",
+			mcpgo.Description("(Mandatory) OAuth access token obtained from generate_access_token."),
+			mcpgo.Required(),
+		),
 		mcpgo.WithString(
 			"account_id",
 			mcpgo.Description("Unique identifier of the sub-merchant account. Must start with 'acc_'."),
@@ -536,18 +550,16 @@ func FetchAccount(
 		ctx context.Context,
 		r mcpgo.CallToolRequest,
 	) (*mcpgo.ToolResult, error) {
-		client, err := getClientFromContextOrDefault(ctx, client)
-		if err != nil {
-			return mcpgo.NewToolResultError(err.Error()), nil
-		}
-
 		p := make(map[string]interface{})
-		v := newValidator(&r).requireString(p, "account_id")
+		v := newValidator(&r).
+			requireString(p, "bearer_token").
+			requireString(p, "account_id")
 		if result, err := v.handleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
-		account, err := client.Account.Fetch(p["account_id"].(string), nil, nil)
+		url := fmt.Sprintf("%s/%s", accountsBaseURL(), p["account_id"].(string))
+		account, err := doAccountsRequest(ctx, http.MethodGet, url, p["bearer_token"].(string), nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("fetching account failed", err),
@@ -561,6 +573,7 @@ func FetchAccount(
 		"fetch_account",
 		"Fetch a sub-merchant account's details by ID "+
 			"(GET /v2/accounts/:account_id). "+
+			"\n\nRequires a bearer_token from generate_access_token. "+
 			"\n\nReturns status (created/under_review/needs_clarification/activated/rejected), "+
 			"profile, legal info, and contact details.",
 		parameters,

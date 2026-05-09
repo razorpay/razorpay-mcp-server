@@ -1,50 +1,100 @@
 package onboardingapis
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"strings"
 
-	rzpsdk "github.com/razorpay/razorpay-go"
-
-	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 )
 
-func getClientFromContextOrDefault(
+const (
+	prodAccountsURL    = "https://api.razorpay.com/v2/accounts"
+	nonProdAccountsURL = "https://api-web.ext.dev.razorpay.in/v2/accounts"
+)
+
+// accountsBaseURL returns the right base URL based on APP_ENV.
+func accountsBaseURL() string {
+	switch strings.ToLower(os.Getenv("APP_ENV")) {
+	case "devstack", "dev":
+		return nonProdAccountsURL
+	default:
+		return prodAccountsURL
+	}
+}
+
+// doAccountsRequest makes an authenticated HTTP request to the Partnerships
+// Accounts API using a Bearer token.
+func doAccountsRequest(
 	ctx context.Context,
-	defaultClient *rzpsdk.Client,
-) (*rzpsdk.Client, error) {
-	if defaultClient != nil {
-		return defaultClient, nil
+	method string,
+	url string,
+	bearerToken string,
+	body map[string]interface{},
+) (map[string]interface{}, error) {
+	var reqBody io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling request body: %w", err)
+		}
+		reqBody = bytes.NewReader(data)
 	}
 
-	clientInterface := contextkey.ClientFromContext(ctx)
-	if clientInterface == nil {
-		return nil, fmt.Errorf("no client found in context")
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	client, ok := clientInterface.(*rzpsdk.Client)
-	if !ok {
-		return nil, fmt.Errorf("invalid client type in context")
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Devstack-specific routing headers
+	if env := strings.ToLower(os.Getenv("APP_ENV")); env == "devstack" || env == "dev" {
+		req.Header.Set("X-Org-Id", "org_100000razorpay")
+		req.Header.Set("kong-debug", "1")
+		if label := os.Getenv("DEVSTACK_LABEL"); label != "" {
+			req.Header.Set("rzpctx-dev-serve-user", label)
+		}
 	}
 
-	return client, nil
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("parsing response (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	return result, nil
 }
 
 func formatErrorMessage(prefix string, err error) string {
 	if err == nil {
 		return prefix + ": resource does not exist"
 	}
-
-	errMsg := err.Error()
-	if errMsg == "" {
-		return prefix + ": resource does not exist"
+	if msg := err.Error(); msg != "" {
+		return prefix + ": " + msg
 	}
-
-	return prefix + ": " + errMsg
+	return prefix + ": resource does not exist"
 }
 
 // validator provides a fluent interface for validating and collecting
