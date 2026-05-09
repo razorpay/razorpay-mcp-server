@@ -1,0 +1,8 @@
+pkg/razorpay/partnerships/onboarding_apis/account.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T08:41:22.770Z 5-7,15-22,24-25,28-30,32-36,38-40,43-45,47-48,52-69,71-91,93-113,115-124,126-130,132-134,138-167,169-174,176-182,184-189,191-196,198-204,206-212,215-219,221-226,228-233,235-237,239-240,242-257,259-294,296,298-321,323-325,327-343,345-349,351-357,359-396,398-402,404-405,407-411,413-423,425-430,432-436,438-446,448-451,453-454,456-467,469-474,484,486-497,514-517,522,530,544-545,550,562-564
+pkg/razorpay/partnerships/onboarding_apis/helpers.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T08:41:37.849Z 137,139-141,143-145,147-159
+pkg/razorpay/tools.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T08:41:44.525Z 131
+---
+{"schema_version": "authorship/3.0.0", "base_commit_sha": "HEAD~1", "prompts": {"b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T08:41:22.770Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 437, "overriden_lines": 0}, "b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T08:41:37.849Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 20, "overriden_lines": 0}, "b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T08:41:44.525Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 1, "overriden_lines": 0}}}
