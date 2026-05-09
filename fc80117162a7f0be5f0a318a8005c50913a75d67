@@ -1,0 +1,12 @@
+cmd/razorpay-mcp-server/stdio.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:21:13.545Z 102-106
+pkg/razorpay/partnerships/auth/helpers.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:24:48.919Z 45-47,50-52,78-80,91-93
+pkg/razorpay/partnerships/auth/token.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:24:16.573Z 20,22,26,37-38,115-116,132-136
+pkg/razorpay/partnerships/onboarding_apis/account.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:23:33.489Z 1,22,38-41,49,52,56-59,63-64,74,78,85,88,108,123,173-175,177-180,182-187,189-194,196-199,201-219,221-222,224-229,231-232,234-259,261-268,270-290,292-311,313-334,336-339,351,366-367,369,373,392-393,405-406,431,437,442-443,451-453,459,488-490,502-505,511,517-518,521-523,540-545,559
+pkg/razorpay/partnerships/onboarding_apis/helpers.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:25:09.392Z 59-60,81-84
+---
+{"schema_version": "authorship/3.0.0", "base_commit_sha": "HEAD~1", "prompts": {"b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:21:13.545Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 5, "overriden_lines": 0}, "b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:24:48.919Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 12, "overriden_lines": 0}, "b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:24:16.573Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 12, "overriden_lines": 0}, "b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:23:33.489Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 210, "overriden_lines": 0}, "b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T20:25:09.392Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 6, "overriden_lines": 0}}}
