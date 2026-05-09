@@ -1,0 +1,4 @@
+pkg/razorpay/partnerships/auth/token.go
+  b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T06:08:30.897Z 9-11,19-22,24-33,76-79,81,84-89,95,131
+---
+{"schema_version": "authorship/3.0.0", "base_commit_sha": "HEAD~1", "prompts": {"b83e2faa-1c1e-4a64-ad89-1e2fdf76f27f:2026-05-09T06:08:30.897Z": {"agent_id": {"tool": "claude_code", "model": ""}, "human_author": "amujuru.kiriti@razorpay.com", "accepted_lines": 30, "overriden_lines": 0}}}
