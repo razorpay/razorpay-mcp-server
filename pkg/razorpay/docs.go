@@ -1017,51 +1017,13 @@ func searchDocumentationForQuery(
 	query string, language string, topic string,
 ) searchDocumentationOutput {
 	q := strings.ToLower(query)
+	queryWords := significantWords(q, 2)
 
-	var queryWords []string
-	for _, w := range strings.Fields(q) {
-		if len(w) > 2 {
-			queryWords = append(queryWords, w)
-		}
-	}
-
-	scored := make([]scoredDocSection, 0, len(docSections))
-	for _, section := range docSections {
-		score := 0
-		if topic != "" && section.Topic == topic {
-			score += 10
-		}
-		for _, word := range queryWords {
-			if strings.Contains(section.Topic, word) {
-				score += 3
-			}
-			if strings.Contains(strings.ToLower(section.Title), word) {
-				score += 2
-			}
-			if strings.Contains(strings.ToLower(section.Summary), word) {
-				score++
-			}
-			for _, kw := range section.Keywords {
-				if strings.Contains(strings.ToLower(kw), word) {
-					score += 2
-					break
-				}
-			}
-		}
-		for _, kw := range section.Keywords {
-			if strings.Contains(q, strings.ToLower(kw)) {
-				score += 3
-			}
-		}
-		if score > 0 {
-			scored = append(scored, scoredDocSection{section: section, score: score})
-		}
-	}
+	scored := scoreDocSections(q, queryWords, topic)
 
 	sort.SliceStable(scored, func(i, j int) bool {
 		return scored[i].score > scored[j].score
 	})
-
 	if len(scored) > 3 {
 		scored = scored[:3]
 	}
@@ -1075,6 +1037,92 @@ func searchDocumentationForQuery(
 		}
 	}
 
+	return buildSearchDocumentationOutput(query, q, language, scored)
+}
+
+// significantWords splits s on whitespace and keeps only words longer
+// than minLen.
+func significantWords(s string, minLen int) []string {
+	var words []string
+	for _, w := range strings.Fields(s) {
+		if len(w) > minLen {
+			words = append(words, w)
+		}
+	}
+	return words
+}
+
+// scoreDocSections scores every docSection against the query words and
+// optional topic filter, keeping only sections with a positive score.
+func scoreDocSections(
+	q string, queryWords []string, topic string,
+) []scoredDocSection {
+	scored := make([]scoredDocSection, 0, len(docSections))
+	for _, section := range docSections {
+		score := scoreDocSection(section, q, queryWords, topic)
+		if score > 0 {
+			scored = append(scored, scoredDocSection{section: section, score: score})
+		}
+	}
+	return scored
+}
+
+// scoreDocSection computes the relevance score for a single docSection.
+func scoreDocSection(
+	section docSection, q string, queryWords []string, topic string,
+) int {
+	score := 0
+	if topic != "" && section.Topic == topic {
+		score += 10
+	}
+	for _, word := range queryWords {
+		if strings.Contains(section.Topic, word) {
+			score += 3
+		}
+		if strings.Contains(strings.ToLower(section.Title), word) {
+			score += 2
+		}
+		if strings.Contains(strings.ToLower(section.Summary), word) {
+			score++
+		}
+		if keywordsContain(section.Keywords, word) {
+			score += 2
+		}
+	}
+	for _, kw := range section.Keywords {
+		if strings.Contains(q, strings.ToLower(kw)) {
+			score += 3
+		}
+	}
+	return score
+}
+
+// keywordsContain reports whether any keyword contains word.
+func keywordsContain(keywords []string, word string) bool {
+	for _, kw := range keywords {
+		if strings.Contains(strings.ToLower(kw), word) {
+			return true
+		}
+	}
+	return false
+}
+
+// keywordMatchCount counts how many of the section's keywords appear in q.
+func keywordMatchCount(keywords []string, q string) int {
+	count := 0
+	for _, kw := range keywords {
+		if strings.Contains(q, strings.ToLower(kw)) {
+			count++
+		}
+	}
+	return count
+}
+
+// buildSearchDocumentationOutput assembles the final search response from
+// the top-scored sections.
+func buildSearchDocumentationOutput(
+	query string, q string, language string, scored []scoredDocSection,
+) searchDocumentationOutput {
 	var langNote string
 	if language != "" && language != "node" {
 		langNote = "\n// Note: Example shown in Node.js. For " + language +
@@ -1089,17 +1137,11 @@ func searchDocumentationForQuery(
 	results := make([]searchResultItem, 0, len(scored))
 	codeExamples := make([]codeExampleItem, 0, len(scored))
 	for _, s := range scored {
-		relevance := 0
-		for _, kw := range s.section.Keywords {
-			if strings.Contains(q, strings.ToLower(kw)) {
-				relevance++
-			}
-		}
 		results = append(results, searchResultItem{
 			Title:         s.section.Title,
 			URL:           s.section.DocURL,
 			Excerpt:       s.section.Summary,
-			Relevance:     relevance,
+			Relevance:     keywordMatchCount(s.section.Keywords, q),
 			GuardrailRefs: s.section.GuardrailRefs,
 		})
 		codeExamples = append(codeExamples, codeExampleItem{
@@ -1188,8 +1230,23 @@ func explainErrorForCode(
 		descToMatch = strings.ToLower(errorDescription)
 	}
 
-	var match *errorEntry
+	match := findErrorByCodeAndDescription(errorCode, descToMatch)
+	if match == nil {
+		match = findErrorByCode(errorCode)
+	}
+	if match == nil {
+		match = findErrorByKeywords(descToMatch)
+	}
 
+	if match == nil {
+		return notFoundErrorOutput(errorCode, errorDescription, subDescription)
+	}
+	return matchedErrorOutput(match)
+}
+
+// findErrorByCodeAndDescription looks for an entry whose code matches
+// exactly and whose sub-description overlaps with descToMatch.
+func findErrorByCodeAndDescription(errorCode, descToMatch string) *errorEntry {
 	for i := range errorRegistryData {
 		e := &errorRegistryData[i]
 		if e.Code != errorCode {
@@ -1199,69 +1256,90 @@ func explainErrorForCode(
 		if descToMatch == "" ||
 			strings.Contains(subLower, descToMatch) ||
 			strings.Contains(descToMatch, subLower) {
-			match = e
-			break
+			return e
 		}
 	}
+	return nil
+}
 
-	if match == nil && errorCode != "" {
-		for i := range errorRegistryData {
-			e := &errorRegistryData[i]
-			if e.Code == errorCode {
-				match = e
-				break
-			}
+// findErrorByCode looks for the first entry matching errorCode exactly.
+func findErrorByCode(errorCode string) *errorEntry {
+	if errorCode == "" {
+		return nil
+	}
+	for i := range errorRegistryData {
+		e := &errorRegistryData[i]
+		if e.Code == errorCode {
+			return e
 		}
 	}
+	return nil
+}
 
-	if match == nil && descToMatch != "" {
-		var words []string
-		for _, w := range strings.Fields(descToMatch) {
-			if len(w) > 3 {
-				words = append(words, w)
-			}
-		}
-	outer:
-		for i := range errorRegistryData {
-			e := &errorRegistryData[i]
-			for _, w := range words {
-				if strings.Contains(strings.ToLower(e.SubDescription), w) ||
-					strings.Contains(strings.ToLower(e.Explanation), w) ||
-					strings.Contains(strings.ToLower(e.Title), w) {
-					match = e
-					break outer
-				}
-			}
+// findErrorByKeywords looks for an entry whose sub-description,
+// explanation, or title contains any word (longer than 3 chars) from
+// descToMatch.
+func findErrorByKeywords(descToMatch string) *errorEntry {
+	if descToMatch == "" {
+		return nil
+	}
+	words := significantWords(descToMatch, 3)
+
+	for i := range errorRegistryData {
+		e := &errorRegistryData[i]
+		if errorEntryMatchesAnyWord(e, words) {
+			return e
 		}
 	}
+	return nil
+}
 
-	if match == nil {
-		fallbackDesc := errorDescription
-		if fallbackDesc == "" {
-			fallbackDesc = subDescription
-		}
-		return explainErrorOutput{
-			ErrorCode:        errorCode,
-			ErrorDescription: fallbackDesc,
-			Title:            "Error Not Found in Registry",
-			Explanation: "The error code \"" + errorCode + "\" with " +
-				"description \"" + fallbackDesc + "\" is not in the local " +
-				"registry. Check the Razorpay API error docs for details.",
-			CommonCauses: []string{
-				"Check the error description for hints",
-				"Verify request parameters against API docs",
-			},
-			ResolutionSteps: []string{
-				"Review the API documentation for this endpoint",
-				"Check the Razorpay support portal",
-			},
-			DocURL:         "https://razorpay.com/docs/api/errors/",
-			IsRetriable:    false,
-			GuardrailRef:   nil,
-			GuardrailTitle: nil,
+// errorEntryMatchesAnyWord reports whether any word appears in e's
+// sub-description, explanation, or title.
+func errorEntryMatchesAnyWord(e *errorEntry, words []string) bool {
+	for _, w := range words {
+		if strings.Contains(strings.ToLower(e.SubDescription), w) ||
+			strings.Contains(strings.ToLower(e.Explanation), w) ||
+			strings.Contains(strings.ToLower(e.Title), w) {
+			return true
 		}
 	}
+	return false
+}
 
+// notFoundErrorOutput builds the generic fallback response used when no
+// registry entry matches.
+func notFoundErrorOutput(
+	errorCode string, errorDescription string, subDescription string,
+) explainErrorOutput {
+	fallbackDesc := errorDescription
+	if fallbackDesc == "" {
+		fallbackDesc = subDescription
+	}
+	return explainErrorOutput{
+		ErrorCode:        errorCode,
+		ErrorDescription: fallbackDesc,
+		Title:            "Error Not Found in Registry",
+		Explanation: "The error code \"" + errorCode + "\" with " +
+			"description \"" + fallbackDesc + "\" is not in the local " +
+			"registry. Check the Razorpay API error docs for details.",
+		CommonCauses: []string{
+			"Check the error description for hints",
+			"Verify request parameters against API docs",
+		},
+		ResolutionSteps: []string{
+			"Review the API documentation for this endpoint",
+			"Check the Razorpay support portal",
+		},
+		DocURL:         "https://razorpay.com/docs/api/errors/",
+		IsRetriable:    false,
+		GuardrailRef:   nil,
+		GuardrailTitle: nil,
+	}
+}
+
+// matchedErrorOutput builds the response for a matched registry entry.
+func matchedErrorOutput(match *errorEntry) explainErrorOutput {
 	var guardrailRef, guardrailTitle *string
 	if match.GuardrailRef != "" {
 		guardrailRef = &match.GuardrailRef

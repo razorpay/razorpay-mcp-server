@@ -46,7 +46,7 @@ func TestSearchDocumentation(t *testing.T) {
 		require.NotEmpty(t, out.Results)
 	})
 
-	t.Run("uses requested language note for non-node language", func(t *testing.T) {
+	t.Run("adds language note for non-node language", func(t *testing.T) {
 		req := createMCPRequest(map[string]interface{}{
 			"query":    "webhook signature verification",
 			"language": "python",
@@ -122,7 +122,7 @@ func TestExplainError(t *testing.T) {
 		assert.Equal(t, known.IsRetriable, out.IsRetriable)
 	})
 
-	t.Run("falls back to code-only match when description does not match", func(t *testing.T) {
+	t.Run("falls back to code-only match on description miss", func(t *testing.T) {
 		require.NotEmpty(t, errorRegistryData)
 		known := errorRegistryData[0]
 
@@ -140,7 +140,7 @@ func TestExplainError(t *testing.T) {
 		assert.Equal(t, known.Code, out.ErrorCode)
 	})
 
-	t.Run("returns not-found fallback for unknown code and description", func(t *testing.T) {
+	t.Run("returns fallback for unknown code and description", func(t *testing.T) {
 		req := createMCPRequest(map[string]interface{}{
 			"error_code":        "TOTALLY_UNKNOWN_ERROR_CODE",
 			"error_description": "zzzznonexistentzzzz",
