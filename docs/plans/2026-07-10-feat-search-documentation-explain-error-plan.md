@@ -3,7 +3,7 @@ title: Add search_documentation and explain_error MCP tools
 type: feat
 date: 2026-07-10
 tdd: true
-status: implemented
+status: implemented, pr-raised
 ---
 
 # Add `search_documentation` and `explain_error` tools
