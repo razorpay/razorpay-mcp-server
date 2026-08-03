@@ -1,4 +1,4 @@
-FROM c.rzp.io/razorpay/rzp-docker-image-inventory-multi-arch:rzp-golden-image-base-golang-1.25-alpine3.22 AS builder
+FROM golang:1.25-alpine3.22 AS builder
 
 # Install git
 RUN apk add --no-cache git
