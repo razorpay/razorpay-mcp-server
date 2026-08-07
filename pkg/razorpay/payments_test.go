@@ -773,6 +773,9 @@ func Test_InitiatePayment(t *testing.T) {
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
 				},
+				"warning": "No email was provided; email was omitted " +
+					"from the payment request. Provide email for receipts and " +
+					"notifications.",
 			},
 		},
 		{
@@ -960,6 +963,9 @@ func Test_InitiatePayment(t *testing.T) {
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
 				},
+				"warning": "No email was provided; email was omitted " +
+					"from the payment request. Provide email for receipts and " +
+					"notifications.",
 			},
 		},
 		{
@@ -3009,7 +3015,7 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			},
 		},
 		{
-			name: "only contact provided - email generated",
+			name: "only contact provided - email omitted",
 			paymentData: map[string]interface{}{
 				"amount": 10000,
 			},
@@ -3019,7 +3025,6 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			expectedResult: map[string]interface{}{
 				"amount":  10000,
 				"contact": "9876543210",
-				"email":   "9876543210@mcp.razorpay.com",
 			},
 		},
 		{
@@ -3036,7 +3041,7 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			},
 		},
 		{
-			name: "contact provided but email is empty - email generated",
+			name: "contact provided but email is empty - email omitted",
 			paymentData: map[string]interface{}{
 				"amount": 10000,
 			},
@@ -3047,7 +3052,6 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			expectedResult: map[string]interface{}{
 				"amount":  10000,
 				"contact": "9876543210",
-				"email":   "9876543210@mcp.razorpay.com",
 			},
 		},
 	}
