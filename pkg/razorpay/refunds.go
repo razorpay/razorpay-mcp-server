@@ -33,6 +33,7 @@ func CreateRefund(
 			mcpgo.Description("The speed at which the refund is to be "+
 				"processed. Default is 'normal'. For instant refunds, speed "+
 				"is set as 'optimum'."),
+			mcpgo.Enum("normal", "optimum"),
 		),
 		mcpgo.WithObject(
 			"notes",
