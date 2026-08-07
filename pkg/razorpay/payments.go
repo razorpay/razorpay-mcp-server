@@ -170,7 +170,7 @@ func UpdatePayment(
 		updatedPayment, err := client.Payment.Edit(paymentId, paymentUpdateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("updating payment failed: %s", err.Error())), nil
+				formatErrorMessage("updating payment failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(updatedPayment)
@@ -244,7 +244,7 @@ func CapturePayment(
 		)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("capturing payment failed: %s", err.Error())), nil
+				formatErrorMessage("capturing payment failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(payment)
@@ -837,7 +837,7 @@ func InitiatePayment(
 		payment, err := createPaymentWithParams(client, params, currency, customerID)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
+				formatErrorMessage("initiating payment failed", err)), nil
 		}
 
 		// Process payment result
@@ -906,7 +906,7 @@ func ResendOtp(
 		otpResponse, err := client.Payment.OtpResend(paymentID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("OTP resend failed: %s", err.Error())), nil
+				formatErrorMessage("resending OTP failed", err)), nil
 		}
 
 		// Extract OTP submit URL from response
@@ -1005,7 +1005,7 @@ func SubmitOtp(
 
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("OTP verification failed: %s", err.Error())), nil
+				formatErrorMessage("verifying OTP failed", err)), nil
 		}
 
 		// Prepare response

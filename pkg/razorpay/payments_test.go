@@ -1386,7 +1386,7 @@ func Test_SubmitOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP verification failed: Invalid OTP provided",
+			ExpectedErrMsg: "verifying OTP failed: Invalid OTP provided",
 		},
 		{
 			Name: "payment not found",
@@ -1404,7 +1404,7 @@ func Test_SubmitOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP verification failed: Payment not found",
+			ExpectedErrMsg: "verifying OTP failed: Payment not found",
 		},
 		{
 			Name: "missing payment_id parameter",
@@ -1452,7 +1452,7 @@ func Test_SubmitOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP verification failed: Authentication failed",
+			ExpectedErrMsg: "verifying OTP failed: Authentication failed",
 		},
 		{
 			Name: "empty payment_id",
@@ -1475,7 +1475,7 @@ func Test_SubmitOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP verification failed:",
+			ExpectedErrMsg: "verifying OTP failed:",
 		},
 	}
 
@@ -2345,7 +2345,7 @@ func Test_ResendOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP resend failed: Payment not found",
+			ExpectedErrMsg: "resending OTP failed: Payment not found",
 		},
 		{
 			Name:    "missing payment_id parameter for resend",
@@ -3844,7 +3844,7 @@ func TestPayments100PercentCoverage_ResendOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP resend failed",
+			ExpectedErrMsg: "resending OTP failed",
 		}
 		runToolTest(t, testCase, ResendOtp, "ResendOtp")
 	})
@@ -3876,7 +3876,7 @@ func TestPayments100PercentCoverage_SubmitOtp(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP verification failed",
+			ExpectedErrMsg: "verifying OTP failed",
 		}
 		runToolTest(t, testCase, SubmitOtp, "SubmitOtp")
 	})

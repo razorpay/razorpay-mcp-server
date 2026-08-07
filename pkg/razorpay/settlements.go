@@ -2,7 +2,6 @@ package razorpay
 
 import (
 	"context"
-	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -123,8 +122,8 @@ func FetchSettlementRecon(
 		report, err := client.Settlement.Reports(fetchReconOptions, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("fetching settlement reconciliation report failed: %s",
-					err.Error())), nil
+				formatErrorMessage(
+					"fetching settlement reconciliation report failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(report)
@@ -274,8 +273,7 @@ func CreateInstantSettlement(
 			createInstantSettlementReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("creating instant settlement failed: %s",
-					err.Error())), nil
+				formatErrorMessage("creating instant settlement failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(settlement)
