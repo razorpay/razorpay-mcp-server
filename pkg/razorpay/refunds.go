@@ -2,8 +2,11 @@ package razorpay
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
+	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
@@ -23,9 +26,10 @@ func CreateRefund(
 		),
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Payment amount in paise (smallest currency unit). "+
-				"For INR: 100 paise = ₹1. Example: for ₹295, use 29500"),
-			mcpgo.Required(),
+			mcpgo.Description("Optional refund amount in paise (smallest "+
+				"currency unit). Omit to refund the full captured amount. "+
+				"When provided, minimum is 100 paise (₹1). "+
+				"Example: for ₹295, use 29500"),
 			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
 		mcpgo.WithString(
@@ -61,7 +65,7 @@ func CreateRefund(
 
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "payment_id").
-			ValidateAndAddRequiredFloat(payload, "amount").
+			ValidateAndAddOptionalFloat(data, "amount").
 			ValidateAndAddOptionalString(data, "speed").
 			ValidateAndAddOptionalString(data, "receipt").
 			ValidateAndAddOptionalMap(data, "notes")
@@ -70,9 +74,28 @@ func CreateRefund(
 			return result, err
 		}
 
-		refund, err := client.Payment.Refund(
-			payload["payment_id"].(string),
-			int(payload["amount"].(float64)), data, nil)
+		paymentID := payload["payment_id"].(string)
+		var refund map[string]interface{}
+
+		if amountVal, hasAmount := data["amount"]; hasAmount {
+			// Partial refund: SDK always sets amount on the request body.
+			delete(data, "amount")
+			refund, err = client.Payment.Refund(
+				paymentID,
+				int(amountVal.(float64)),
+				data,
+				nil,
+			)
+		} else {
+			// Full refund: omit amount from the body per Razorpay API contract.
+			refundURL := fmt.Sprintf(
+				"/%s%s/%s/refund",
+				constants.VERSION_V1,
+				constants.PAYMENT_URL,
+				url.PathEscape(paymentID),
+			)
+			refund, err = client.Payment.Request.Post(refundURL, data, nil)
+		}
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("creating refund failed", err)), nil
@@ -83,9 +106,10 @@ func CreateRefund(
 
 	return mcpgo.NewTool(
 		"create_refund",
-		"Use this tool to create a normal refund for a payment. "+
-			"Amount should be in paise (smallest currency unit). "+
-			"For INR: 100 paise = ₹1. Example: for ₹295, use 29500",
+		"Create a normal refund for a captured payment. "+
+			"Omit amount to refund the full captured amount; provide amount "+
+			"in paise for a partial refund (minimum 100 paise when provided). "+
+			"Payment must have status 'captured'.",
 		parameters,
 		handler,
 	)

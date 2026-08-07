@@ -44,11 +44,28 @@ func Test_CreateRefund(t *testing.T) {
 
 	tests := []RazorpayToolTestCase{
 		{
-			Name: "successful full refund",
+			Name: "successful partial refund with amount",
 			Request: map[string]interface{}{
 				"payment_id": "pay_29QQoUBi66xm2f",
 				"amount":     float64(500100),
 				"receipt":    "Receipt No. 31",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(createRefundPathFmt, "pay_29QQoUBi66xm2f"),
+						Method:   "POST",
+						Response: successfulRefundResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulRefundResp,
+		},
+		{
+			Name: "successful full refund without amount",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -115,6 +132,15 @@ func Test_CreateRefund(t *testing.T) {
 			},
 			ExpectError:    true,
 			ExpectedErrMsg: "creating refund failed: Razorpay API error: Bad request",
+		},
+		{
+			Name: "missing payment_id",
+			Request: map[string]interface{}{
+				"amount": float64(500100),
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
 		},
 		{
 			Name: "multiple validation errors",
