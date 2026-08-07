@@ -1,12 +1,16 @@
 package razorpay
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
 )
@@ -165,6 +169,82 @@ func Test_CreateRefund(t *testing.T) {
 			runToolTest(t, tc, CreateRefund, "Refund")
 		})
 	}
+}
+
+func Test_CreateRefundRequestBody(t *testing.T) {
+	createRefundPathFmt := fmt.Sprintf(
+		"/%s%s/%%s/refund",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+	paymentID := "pay_29QQoUBi66xm2f"
+	refundPath := fmt.Sprintf(createRefundPathFmt, paymentID)
+
+	successResp := map[string]interface{}{
+		"id":         "rfnd_FP8QHiV938haTz",
+		"entity":     "refund",
+		"amount":     float64(500100),
+		"payment_id": paymentID,
+		"status":     "processed",
+	}
+
+	t.Run("full refund omits amount from request body", func(t *testing.T) {
+		var requestBody map[string]interface{}
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Equal(t, refundPath, r.URL.Path)
+				err := json.NewDecoder(r.Body).Decode(&requestBody)
+				assert.NoError(t, err)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(successResp)
+			},
+		))
+		defer server.Close()
+
+		obs := CreateTestObservability()
+		rzpClient := rzpsdk.NewClient("sample_key", "sample_secret")
+		rzpClient.Payment.Request.BaseURL = server.URL
+
+		tool := CreateRefund(obs, rzpClient)
+		request := createMCPRequest(map[string]interface{}{
+			"payment_id": paymentID,
+		})
+		result, err := tool.GetHandler()(context.Background(), request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		_, hasAmount := requestBody["amount"]
+		assert.False(t, hasAmount, "full refund must omit amount from body")
+	})
+
+	t.Run("partial refund includes amount in request body", func(t *testing.T) {
+		var requestBody map[string]interface{}
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				err := json.NewDecoder(r.Body).Decode(&requestBody)
+				assert.NoError(t, err)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(successResp)
+			},
+		))
+		defer server.Close()
+
+		obs := CreateTestObservability()
+		rzpClient := rzpsdk.NewClient("sample_key", "sample_secret")
+		rzpClient.Payment.Request.BaseURL = server.URL
+
+		tool := CreateRefund(obs, rzpClient)
+		request := createMCPRequest(map[string]interface{}{
+			"payment_id": paymentID,
+			"amount":     float64(500100),
+		})
+		result, err := tool.GetHandler()(context.Background(), request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, float64(500100), requestBody["amount"])
+	})
 }
 
 func Test_FetchRefund(t *testing.T) {
