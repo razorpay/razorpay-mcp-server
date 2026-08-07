@@ -261,9 +261,8 @@ func (v *Validator) ValidateAndAddExpand(
 	}
 
 	if len(*expand) > 0 {
-		for _, val := range *expand {
-			params["expand[]"] = val
-		}
+		// razorpay-go serializes []string into repeated expand[]= query params.
+		params["expand[]"] = *expand
 	}
 	return v
 }
