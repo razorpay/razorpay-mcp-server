@@ -78,10 +78,7 @@ func FetchSavedPaymentMethods(
 			customer, err = client.Request.Get(url, nil, nil)
 			if err != nil {
 				return mcpgo.NewToolResultError(
-					fmt.Sprintf(
-						"Failed to fetch customer %s: %v",
-						customerID, err,
-					)), nil
+					formatErrorMessage("fetching customer failed", err)), nil
 			}
 		} else {
 			contact := *contactValue
@@ -93,10 +90,7 @@ func FetchSavedPaymentMethods(
 			customer, err = client.Customer.Create(customerData, nil)
 			if err != nil {
 				return mcpgo.NewToolResultError(
-					fmt.Sprintf(
-						"Failed to create/fetch customer with contact %s: %v",
-						contact, err,
-					)), nil
+					formatErrorMessage("creating customer failed", err)), nil
 			}
 
 			id, ok := customer["id"].(string)
@@ -113,11 +107,7 @@ func FetchSavedPaymentMethods(
 		tokensResponse, err := client.Request.Get(url, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf(
-					"Failed to fetch saved payment methods for customer %s: %v",
-					customerID,
-					err,
-				)), nil
+				formatErrorMessage("fetching tokens failed", err)), nil
 		}
 
 		result := map[string]interface{}{
@@ -217,12 +207,7 @@ func RevokeToken(
 
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf(
-					"Failed to revoke token %s for customer %s: %v",
-					tokenID,
-					customerID,
-					err,
-				)), nil
+				formatErrorMessage("revoking token failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(response)

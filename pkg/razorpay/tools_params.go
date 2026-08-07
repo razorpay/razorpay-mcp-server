@@ -462,8 +462,9 @@ func (v *Validator) ValidateAndAddToken(
 	return v
 }
 
-// formatErrorMessage formats an error message with a prefix,
-// handling empty error messages
+// formatErrorMessage formats API errors as "prefix: details".
+// Prefix should follow "<gerund> <resource> failed" (e.g.
+// "fetching order failed"). Nil or empty errors get a consistent fallback.
 func formatErrorMessage(prefix string, err error) string {
 	if err == nil {
 		return prefix + ": resource does not exist"

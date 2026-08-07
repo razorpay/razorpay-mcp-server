@@ -233,9 +233,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 					},
 				)
 			},
-			ExpectError: true,
-			ExpectedErrMsg: "Failed to create/fetch customer with " +
-				"contact invalid_contact: Contact number is invalid",
+			ExpectError:    true,
+			ExpectedErrMsg: "creating customer failed: Contact number is invalid",
 		},
 		{
 			Name: "tokens API failure after successful customer creation",
@@ -257,9 +256,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 					},
 				)
 			},
-			ExpectError: true,
-			ExpectedErrMsg: "Failed to fetch saved payment methods for " +
-				"customer cust_1Aa00000000003: Customer not found",
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching tokens failed: Customer not found",
 		},
 		{
 			Name: "invalid customer response - missing customer ID",
@@ -378,9 +376,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 					},
 				)
 			},
-			ExpectError: true,
-			ExpectedErrMsg: "Failed to fetch customer cust_nonexistent: " +
-				"Customer not found",
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching customer failed: Customer not found",
 		},
 		{
 			Name: "tokens API failure after successful customer_id fetch", //nolint:lll
@@ -403,9 +400,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 					},
 				)
 			},
-			ExpectError: true,
-			ExpectedErrMsg: "Failed to fetch saved payment methods for " +
-				"customer cust_1Aa00000000003: Customer not found",
+			ExpectError:    true,
+			ExpectedErrMsg: "fetching tokens failed: Customer not found",
 		},
 		// --- validation error tests ---
 		{
@@ -607,9 +603,8 @@ func Test_RevokeToken(t *testing.T) {
 					},
 				)
 			},
-			ExpectError: true,
-			ExpectedErrMsg: "Failed to revoke token token_nonexistent for " +
-				"customer cust_1Aa00000000003: Token not found",
+			ExpectError:    true,
+			ExpectedErrMsg: "revoking token failed: Token not found",
 		},
 		{
 			Name: "customer not found error",
@@ -630,9 +625,8 @@ func Test_RevokeToken(t *testing.T) {
 					},
 				)
 			},
-			ExpectError: true,
-			ExpectedErrMsg: "Failed to revoke token token_ABCDEFGH for " +
-				"customer cust_nonexistent: Customer not found",
+			ExpectError:    true,
+			ExpectedErrMsg: "revoking token failed: Customer not found",
 		},
 		{
 			Name: "missing customer_id parameter",

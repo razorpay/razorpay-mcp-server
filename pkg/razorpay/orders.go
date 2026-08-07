@@ -2,7 +2,6 @@ package razorpay
 
 import (
 	"context"
-	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -143,7 +142,7 @@ func CreateOrder(
 		order, err := client.Order.Create(payload, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("creating order failed: %s", err.Error()),
+				formatErrorMessage("creating order failed", err),
 			), nil
 		}
 
@@ -433,7 +432,7 @@ func UpdateOrder(
 		order, err := client.Order.Update(orderID, data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("updating order failed: %s", err.Error())), nil
+				formatErrorMessage("updating order failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(order)
