@@ -81,6 +81,7 @@ func FetchAllPayouts(
 				"Maximum value is 100. This can be used for pagination,"+
 				"in combination with the skip parameter"),
 			mcpgo.Min(1),
+			mcpgo.Max(100),
 		),
 		mcpgo.WithNumber(
 			"skip",

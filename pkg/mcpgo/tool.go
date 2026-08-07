@@ -232,6 +232,22 @@ type mark3labsToolImpl struct {
 	isReadOnly  bool
 }
 
+// ParameterSchema returns the JSON schema for a named tool parameter.
+func ParameterSchema(tool Tool, name string) (map[string]interface{}, bool) {
+	t, ok := tool.(*mark3labsToolImpl)
+	if !ok {
+		return nil, false
+	}
+
+	for _, param := range t.parameters {
+		if param.Name == name {
+			return param.Schema, true
+		}
+	}
+
+	return nil, false
+}
+
 // NewTool creates a new tool with the given
 // Name, description, parameters and handler
 func NewTool(
