@@ -511,7 +511,8 @@ func addFallbackNextStepInstructions(
 	}
 }
 
-// addContactAndEmailToPaymentData adds contact and email to payment data
+// addContactAndEmailToPaymentData adds contact and email to payment data.
+// Email is only included when explicitly provided — never fabricated from contact.
 func addContactAndEmailToPaymentData(
 	paymentData map[string]interface{},
 	params map[string]interface{},
@@ -521,11 +522,9 @@ func addContactAndEmailToPaymentData(
 		paymentData["contact"] = contact
 	}
 
-	// Add email if provided, otherwise generate from contact
+	// Add email only when explicitly provided
 	if email, exists := params["email"]; exists && email != "" {
 		paymentData["email"] = email
-	} else if contact, exists := paymentData["contact"]; exists && contact != "" {
-		paymentData["email"] = contact.(string) + "@mcp.razorpay.com"
 	}
 }
 
@@ -738,7 +737,9 @@ func InitiatePayment(
 		),
 		mcpgo.WithString(
 			"email",
-			mcpgo.Description("Customer's email address (optional)"),
+			mcpgo.Description("Customer's email address (optional). Omit when "+
+				"unknown — never use placeholder addresses. Provide for email "+
+				"receipts and notifications."),
 		),
 		mcpgo.WithString(
 			"contact",
@@ -846,6 +847,21 @@ func InitiatePayment(
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
 
+		// Warn when contact is provided without email (email omitted from API)
+		hasContact := false
+		if contact, ok := params["contact"]; ok && contact != "" {
+			hasContact = true
+		}
+		hasEmail := false
+		if email, ok := params["email"]; ok && email != "" {
+			hasEmail = true
+		}
+		if hasContact && !hasEmail {
+			response["warning"] = "No email was provided; email was omitted " +
+				"from the payment request. Provide email for receipts and " +
+				"notifications."
+		}
+
 		return mcpgo.NewToolResultJSON(response)
 	}
 
@@ -860,6 +876,8 @@ func InitiatePayment(
 			"which automatically sets UPI with flow='intent' and API returns UPI URL. "+
 			"Supports additional parameters like customer_id, email, "+
 			"contact, save, and recurring. "+
+			"Email is optional — when omitted, no email is sent to the API; "+
+			"provide a real email for receipts and notifications. "+
 			"Returns payment details including next action steps if required.",
 		parameters,
 		handler,

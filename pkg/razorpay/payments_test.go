@@ -2,12 +2,14 @@ package razorpay
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
@@ -773,6 +775,9 @@ func Test_InitiatePayment(t *testing.T) {
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
 				},
+				"warning": "No email was provided; email was omitted " +
+					"from the payment request. Provide email for receipts and " +
+					"notifications.",
 			},
 		},
 		{
@@ -960,6 +965,9 @@ func Test_InitiatePayment(t *testing.T) {
 				"next_tool_params": map[string]interface{}{
 					"payment_id": "pay_MT48CvBhIC98MQ",
 				},
+				"warning": "No email was provided; email was omitted " +
+					"from the payment request. Provide email for receipts and " +
+					"notifications.",
 			},
 		},
 		{
@@ -3009,7 +3017,7 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			},
 		},
 		{
-			name: "only contact provided - email generated",
+			name: "only contact provided - email omitted",
 			paymentData: map[string]interface{}{
 				"amount": 10000,
 			},
@@ -3019,7 +3027,6 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			expectedResult: map[string]interface{}{
 				"amount":  10000,
 				"contact": "9876543210",
-				"email":   "9876543210@mcp.razorpay.com",
 			},
 		},
 		{
@@ -3036,7 +3043,7 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			},
 		},
 		{
-			name: "contact provided but email is empty - email generated",
+			name: "contact provided but email is empty - email omitted",
 			paymentData: map[string]interface{}{
 				"amount": 10000,
 			},
@@ -3047,7 +3054,6 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			expectedResult: map[string]interface{}{
 				"amount":  10000,
 				"contact": "9876543210",
-				"email":   "9876543210@mcp.razorpay.com",
 			},
 		},
 	}
@@ -3082,6 +3088,63 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_InitiatePaymentRequestBody(t *testing.T) {
+	initiatePaymentPath := fmt.Sprintf(
+		"/%s%s/create/json",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	t.Run("contact only omits email from request body", func(t *testing.T) {
+		var requestBody map[string]interface{}
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != initiatePaymentPath {
+					t.Errorf("unexpected path: %s", r.URL.Path)
+				}
+				if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+					t.Errorf("failed to decode body: %v", err)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"razorpay_payment_id": "pay_test123",
+					"status":              "created",
+				})
+			},
+		))
+		defer server.Close()
+
+		obs := CreateTestObservability()
+		rzpClient := rzpsdk.NewClient("sample_key", "sample_secret")
+		rzpClient.Payment.Request.BaseURL = server.URL
+
+		tool := InitiatePayment(obs, rzpClient)
+		request := createMCPRequest(map[string]interface{}{
+			"amount":      float64(10000),
+			"order_id":    "order_test123",
+			"customer_id": "cust_test123",
+			"contact":     "9876543210",
+		})
+		result, err := tool.GetHandler()(context.Background(), request)
+
+		if err != nil {
+			t.Fatalf("handler error: %v", err)
+		}
+		if result == nil {
+			t.Fatal("expected non-nil result")
+		}
+		if _, hasEmail := requestBody["email"]; hasEmail {
+			t.Error("email must be omitted from payment request body")
+		}
+		if requestBody["contact"] != "9876543210" {
+			t.Errorf("expected contact in body, got %v", requestBody["contact"])
+		}
+		if !strings.Contains(result.Text, "warning") {
+			t.Error("expected warning in response when contact provided without email")
+		}
+	})
 }
 
 // Test_processPaymentResult_edgeCases
