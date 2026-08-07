@@ -233,6 +233,8 @@ type mark3labsToolImpl struct {
 }
 
 // ParameterSchema returns the JSON schema for a named tool parameter.
+// It is intended for tests that verify parameter constraints (enum, max,
+// pattern) are declared in the tool schema, not only in descriptions.
 func ParameterSchema(tool Tool, name string) (map[string]interface{}, bool) {
 	t, ok := tool.(*mark3labsToolImpl)
 	if !ok {
