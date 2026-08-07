@@ -1,8 +1,12 @@
 package razorpay
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
@@ -1028,6 +1032,39 @@ func TestValidateAndAddExpand(t *testing.T) {
 
 		assert.True(t, validator.HasErrors())
 	})
+}
+
+func TestValidateAndAddExpandSDKSerialization(t *testing.T) {
+	var capturedQuery string
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			capturedQuery = r.URL.RawQuery
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"entity": "collection",
+				"count":  0,
+				"items":  []interface{}{},
+			})
+		},
+	))
+	defer server.Close()
+
+	client := rzpsdk.NewClient("sample_key", "sample_secret")
+	client.Order.Request.BaseURL = server.URL
+
+	params := make(map[string]interface{})
+	args := map[string]interface{}{
+		"expand": []string{"payments", "transfers"},
+	}
+	request := &mcpgo.CallToolRequest{Arguments: args}
+	validator := NewValidator(request).ValidateAndAddExpand(params)
+
+	assert.False(t, validator.HasErrors())
+
+	_, err := client.Order.All(params, nil)
+	assert.NoError(t, err)
+	assert.Contains(t, capturedQuery, "expand%5B%5D=payments")
+	assert.Contains(t, capturedQuery, "expand%5B%5D=transfers")
 }
 
 // Test for token validation functions edge cases
