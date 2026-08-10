@@ -1,11 +1,16 @@
 package razorpay
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
@@ -139,6 +144,145 @@ func Test_CreateRefund(t *testing.T) {
 			runToolTest(t, tc, CreateRefund, "Refund")
 		})
 	}
+}
+
+// refundCapture records what the SDK actually put on the wire.
+type refundCapture struct {
+	// hasIdempotency distinguishes an absent header from an empty one,
+	// which Header.Get cannot.
+	hasIdempotency    bool
+	idempotencyHeader string
+	path              string
+	body              map[string]interface{}
+}
+
+// newRefundCaptureServer stands up a stub refund endpoint that records the
+// outgoing request. The shared mock package only replays responses, so a
+// dedicated stub is needed to assert on request headers.
+func newRefundCaptureServer(
+	t *testing.T,
+	got *refundCapture,
+) (*rzpsdk.Client, func()) {
+	t.Helper()
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			values := r.Header.Values(refundIdempotencyHeader)
+			got.hasIdempotency = len(values) > 0
+			got.idempotencyHeader = r.Header.Get(refundIdempotencyHeader)
+			got.path = r.URL.Path
+			_ = json.NewDecoder(r.Body).Decode(&got.body)
+
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"id":         "rfnd_FP8QHiV938haTz",
+				"entity":     "refund",
+				"amount":     float64(500100),
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"status":     "processed",
+			})
+		}))
+
+	client := rzpsdk.NewClient("sample_key", "sample_secret")
+	// This Request object is shared by reference across all
+	// API resources in the client
+	client.Order.Request.BaseURL = srv.URL
+	client.Order.Request.HTTPClient = srv.Client()
+
+	return client, srv.Close
+}
+
+// The key must reach Razorpay as the X-Refund-Idempotency header, and
+// omitting it must leave the request exactly as it was before.
+func Test_CreateRefund_IdempotencyHeader(t *testing.T) {
+	tests := []struct {
+		name       string
+		request    map[string]interface{}
+		wantHeader string
+	}{
+		{
+			name: "key omitted sends no header",
+			request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"amount":     float64(500100),
+			},
+			wantHeader: "",
+		},
+		{
+			name: "key is forwarded verbatim",
+			request: map[string]interface{}{
+				"payment_id":      "pay_29QQoUBi66xm2f",
+				"amount":          float64(500100),
+				"idempotency_key": "op-7f3a91c2b4de",
+			},
+			wantHeader: "op-7f3a91c2b4de",
+		},
+		{
+			name: "empty key sends no header",
+			request: map[string]interface{}{
+				"payment_id":      "pay_29QQoUBi66xm2f",
+				"amount":          float64(500100),
+				"idempotency_key": "",
+			},
+			wantHeader: "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var got refundCapture
+			client, closeFn := newRefundCaptureServer(t, &got)
+			defer closeFn()
+
+			tool := CreateRefund(CreateTestObservability(), client)
+			result, err := tool.GetHandler()(
+				context.Background(), createMCPRequest(tc.request))
+
+			assert.NoError(t, err)
+			assert.False(t, result.IsError, result.Text)
+
+			assert.Equal(t,
+				"/v1/payments/pay_29QQoUBi66xm2f/refund", got.path)
+			// An empty wantHeader means the header must be absent
+			// entirely, not merely empty.
+			assert.Equal(t, tc.wantHeader != "", got.hasIdempotency)
+			assert.Equal(t, tc.wantHeader, got.idempotencyHeader)
+			// The key travels as a header only. It must never be added
+			// to the refund request body.
+			assert.NotContains(t, got.body, "idempotency_key")
+		})
+	}
+}
+
+// Supplying a key must not disturb the refund body existing callers rely on,
+// and the key must not be echoed back in the tool result.
+func Test_CreateRefund_IdempotencyKeyLeavesBodyIntact(t *testing.T) {
+	var got refundCapture
+	client, closeFn := newRefundCaptureServer(t, &got)
+	defer closeFn()
+
+	tool := CreateRefund(CreateTestObservability(), client)
+	result, err := tool.GetHandler()(context.Background(), createMCPRequest(
+		map[string]interface{}{
+			"payment_id":      "pay_29QQoUBi66xm2f",
+			"amount":          float64(500100),
+			"speed":           "optimum",
+			"receipt":         "Receipt No. 31",
+			"notes":           map[string]interface{}{"reason": "returned"},
+			"idempotency_key": "op-7f3a91c2b4de",
+		}))
+
+	assert.NoError(t, err)
+	assert.False(t, result.IsError, result.Text)
+
+	assert.Equal(t, "op-7f3a91c2b4de", got.idempotencyHeader)
+	assert.Equal(t, float64(500100), got.body["amount"])
+	assert.Equal(t, "optimum", got.body["speed"])
+	assert.Equal(t, "Receipt No. 31", got.body["receipt"])
+	assert.Equal(t,
+		map[string]interface{}{"reason": "returned"}, got.body["notes"])
+	assert.NotContains(t, got.body, "idempotency_key")
+	assert.NotContains(t, result.Text, "op-7f3a91c2b4de")
 }
 
 func Test_FetchRefund(t *testing.T) {

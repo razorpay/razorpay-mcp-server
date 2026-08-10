@@ -9,6 +9,15 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
+// refundIdempotencyHeader carries the caller-supplied idempotency key on
+// the create-refund request.
+// https://razorpay.com/docs/api/refunds/normal-refunds-idempotent/
+const refundIdempotencyHeader = "X-Refund-Idempotency"
+
+// idempotencyKeyPattern is the key format Razorpay documents:
+// at least 10 characters of letters, numbers, hyphens and underscores.
+const idempotencyKeyPattern = `^[A-Za-z0-9_-]{10,}$`
+
 // CreateRefund returns a tool that creates a normal refund for a payment
 func CreateRefund(
 	obs *observability.Observability,
@@ -44,6 +53,17 @@ func CreateRefund(
 			mcpgo.Description("A unique identifier provided by you for "+
 				"your internal reference."),
 		),
+		mcpgo.WithString(
+			"idempotency_key",
+			mcpgo.Description("Makes this refund request retryable. "+
+				"Retrying with the same idempotency_key and an identical "+
+				"request body returns the original refund instead of "+
+				"creating a second one. Reuse the same value for every "+
+				"retry of the same refund; a new value creates a separate "+
+				"refund. At least 10 characters; letters, numbers, "+
+				"hyphens and underscores only."),
+			mcpgo.Pattern(idempotencyKeyPattern),
+		),
 	}
 
 	handler := func(
@@ -58,21 +78,30 @@ func CreateRefund(
 
 		payload := make(map[string]interface{})
 		data := make(map[string]interface{})
+		options := make(map[string]interface{})
 
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "payment_id").
 			ValidateAndAddRequiredFloat(payload, "amount").
 			ValidateAndAddOptionalString(data, "speed").
 			ValidateAndAddOptionalString(data, "receipt").
-			ValidateAndAddOptionalMap(data, "notes")
+			ValidateAndAddOptionalMap(data, "notes").
+			ValidateAndAddOptionalString(options, "idempotency_key")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
+		// extraHeaders stays nil when no key is supplied, so the request is
+		// unchanged for every existing caller.
+		var extraHeaders map[string]string
+		if key, ok := options["idempotency_key"].(string); ok && key != "" {
+			extraHeaders = map[string]string{refundIdempotencyHeader: key}
+		}
+
 		refund, err := client.Payment.Refund(
 			payload["payment_id"].(string),
-			int(payload["amount"].(float64)), data, nil)
+			int(payload["amount"].(float64)), data, extraHeaders)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("creating refund failed", err)), nil
