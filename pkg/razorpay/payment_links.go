@@ -342,7 +342,7 @@ func FetchPaymentLink(
 
 	return mcpgo.NewTool(
 		"fetch_payment_link",
-		"Fetch payment link details using it's ID. "+
+		"Fetch payment link details using its ID. "+
 			"Response contains the basic details like amount, status etc. "+
 			"The link could be of any type(standard or UPI)",
 		parameters,
