@@ -65,7 +65,8 @@ func TestMark3labsImpl_AddTools(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		srv.AddTools(tool)
+		err := srv.AddTools(tool)
+		assert.NoError(t, err)
 		// If no error, the tool was added successfully
 		assert.NotNil(t, srv)
 	})
@@ -88,15 +89,35 @@ func TestMark3labsImpl_AddTools(t *testing.T) {
 				return NewToolResultText("success2"), nil
 			},
 		)
-		srv.AddTools(tool1, tool2)
+		err := srv.AddTools(tool1, tool2)
+		assert.NoError(t, err)
 		assert.NotNil(t, srv)
 	})
 
 	t.Run("adds empty tools list", func(t *testing.T) {
 		srv := NewMcpServer("test-server", "1.0.0")
-		srv.AddTools()
+		err := srv.AddTools()
+		assert.NoError(t, err)
 		// Should not panic
 		assert.NotNil(t, srv)
+	})
+
+	t.Run("returns error for invalid tool schema", func(t *testing.T) {
+		srv := NewMcpServer("test-server", "1.0.0")
+		tool := NewTool(
+			"bad-tool",
+			"Invalid schema",
+			[]ToolParameter{{
+				Name:   "param1",
+				Schema: map[string]interface{}{"type": "strng"},
+			}},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+		err := srv.AddTools(tool)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported schema type")
 	})
 }
 

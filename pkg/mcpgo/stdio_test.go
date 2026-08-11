@@ -118,6 +118,6 @@ func TestMark3labsStdioImpl_Listen(t *testing.T) {
 // invalidServerImpl is a test implementation that doesn't match Mark3labsImpl
 type invalidServerImpl struct{}
 
-func (i *invalidServerImpl) AddTools(tools ...Tool) {
-	// Empty implementation for testing
+func (i *invalidServerImpl) AddTools(tools ...Tool) error {
+	return nil
 }
