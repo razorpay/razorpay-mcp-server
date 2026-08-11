@@ -428,8 +428,7 @@ func FetchPaymentsForQRCode(
 			ValidateAndAddRequiredString(params, "qr_code_id").
 			ValidateAndAddOptionalInt(fetchQROptions, "from").
 			ValidateAndAddOptionalInt(fetchQROptions, "to").
-			ValidateAndAddOptionalInt(fetchQROptions, "count").
-			ValidateAndAddOptionalInt(fetchQROptions, "skip")
+			ValidateAndAddPagination(fetchQROptions)
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
