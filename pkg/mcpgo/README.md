@@ -43,9 +43,13 @@ The package also provides functions for creating tool results:
 
 ## Usage Example
 
+`CallToolRequest.Arguments` is typed as `any`; type-assert it to
+`map[string]interface{}` before indexing (same pattern as
+`extractValueGeneric` in `pkg/razorpay/tools_params.go`).
+
 ```go
 // Create a server
-server := mcpgo.NewServer(
+server := mcpgo.NewMcpServer(
     "my-server",
     "1.0.0",
     mcpgo.WithLogging(),
@@ -64,14 +68,24 @@ tool := mcpgo.NewTool(
         ),
     },
     func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.ToolResult, error) {
-        // Extract parameter value
-        param1Value, ok := req.Arguments["param1"]
+        // Arguments is any — assert to map before indexing
+        args, ok := req.Arguments.(map[string]interface{})
+        if !ok {
+            return mcpgo.NewToolResultError("invalid arguments type"), nil
+        }
+
+        param1Value, ok := args["param1"]
         if !ok {
             return mcpgo.NewToolResultError("Missing required parameter: param1"), nil
         }
-        
+
+        param1Str, ok := param1Value.(string)
+        if !ok {
+            return mcpgo.NewToolResultError("param1 must be a string"), nil
+        }
+
         // Process and return result
-        return mcpgo.NewToolResultText("Result: " + param1Value.(string)), nil
+        return mcpgo.NewToolResultText("Result: " + param1Str), nil
     },
 )
 
@@ -96,7 +110,7 @@ Here's how we use this package in the Razorpay MCP server to create a payment fe
 ```go
 // FetchPayment returns a tool that fetches payment details using payment_id
 func FetchPayment(
-    log *slog.Logger,
+    obs *observability.Observability,
     client *rzpsdk.Client,
 ) mcpgo.Tool {
     parameters := []mcpgo.ToolParameter{
@@ -111,7 +125,12 @@ func FetchPayment(
         ctx context.Context,
         r mcpgo.CallToolRequest,
     ) (*mcpgo.ToolResult, error) {
-        arg, ok := r.Arguments["payment_id"]
+        args, ok := r.Arguments.(map[string]interface{})
+        if !ok {
+            return mcpgo.NewToolResultError("invalid arguments type"), nil
+        }
+
+        arg, ok := args["payment_id"]
         if !ok {
             return mcpgo.NewToolResultError(
                 "payment id is a required field"), nil
