@@ -390,36 +390,48 @@ func addBasicPropertyOptions(
 	return propOpts
 }
 
-// addTypeSpecificPropertyOptions adds type-specific property options
+// schemaHasKey reports whether schema contains any of the given keys.
+func schemaHasKey(schema map[string]interface{}, keys ...string) bool {
+	for _, key := range keys {
+		if _, ok := schema[key]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// addTypeSpecificPropertyOptions adds type-specific property options.
+// Each option group is applied at most once per schema.
 func addTypeSpecificPropertyOptions(
 	propOpts []mcp.PropertyOption,
-	schema map[string]interface{}) []mcp.PropertyOption {
-	// Skip type, description and required as they're handled separately
-	for k, v := range schema {
-		if k == "type" || k == "description" || k == "required" {
-			continue
-		}
+	schema map[string]interface{},
+) []mcp.PropertyOption {
+	if schemaHasKey(schema, "minimum", "maximum") {
+		propOpts = addNumberPropertyOptions(propOpts, schema)
+	}
 
-		// Process property based on key
-		switch k {
-		case "minimum", "maximum":
-			propOpts = addNumberPropertyOptions(propOpts, schema)
-		case "minLength", "maxLength", "pattern":
-			propOpts = addStringPropertyOptions(propOpts, schema)
-		case "default":
-			propOpts = addDefaultValueOptions(propOpts, v)
-		case "enum":
-			propOpts = addEnumOptions(propOpts, v)
-		case "maxProperties", "minProperties":
-			propOpts = addObjectPropertyOptions(propOpts, schema)
-		case "minItems", "maxItems":
-			propOpts = addArrayPropertyOptions(propOpts, schema)
-		case "items":
-			// Convert items schema to MCP Items PropertyOption
-			if itemsSchema, ok := v.(map[string]interface{}); ok {
-				propOpts = append(propOpts, mcp.Items(itemsSchema))
-			}
-		}
+	if schemaHasKey(schema, "minLength", "maxLength", "pattern") {
+		propOpts = addStringPropertyOptions(propOpts, schema)
+	}
+
+	if defaultVal, ok := schema["default"]; ok {
+		propOpts = addDefaultValueOptions(propOpts, defaultVal)
+	}
+
+	if enumVal, ok := schema["enum"]; ok {
+		propOpts = addEnumOptions(propOpts, enumVal)
+	}
+
+	if schemaHasKey(schema, "maxProperties", "minProperties") {
+		propOpts = addObjectPropertyOptions(propOpts, schema)
+	}
+
+	if schemaHasKey(schema, "minItems", "maxItems") {
+		propOpts = addArrayPropertyOptions(propOpts, schema)
+	}
+
+	if itemsSchema, ok := schema["items"].(map[string]interface{}); ok {
+		propOpts = append(propOpts, mcp.Items(itemsSchema))
 	}
 
 	return propOpts
