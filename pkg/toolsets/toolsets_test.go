@@ -14,8 +14,9 @@ type mockServer struct {
 	tools []mcpgo.Tool
 }
 
-func (m *mockServer) AddTools(tools ...mcpgo.Tool) {
+func (m *mockServer) AddTools(tools ...mcpgo.Tool) error {
 	m.tools = append(m.tools, tools...)
+	return nil
 }
 
 func (m *mockServer) GetTools() []mcpgo.Tool {
@@ -201,7 +202,8 @@ func TestToolset_RegisterTools(t *testing.T) {
 		ts.AddWriteTools(writeTool)
 
 		mockSrv := &mockServer{}
-		ts.RegisterTools(mockSrv)
+		err := ts.RegisterTools(mockSrv)
+		assert.NoError(t, err)
 
 		// Both read and write tools should be registered
 		assert.Len(t, mockSrv.GetTools(), 2)
@@ -219,7 +221,8 @@ func TestToolset_RegisterTools(t *testing.T) {
 		ts.AddReadTools(tool)
 
 		mockSrv := &mockServer{}
-		ts.RegisterTools(mockSrv)
+		err := ts.RegisterTools(mockSrv)
+		assert.NoError(t, err)
 
 		assert.Len(t, mockSrv.GetTools(), 0) // Should not register when disabled
 	})
@@ -244,7 +247,8 @@ func TestToolset_RegisterTools(t *testing.T) {
 		ts.AddWriteTools(writeTool) // This won't add because readOnly
 
 		mockSrv := &mockServer{}
-		ts.RegisterTools(mockSrv)
+		err := ts.RegisterTools(mockSrv)
+		assert.NoError(t, err)
 
 		assert.Len(t, mockSrv.GetTools(), 1) // Only read tool should be registered
 	})
@@ -254,7 +258,8 @@ func TestToolset_RegisterTools(t *testing.T) {
 		ts.Enabled = true
 
 		mockSrv := &mockServer{}
-		ts.RegisterTools(mockSrv)
+		err := ts.RegisterTools(mockSrv)
+		assert.NoError(t, err)
 
 		assert.Len(t, mockSrv.GetTools(), 0) // No tools to register
 	})
@@ -479,7 +484,8 @@ func TestToolsetGroup_RegisterTools(t *testing.T) {
 		tg.AddToolset(ts2)
 
 		mockSrv := &mockServer{}
-		tg.RegisterTools(mockSrv)
+		err := tg.RegisterTools(mockSrv)
+		assert.NoError(t, err)
 
 		assert.Len(t, mockSrv.GetTools(), 1) // Only tool1 should be registered
 	})
@@ -509,7 +515,8 @@ func TestToolsetGroup_RegisterTools(t *testing.T) {
 		tg.AddToolset(ts2)
 
 		mockSrv := &mockServer{}
-		tg.RegisterTools(mockSrv)
+		err := tg.RegisterTools(mockSrv)
+		assert.NoError(t, err)
 
 		assert.Len(t, mockSrv.GetTools(), 2) // Both tools should be registered
 	})
@@ -533,7 +540,8 @@ func TestToolsetGroup_RegisterTools(t *testing.T) {
 		tg.AddToolset(ts2)
 
 		mockSrv := &mockServer{}
-		tg.RegisterTools(mockSrv)
+		err := tg.RegisterTools(mockSrv)
+		assert.NoError(t, err)
 
 		assert.Len(t, mockSrv.GetTools(), 0) // No tools should be registered
 	})
@@ -542,7 +550,8 @@ func TestToolsetGroup_RegisterTools(t *testing.T) {
 		tg := NewToolsetGroup(false)
 
 		mockSrv := &mockServer{}
-		tg.RegisterTools(mockSrv)
+		err := tg.RegisterTools(mockSrv)
+		assert.NoError(t, err)
 
 		assert.Len(t, mockSrv.GetTools(), 0) // No toolsets, no tools
 	})
