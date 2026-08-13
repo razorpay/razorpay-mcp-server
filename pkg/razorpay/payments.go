@@ -334,10 +334,13 @@ func FetchAllPayments(
 	)
 }
 
-// extractPaymentID extracts the payment ID from the payment response
+// extractPaymentID extracts the payment ID from the payment response.
+// Returns empty string when the field is missing or not a string.
 func extractPaymentID(payment map[string]interface{}) string {
 	if id, exists := payment["razorpay_payment_id"]; exists && id != nil {
-		return id.(string)
+		if s, ok := id.(string); ok {
+			return s
+		}
 	}
 	return ""
 }
@@ -432,11 +435,16 @@ func buildInitiatePaymentResponse(
 
 		for _, action := range actions {
 			if actionType, exists := action["action"]; exists {
-				actionStr := actionType.(string)
+				actionStr, ok := actionType.(string)
+				if !ok {
+					continue
+				}
 				actionTypes = append(actionTypes, actionStr)
 				if actionStr == "otp_generate" {
 					hasOTP = true
-					otpUrl = action["url"].(string)
+					if u, ok := action["url"].(string); ok {
+						otpUrl = u
+					}
 				}
 
 				if actionStr == "redirect" {

@@ -1807,6 +1807,14 @@ func Test_extractPaymentID(t *testing.T) {
 			expected: "",
 		},
 		{
+			name: "non-string payment ID",
+			payment: map[string]interface{}{
+				"razorpay_payment_id": 12345,
+				"status":              "created",
+			},
+			expected: "",
+		},
+		{
 			name:     "empty payment map",
 			payment:  map[string]interface{}{},
 			expected: "",
@@ -1938,6 +1946,58 @@ func Test_buildInitiatePaymentResponse(t *testing.T) {
 				},
 			},
 			expectedMsg:    "Payment initiated. Available actions: [unknown_action]",
+			expectedOtpURL: "",
+		},
+		{
+			name: "otp_generate action missing url",
+			payment: map[string]interface{}{
+				"id":     "pay_MT48CvBhIC98MQ",
+				"status": "created",
+			},
+			paymentID: "pay_MT48CvBhIC98MQ",
+			actions: []map[string]interface{}{
+				{
+					"action": "otp_generate",
+				},
+			},
+			expectedMsg: "Payment initiated. OTP authentication is available. " +
+				"Use the 'submit_otp' tool to submit OTP received by the customer " +
+				"for authentication.",
+			expectedOtpURL: "",
+		},
+		{
+			name: "otp_generate action with non-string url",
+			payment: map[string]interface{}{
+				"id":     "pay_MT48CvBhIC98MQ",
+				"status": "created",
+			},
+			paymentID: "pay_MT48CvBhIC98MQ",
+			actions: []map[string]interface{}{
+				{
+					"action": "otp_generate",
+					"url":    123,
+				},
+			},
+			expectedMsg: "Payment initiated. OTP authentication is available. " +
+				"Use the 'submit_otp' tool to submit OTP received by the customer " +
+				"for authentication.",
+			expectedOtpURL: "",
+		},
+		{
+			name: "action with non-string action type",
+			payment: map[string]interface{}{
+				"id":     "pay_MT48CvBhIC98MQ",
+				"status": "created",
+			},
+			paymentID: "pay_MT48CvBhIC98MQ",
+			actions: []map[string]interface{}{
+				{
+					"action": 123,
+					"url": "https://api.razorpay.com/v1/payments/" +
+						"pay_MT48CvBhIC98MQ/otp_generate",
+				},
+			},
+			expectedMsg:    "Payment initiated. Available actions: []",
 			expectedOtpURL: "",
 		},
 	}
@@ -3088,10 +3148,11 @@ func Test_addContactAndEmailToPaymentData_scenarios(t *testing.T) {
 // tests edge cases for processPaymentResult function
 func Test_processPaymentResult_edgeCases(t *testing.T) {
 	tests := []struct {
-		name          string
-		payment       map[string]interface{}
-		expectedError string
-		shouldProcess bool
+		name                 string
+		payment              map[string]interface{}
+		expectedError        string
+		shouldProcess        bool
+		expectEmptyPaymentID bool
 	}{
 		{
 			name: "payment with OTP URL that causes sendOtp to fail",
@@ -3118,6 +3179,33 @@ func Test_processPaymentResult_edgeCases(t *testing.T) {
 				},
 			},
 			shouldProcess: true,
+		},
+		{
+			name: "payment with otp_generate missing url",
+			payment: map[string]interface{}{
+				"razorpay_payment_id": "pay_123456789",
+				"next": []interface{}{
+					map[string]interface{}{
+						"action": "otp_generate",
+					},
+				},
+			},
+			shouldProcess: true,
+		},
+		{
+			name: "payment with non-string payment ID",
+			payment: map[string]interface{}{
+				"razorpay_payment_id": 12345,
+				"next": []interface{}{
+					map[string]interface{}{
+						"action": "redirect",
+						"url": "https://api.razorpay.com/v1/payments/" +
+							"pay_123456789/authenticate",
+					},
+				},
+			},
+			shouldProcess:        true,
+			expectEmptyPaymentID: true,
 		},
 		{
 			name: "payment without next actions",
@@ -3149,8 +3237,12 @@ func Test_processPaymentResult_edgeCases(t *testing.T) {
 					t.Error("Expected result but got nil")
 				} else {
 					// Verify the response structure
-					if paymentID, exists := result["razorpay_payment_id"]; !exists ||
-						paymentID == "" {
+					paymentID, exists := result["razorpay_payment_id"]
+					if tt.expectEmptyPaymentID {
+						if !exists || paymentID != "" {
+							t.Error("Expected empty razorpay_payment_id for malformed ID")
+						}
+					} else if !exists || paymentID == "" {
 						t.Error("Expected razorpay_payment_id in result")
 					}
 					if status, exists := result["status"]; !exists ||
@@ -3261,6 +3353,16 @@ func TestExtractPaymentID(t *testing.T) {
 		result := extractPaymentID(payment)
 		if result != "" {
 			t.Errorf("Expected empty string, got '%s'", result)
+		}
+	})
+
+	t.Run("payment ID is non-string", func(t *testing.T) {
+		payment := map[string]interface{}{
+			"razorpay_payment_id": 12345,
+		}
+		result := extractPaymentID(payment)
+		if result != "" {
+			t.Errorf("Expected empty string, got '%v'", result)
 		}
 	})
 }
