@@ -76,6 +76,15 @@ Available parameter types:
 - `WithNumber`: For numeric values
 - `WithBoolean`: For boolean values
 - `WithObject`: For nested objects
+- `WithArray`: For arrays — **must** include `mcpgo.Items(...)` with the element schema
+
+```go
+mcpgo.WithArray(
+    "tags",
+    mcpgo.Description("List of tag strings"),
+    mcpgo.Items(map[string]interface{}{"type": "string"}),
+)
+```
 
 ### Parameter Validation
 
