@@ -9,7 +9,7 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
-// FetchPayoutByID returns a tool that fetches a payout by its ID
+// FetchPayout returns a tool that fetches a payout by its ID
 func FetchPayout(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
