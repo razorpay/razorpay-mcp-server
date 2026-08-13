@@ -78,6 +78,10 @@ func CreateRefund(
 		var refund map[string]interface{}
 
 		if amountVal, hasAmount := data["amount"]; hasAmount {
+			if amountVal.(float64) < 100 {
+				return mcpgo.NewToolResultError(
+					"amount must be at least 100 paise"), nil
+			}
 			// Partial refund: SDK Refund always sets amount on the request body.
 			delete(data, "amount")
 			refund, err = client.Payment.Refund(

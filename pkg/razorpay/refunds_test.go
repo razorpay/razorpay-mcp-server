@@ -138,6 +138,16 @@ func Test_CreateRefund(t *testing.T) {
 			ExpectedErrMsg: "creating refund failed: Razorpay API error: Bad request",
 		},
 		{
+			Name: "amount below minimum",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"amount":     float64(50),
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "amount must be at least 100 paise",
+		},
+		{
 			Name: "missing payment_id",
 			Request: map[string]interface{}{
 				"amount": float64(500100),
