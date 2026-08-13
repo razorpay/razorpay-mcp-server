@@ -218,6 +218,36 @@ func Test_CreateRefundRequestBody(t *testing.T) {
 		assert.False(t, hasAmount, "full refund must omit amount from body")
 	})
 
+	t.Run("full refund with optional params omits amount", func(t *testing.T) {
+		var requestBody map[string]interface{}
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				err := json.NewDecoder(r.Body).Decode(&requestBody)
+				assert.NoError(t, err)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(successResp)
+			},
+		))
+		defer server.Close()
+
+		obs := CreateTestObservability()
+		rzpClient := rzpsdk.NewClient("sample_key", "sample_secret")
+		rzpClient.Payment.Request.BaseURL = server.URL
+
+		tool := CreateRefund(obs, rzpClient)
+		request := createMCPRequest(map[string]interface{}{
+			"payment_id": paymentID,
+			"speed":      "optimum",
+		})
+		result, err := tool.GetHandler()(context.Background(), request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		_, hasAmount := requestBody["amount"]
+		assert.False(t, hasAmount, "full refund must omit amount from body")
+		assert.Equal(t, "optimum", requestBody["speed"])
+	})
+
 	t.Run("partial refund includes amount in request body", func(t *testing.T) {
 		var requestBody map[string]interface{}
 		server := httptest.NewServer(http.HandlerFunc(

@@ -78,7 +78,7 @@ func CreateRefund(
 		var refund map[string]interface{}
 
 		if amountVal, hasAmount := data["amount"]; hasAmount {
-			// Partial refund: SDK always sets amount on the request body.
+			// Partial refund: SDK Refund always sets amount on the request body.
 			delete(data, "amount")
 			refund, err = client.Payment.Refund(
 				paymentID,
@@ -87,7 +87,8 @@ func CreateRefund(
 				nil,
 			)
 		} else {
-			// Full refund: omit amount from the body per Razorpay API contract.
+			// Full refund: SDK Refund has no amount-less path, so post
+			// directly and omit amount from the body per Razorpay API contract.
 			refundURL := fmt.Sprintf(
 				"/%s%s/%s/refund",
 				constants.VERSION_V1,
