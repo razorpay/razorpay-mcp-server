@@ -1127,7 +1127,7 @@ func Test_InitiatePayment(t *testing.T) {
 			ExpectedErrMsg: "invalid parameter type: upi_intent",
 		},
 		{
-			Name: "recurring payment with INR currency uses regular flow",
+			Name: "recurring payment with INR currency uses recurring flow",
 			Request: map[string]interface{}{
 				"amount":            10000,
 				"currency":          "INR",
@@ -1151,7 +1151,7 @@ func Test_InitiatePayment(t *testing.T) {
 				}
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:     initiatePaymentPath,
+						Path:     recurringPaymentPath,
 						Method:   "POST",
 						Response: successPaymentWithTerminalResp,
 					},
@@ -1182,7 +1182,7 @@ func Test_InitiatePayment(t *testing.T) {
 		},
 		{
 			Name: "recurring payment with non-INR currency and token " +
-				"uses recurring flow",
+				"uses JSON flow",
 			Request: map[string]interface{}{
 				"amount":            10000,
 				"currency":          "USD",
@@ -1206,7 +1206,7 @@ func Test_InitiatePayment(t *testing.T) {
 				}
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:     recurringPaymentPath,
+						Path:     initiatePaymentPath,
 						Method:   "POST",
 						Response: successPaymentWithTerminalResp,
 					},
@@ -1299,6 +1299,129 @@ func Test_InitiatePayment(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			runToolTest(t, tc, InitiatePayment, "Payment Initiation")
+		})
+	}
+}
+
+func Test_createPaymentWithParams_recurringAPIRouting(t *testing.T) {
+	initiatePaymentPath := fmt.Sprintf(
+		"/%s%s/create/json",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	recurringPaymentPath := fmt.Sprintf(
+		"/%s%s/create/recurring",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+
+	successResp := map[string]interface{}{
+		"razorpay_payment_id": "pay_test123",
+		"status":              "created",
+	}
+
+	tests := []struct {
+		name            string
+		params          map[string]interface{}
+		currency        string
+		expectRecurring bool
+	}{
+		{
+			name: "INR recurring with token uses recurring API",
+			params: map[string]interface{}{
+				"amount":    10000,
+				"order_id":  "order_129837127313912",
+				"token":     "token_MT48CvBhIC98MQ",
+				"recurring": true,
+			},
+			currency:        "INR",
+			expectRecurring: true,
+		},
+		{
+			name: "non-INR recurring with token uses JSON API",
+			params: map[string]interface{}{
+				"amount":    10000,
+				"order_id":  "order_129837127313912",
+				"token":     "token_MT48CvBhIC98MQ",
+				"recurring": true,
+			},
+			currency:        "USD",
+			expectRecurring: false,
+		},
+		{
+			name: "INR recurring without token uses JSON API",
+			params: map[string]interface{}{
+				"amount":    10000,
+				"order_id":  "order_129837127313912",
+				"recurring": true,
+			},
+			currency:        "INR",
+			expectRecurring: false,
+		},
+		{
+			name: "INR with token but recurring false uses JSON API",
+			params: map[string]interface{}{
+				"amount":    10000,
+				"order_id":  "order_129837127313912",
+				"token":     "token_MT48CvBhIC98MQ",
+				"recurring": false,
+			},
+			currency:        "INR",
+			expectRecurring: false,
+		},
+		{
+			name: "INR with token and no recurring flag uses JSON API",
+			params: map[string]interface{}{
+				"amount":   10000,
+				"order_id": "order_129837127313912",
+				"token":    "token_MT48CvBhIC98MQ",
+			},
+			currency:        "INR",
+			expectRecurring: false,
+		},
+		{
+			name: "INR recurring with empty token uses JSON API",
+			params: map[string]interface{}{
+				"amount":    10000,
+				"order_id":  "order_129837127313912",
+				"token":     "",
+				"recurring": true,
+			},
+			currency:        "INR",
+			expectRecurring: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expectedPath := initiatePaymentPath
+			if tt.expectRecurring {
+				expectedPath = recurringPaymentPath
+			}
+
+			client, server := newMockRzpClient(func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(mock.Endpoint{
+					Path:     expectedPath,
+					Method:   "POST",
+					Response: successResp,
+				})
+			})
+			defer server.Close()
+
+			payment, err := createPaymentWithParams(
+				client,
+				tt.params,
+				tt.currency,
+				"cust_RGCgP2osfPKFq2",
+			)
+			if err != nil {
+				t.Fatalf("createPaymentWithParams() error = %v", err)
+			}
+
+			if payment["razorpay_payment_id"] != "pay_test123" {
+				t.Fatalf("unexpected payment response: %v", payment)
+			}
 		})
 	}
 }
