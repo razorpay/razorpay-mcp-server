@@ -1,12 +1,16 @@
 package razorpay
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
 )
@@ -44,11 +48,28 @@ func Test_CreateRefund(t *testing.T) {
 
 	tests := []RazorpayToolTestCase{
 		{
-			Name: "successful full refund",
+			Name: "successful partial refund with amount",
 			Request: map[string]interface{}{
 				"payment_id": "pay_29QQoUBi66xm2f",
 				"amount":     float64(500100),
 				"receipt":    "Receipt No. 31",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(createRefundPathFmt, "pay_29QQoUBi66xm2f"),
+						Method:   "POST",
+						Response: successfulRefundResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulRefundResp,
+		},
+		{
+			Name: "successful full refund without amount",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
@@ -117,6 +138,25 @@ func Test_CreateRefund(t *testing.T) {
 			ExpectedErrMsg: "creating refund failed: Razorpay API error: Bad request",
 		},
 		{
+			Name: "amount below minimum",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"amount":     float64(50),
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "amount must be at least 100 paise",
+		},
+		{
+			Name: "missing payment_id",
+			Request: map[string]interface{}{
+				"amount": float64(500100),
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "missing required parameter: payment_id",
+		},
+		{
 			Name: "multiple validation errors",
 			Request: map[string]interface{}{
 				// Missing payment_id parameter
@@ -139,6 +179,112 @@ func Test_CreateRefund(t *testing.T) {
 			runToolTest(t, tc, CreateRefund, "Refund")
 		})
 	}
+}
+
+func Test_CreateRefundRequestBody(t *testing.T) {
+	createRefundPathFmt := fmt.Sprintf(
+		"/%s%s/%%s/refund",
+		constants.VERSION_V1,
+		constants.PAYMENT_URL,
+	)
+	paymentID := "pay_29QQoUBi66xm2f"
+	refundPath := fmt.Sprintf(createRefundPathFmt, paymentID)
+
+	successResp := map[string]interface{}{
+		"id":         "rfnd_FP8QHiV938haTz",
+		"entity":     "refund",
+		"amount":     float64(500100),
+		"payment_id": paymentID,
+		"status":     "processed",
+	}
+
+	t.Run("full refund omits amount from request body", func(t *testing.T) {
+		var requestBody map[string]interface{}
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Equal(t, refundPath, r.URL.Path)
+				err := json.NewDecoder(r.Body).Decode(&requestBody)
+				assert.NoError(t, err)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(successResp)
+			},
+		))
+		defer server.Close()
+
+		obs := CreateTestObservability()
+		rzpClient := rzpsdk.NewClient("sample_key", "sample_secret")
+		rzpClient.Payment.Request.BaseURL = server.URL
+
+		tool := CreateRefund(obs, rzpClient)
+		request := createMCPRequest(map[string]interface{}{
+			"payment_id": paymentID,
+		})
+		result, err := tool.GetHandler()(context.Background(), request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		_, hasAmount := requestBody["amount"]
+		assert.False(t, hasAmount, "full refund must omit amount from body")
+	})
+
+	t.Run("full refund with optional params omits amount", func(t *testing.T) {
+		var requestBody map[string]interface{}
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				err := json.NewDecoder(r.Body).Decode(&requestBody)
+				assert.NoError(t, err)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(successResp)
+			},
+		))
+		defer server.Close()
+
+		obs := CreateTestObservability()
+		rzpClient := rzpsdk.NewClient("sample_key", "sample_secret")
+		rzpClient.Payment.Request.BaseURL = server.URL
+
+		tool := CreateRefund(obs, rzpClient)
+		request := createMCPRequest(map[string]interface{}{
+			"payment_id": paymentID,
+			"speed":      "optimum",
+		})
+		result, err := tool.GetHandler()(context.Background(), request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		_, hasAmount := requestBody["amount"]
+		assert.False(t, hasAmount, "full refund must omit amount from body")
+		assert.Equal(t, "optimum", requestBody["speed"])
+	})
+
+	t.Run("partial refund includes amount in request body", func(t *testing.T) {
+		var requestBody map[string]interface{}
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				err := json.NewDecoder(r.Body).Decode(&requestBody)
+				assert.NoError(t, err)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(successResp)
+			},
+		))
+		defer server.Close()
+
+		obs := CreateTestObservability()
+		rzpClient := rzpsdk.NewClient("sample_key", "sample_secret")
+		rzpClient.Payment.Request.BaseURL = server.URL
+
+		tool := CreateRefund(obs, rzpClient)
+		request := createMCPRequest(map[string]interface{}{
+			"payment_id": paymentID,
+			"amount":     float64(500100),
+		})
+		result, err := tool.GetHandler()(context.Background(), request)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, float64(500100), requestBody["amount"])
+	})
 }
 
 func Test_FetchRefund(t *testing.T) {
