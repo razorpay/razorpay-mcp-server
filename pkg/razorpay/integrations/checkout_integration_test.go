@@ -69,6 +69,7 @@ func Test_DetectStack(t *testing.T) {
 				assert.Equal(t, "go", result.Language)
 				assert.Equal(t, "gin", result.Framework)
 				assert.Equal(t, "go-mod", result.PackageManager)
+				assert.Equal(t, "vanilla", result.Frontend)
 			},
 		},
 		{
@@ -98,6 +99,24 @@ func Test_DetectStack(t *testing.T) {
 				assert.Equal(t, "javascript", result.Language)
 				assert.Equal(t, "express", result.Framework)
 				assert.Equal(t, "npm", result.PackageManager)
+				assert.Equal(t, "vanilla", result.Frontend)
+			},
+		},
+		{
+			name: "detect Solid.js project",
+			request: map[string]interface{}{
+				"files": []interface{}{"src/App.tsx", "package.json"},
+				"packageJson": map[string]interface{}{
+					"dependencies": map[string]interface{}{
+						"solid-js": "^1.8.0",
+						"express":  "^4.18.0",
+					},
+				},
+			},
+			expectError: false,
+			validate: func(t *testing.T, result DetectStackOutput) {
+				assert.Equal(t, "solid", result.Frontend)
+				assert.Equal(t, "express", result.Framework)
 			},
 		},
 		{
@@ -118,6 +137,7 @@ func Test_DetectStack(t *testing.T) {
 			validate: func(t *testing.T, result DetectStackOutput) {
 				assert.Equal(t, "typescript", result.Language)
 				assert.Equal(t, "nextjs", result.Framework)
+				assert.Equal(t, "react", result.Frontend)
 			},
 		},
 		{
@@ -264,6 +284,19 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 					}
 				}
 				assert.True(t, hasNextSteps, "should include NEXT_STEPS.md file")
+			},
+		},
+		{
+			name: "integrate Express with Solid.js",
+			request: map[string]interface{}{
+				"language":          "javascript",
+				"backendFramework":  "express",
+				"frontendFramework": "solid",
+			},
+			expectError: false,
+			validate: func(t *testing.T, result IntegrateCheckoutOutput) {
+				assert.NotEmpty(t, result.Summary)
+				assert.NotEmpty(t, result.Files)
 			},
 		},
 		{
@@ -634,6 +667,56 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_normalizeDetectedFrontend(t *testing.T) {
+	tests := []struct {
+		backend  string
+		frontend string
+		want     string
+	}{
+		{"express", "", "vanilla"},
+		{"gin", "", "vanilla"},
+		{"nextjs", "", "nextjs"},
+		{"nuxt", "", "vue"},
+		{"flutter", "", "native"},
+		{"react-native", "", "native"},
+		{"express", "solid", "solid"},
+		{"express", "react", "react"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.backend+"_"+tc.frontend, func(t *testing.T) {
+			got := normalizeDetectedFrontend(tc.backend, tc.frontend)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func Test_detectStackToIntegrateCheckoutFrontendChain(t *testing.T) {
+	// Express backend-only: detect_stack frontend must match checkout enum.
+	detected := detectProjectStack(map[string]interface{}{
+		"files": []interface{}{"index.js", "package.json"},
+		"packageJson": map[string]interface{}{
+			"dependencies": map[string]interface{}{
+				"express": "^4.18.0",
+			},
+		},
+	})
+	assert.Equal(t, "vanilla", detected.Frontend)
+
+	obs := createTestObservability()
+	tool := IntegrateRazorpayCheckout(obs, newMockRzpClient())
+	request := createMCPRequest(map[string]interface{}{
+		"language":          detected.Language,
+		"backendFramework":  detected.Framework,
+		"frontendFramework": detected.Frontend,
+	})
+	result, err := tool.GetHandler()(context.Background(), request)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.False(
+		t, result.IsError, "detect_stack frontend should pass checkout schema")
 }
 
 func Test_detectProjectStack(t *testing.T) {
