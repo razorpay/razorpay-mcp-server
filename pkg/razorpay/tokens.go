@@ -46,21 +46,28 @@ func FetchSavedPaymentMethods(
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
 
-		validator := NewValidator(&r)
+		params := make(map[string]interface{})
 
-		customerIDValue, _ := extractValueGeneric[string](
-			&r, "customer_id", false)
-		contactValue, _ := extractValueGeneric[string](
-			&r, "contact", false)
+		validator := NewValidator(&r).
+			ValidateAndAddOptionalString(params, "customer_id").
+			ValidateAndAddOptionalString(params, "contact")
 
-		hasCustomerID := customerIDValue != nil && *customerIDValue != ""
-		hasContact := contactValue != nil && *contactValue != ""
+		hasCustomerID := false
+		hasContact := false
+		if v, ok := params["customer_id"].(string); ok && v != "" {
+			hasCustomerID = true
+		}
+		if v, ok := params["contact"].(string); ok && v != "" {
+			hasContact = true
+		}
 
-		if !hasCustomerID && !hasContact {
+		// At least one non-empty identifier is required when params are valid.
+		if !hasCustomerID && !hasContact && !validator.HasErrors() {
 			validator = validator.addError(
 				fmt.Errorf(
 					"either customer_id or contact must be provided"))
 		}
+
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
@@ -69,7 +76,7 @@ func FetchSavedPaymentMethods(
 		var customer map[string]interface{}
 
 		if hasCustomerID {
-			customerID = *customerIDValue
+			customerID = params["customer_id"].(string)
 
 			url := fmt.Sprintf("/%s%s/%s",
 				constants.VERSION_V1,
@@ -78,13 +85,10 @@ func FetchSavedPaymentMethods(
 			customer, err = client.Request.Get(url, nil, nil)
 			if err != nil {
 				return mcpgo.NewToolResultError(
-					fmt.Sprintf(
-						"Failed to fetch customer %s: %v",
-						customerID, err,
-					)), nil
+					formatErrorMessage("fetching customer failed", err)), nil
 			}
 		} else {
-			contact := *contactValue
+			contact := params["contact"].(string)
 			customerData := map[string]interface{}{
 				"contact":       contact,
 				"fail_existing": "0",
@@ -93,10 +97,8 @@ func FetchSavedPaymentMethods(
 			customer, err = client.Customer.Create(customerData, nil)
 			if err != nil {
 				return mcpgo.NewToolResultError(
-					fmt.Sprintf(
-						"Failed to create/fetch customer with contact %s: %v",
-						contact, err,
-					)), nil
+					formatErrorMessage(
+						"creating or fetching customer failed", err)), nil
 			}
 
 			id, ok := customer["id"].(string)
@@ -113,11 +115,8 @@ func FetchSavedPaymentMethods(
 		tokensResponse, err := client.Request.Get(url, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf(
-					"Failed to fetch saved payment methods for customer %s: %v",
-					customerID,
-					err,
-				)), nil
+				formatErrorMessage(
+					"fetching saved payment methods failed", err)), nil
 		}
 
 		result := map[string]interface{}{
@@ -178,33 +177,18 @@ func RevokeToken(
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
 
-		validator := NewValidator(&r)
+		params := make(map[string]interface{})
 
-		// Validate required customer_id parameter
-		customerIDValue, err := extractValueGeneric[string](&r, "customer_id", true)
-		if err != nil {
-			validator = validator.addError(err)
-		} else if customerIDValue == nil || *customerIDValue == "" {
-			validator = validator.addError(
-				fmt.Errorf("missing required parameter: customer_id"))
-		}
+		validator := NewValidator(&r).
+			ValidateAndAddRequiredString(params, "customer_id").
+			ValidateAndAddRequiredString(params, "token_id")
+
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
-		customerID := *customerIDValue
 
-		// Validate required token_id parameter
-		tokenIDValue, err := extractValueGeneric[string](&r, "token_id", true)
-		if err != nil {
-			validator = validator.addError(err)
-		} else if tokenIDValue == nil || *tokenIDValue == "" {
-			validator = validator.addError(
-				fmt.Errorf("missing required parameter: token_id"))
-		}
-		if result, err := validator.HandleErrorsIfAny(); result != nil {
-			return result, err
-		}
-		tokenID := *tokenIDValue
+		customerID := params["customer_id"].(string)
+		tokenID := params["token_id"].(string)
 
 		url := fmt.Sprintf(
 			"/%s%s/%s/tokens/%s/cancel",
@@ -217,12 +201,7 @@ func RevokeToken(
 
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf(
-					"Failed to revoke token %s for customer %s: %v",
-					tokenID,
-					customerID,
-					err,
-				)), nil
+				formatErrorMessage("revoking token failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(response)
