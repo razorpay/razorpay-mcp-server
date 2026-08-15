@@ -259,8 +259,9 @@ func CreateUpiPaymentLink(
 			return result, err
 		}
 
-		// Add the required UPI payment link parameters
-		upiPlCreateReq["upi_link"] = "true"
+		// Required for UPI link creation; API expects boolean true (not a string).
+		// fetch_all_payment_links uses upi_link as an int query filter (0/1) instead.
+		upiPlCreateReq["upi_link"] = true
 
 		// Handle customer details
 		if len(customer) > 0 {
@@ -289,7 +290,8 @@ func CreateUpiPaymentLink(
 
 	return mcpgo.NewTool(
 		"payment_link_upi_create",
-		"Create a new UPI payment link in Razorpay with a specified amount and additional options.", // nolint:lll
+		"Create a new UPI payment link in Razorpay with a specified amount and "+
+			"additional options. Sets upi_link=true (boolean) in the API request.",
 		parameters,
 		handler,
 	)
@@ -517,9 +519,10 @@ func FetchAllPaymentLinks(
 		),
 		mcpgo.WithNumber(
 			"upi_link",
-			mcpgo.Description("Optional: Filter only upi links. "+
-				"Value should be 1 if you want only upi links, 0 for only standard links"+
-				"If not provided, all types of links will be returned"),
+			mcpgo.Description("Optional list filter only (not the create-body field). "+
+				"Use 1 for UPI links, 0 for standard links; omit to return all. "+
+				"Create UPI links via payment_link_upi_create, which sets upi_link "+
+				"to boolean true in the request body."),
 		),
 	}
 
