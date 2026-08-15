@@ -694,7 +694,7 @@ func Test_normalizeDetectedFrontend(t *testing.T) {
 }
 
 func Test_detectStackToIntegrateCheckoutFrontendChain(t *testing.T) {
-	// Express backend-only: detect_stack frontend must be accepted by checkout enum.
+	// Express backend-only: detect_stack frontend must match checkout enum.
 	detected := detectProjectStack(map[string]interface{}{
 		"files": []interface{}{"index.js", "package.json"},
 		"packageJson": map[string]interface{}{
@@ -715,7 +715,8 @@ func Test_detectStackToIntegrateCheckoutFrontendChain(t *testing.T) {
 	result, err := tool.GetHandler()(context.Background(), request)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.False(t, result.IsError, "detect_stack frontend should pass checkout schema")
+	assert.False(
+		t, result.IsError, "detect_stack frontend should pass checkout schema")
 }
 
 func Test_detectProjectStack(t *testing.T) {
