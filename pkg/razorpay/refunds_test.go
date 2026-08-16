@@ -1,11 +1,16 @@
 package razorpay
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
@@ -727,6 +732,85 @@ func Test_FetchAllRefunds(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			runToolTest(t, tc, FetchAllRefunds, "Refund")
+		})
+	}
+}
+
+func Test_CreateRefund_IdempotencyHeader(t *testing.T) {
+	refundResp := map[string]interface{}{
+		"id":         "rfnd_FP8QHiV938haTz",
+		"entity":     "refund",
+		"amount":     float64(500100),
+		"payment_id": "pay_29QQoUBi66xm2f",
+		"status":     "processed",
+	}
+
+	tests := []struct {
+		name       string
+		request    map[string]interface{}
+		wantHeader string
+	}{
+		{
+			name: "sends X-Refund-Idempotency when key is supplied",
+			request: map[string]interface{}{
+				"payment_id":      "pay_29QQoUBi66xm2f",
+				"amount":          float64(500100),
+				"idempotency_key": "refund-order-42-attempt",
+			},
+			wantHeader: "refund-order-42-attempt",
+		},
+		{
+			name: "omits the header when no key is supplied",
+			request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"amount":     float64(500100),
+			},
+			wantHeader: "",
+		},
+		{
+			name: "omits the header when the key is empty",
+			request: map[string]interface{}{
+				"payment_id":      "pay_29QQoUBi66xm2f",
+				"amount":          float64(500100),
+				"idempotency_key": "",
+			},
+			wantHeader: "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotHeader string
+			var gotBody map[string]interface{}
+
+			server := httptest.NewServer(http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					gotHeader = r.Header.Get("X-Refund-Idempotency")
+					_ = json.NewDecoder(r.Body).Decode(&gotBody)
+
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					_ = json.NewEncoder(w).Encode(refundResp)
+				}))
+			defer server.Close()
+
+			client := rzpsdk.NewClient("sample_key", "sample_secret")
+			req := client.Order.Request
+			req.BaseURL = server.URL
+			req.HTTPClient = server.Client()
+
+			tool := CreateRefund(CreateTestObservability(), client)
+			result, err := tool.GetHandler()(
+				context.Background(), createMCPRequest(tc.request))
+
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+			assert.Equal(t, tc.wantHeader, gotHeader)
+
+			// The key travels as a header and must not leak into the body.
+			_, inBody := gotBody["idempotency_key"]
+			assert.False(t, inBody,
+				"idempotency_key must not be sent in the request body")
 		})
 	}
 }
