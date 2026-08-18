@@ -19,6 +19,13 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Set up Package Manager Guard
+        uses: safedep/pmg@v1
+        with:
+          server-mode: true
+          api-key: ${{ secrets.SAFEDEP_API_KEY }}
+          tenant-id: ${{ secrets.SAFEDEP_TENANT_ID }}
+
       - name: Verify dependencies
         run: |
           go mod verify
@@ -48,3 +55,7 @@ jobs:
           bin/golangci-lint run --out-format=colored-line-number --timeout=3m || STATUS=$?
 
           exit $STATUS
+
+      - name: Enforce PMG policy
+        if: always()
+        run: pmg proxy stop --fail-on-violation
