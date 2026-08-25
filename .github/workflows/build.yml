@@ -17,20 +17,18 @@ jobs:
       - name: Check out code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
-      - name: Set up Go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b
-        with:
-          go-version-file: "go.mod"
-
-      # Start PMG in server mode to block malicious packages at install time.
-      # The safedep/pmg action supports Linux runners only, so gate it to
-      # the ubuntu matrix leg (windows/macos legs would fail otherwise).
-      - uses: safedep/pmg@v1
-        if: runner.os == 'Linux'
+      - name: Setup PMG proxy
+        id: pmg-setup
+        uses: safedep/pmg@v1
         with:
           server-mode: true
           api-key: ${{ secrets.PMG_PUBLIC_REPOS_TOKEN }}
           tenant-id: ${{ secrets.PMG_TENANT_ID }}
+
+      - name: Set up Go
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b
+        with:
+          go-version-file: "go.mod"
 
       - name: Download dependencies
         run: go mod download
@@ -41,7 +39,11 @@ jobs:
       - name: Build
         run: go build -v ./cmd/razorpay-mcp-server
 
-      # Enforce PMG policy and flush events to SafeDep Cloud (Linux only)
-      - name: Stop proxy
-        if: always() && runner.os == 'Linux'
-        run: pmg proxy stop --fail-on-violation
+      - name: Enforce PMG policy
+        if: always()
+        run: |
+          if [ "${{ steps.pmg-setup.outcome }}" = "success" ]; then
+            pmg proxy stop --fail-on-violation
+          else
+            pmg proxy stop || true
+          fi
