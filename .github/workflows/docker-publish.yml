@@ -6,12 +6,22 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Start PMG in server mode to block malicious packages at install time
+      - uses: safedep/pmg@v1
+        with:
+          server-mode: true
+          api-key: ${{ secrets.PMG_PUBLIC_REPOS_TOKEN }}
+          tenant-id: ${{ secrets.PMG_TENANT_ID }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -58,3 +68,8 @@ jobs:
             VERSION=${{ github.ref_name }}
             COMMIT=${{ steps.build_info.outputs.trigger_sha }}
             BUILD_DATE=${{ steps.build_info.outputs.build_date }}
+
+      # Enforce PMG policy and flush events to SafeDep Cloud
+      - name: Stop proxy
+        if: always()
+        run: pmg proxy stop --fail-on-violation

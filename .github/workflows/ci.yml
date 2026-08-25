@@ -8,6 +8,10 @@ on:
   pull_request:
     branches:
       - main
+
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run tests and publish test coverage
@@ -19,6 +23,13 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: '1.23'
+
+      # Start PMG in server mode to block malicious packages at install time
+      - uses: safedep/pmg@v1
+        with:
+          server-mode: true
+          api-key: ${{ secrets.PMG_PUBLIC_REPOS_TOKEN }}
+          tenant-id: ${{ secrets.PMG_TENANT_ID }}
 
       - name: Run coverage
         run: |
@@ -32,3 +43,8 @@ jobs:
            name: codecov-umbrella
            fail_ci_if_error: true
            verbose: true
+
+      # Enforce PMG policy and flush events to SafeDep Cloud
+      - name: Stop proxy
+        if: always()
+        run: pmg proxy stop --fail-on-violation
