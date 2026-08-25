@@ -19,6 +19,7 @@ jobs:
 
       - name: Setup PMG proxy
         id: pmg-setup
+        if: runner.os == 'Linux'
         uses: safedep/pmg@v1
         with:
           server-mode: true
@@ -40,7 +41,7 @@ jobs:
         run: go build -v ./cmd/razorpay-mcp-server
 
       - name: Enforce PMG policy
-        if: always()
+        if: always() && runner.os == 'Linux'
         run: |
           if [ "${{ steps.pmg-setup.outcome }}" = "success" ]; then
             pmg proxy stop --fail-on-violation
