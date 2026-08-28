@@ -17,6 +17,15 @@ jobs:
       - name: Check out code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
+      - name: Setup PMG proxy
+        id: pmg-setup
+        if: runner.os == 'Linux'
+        uses: safedep/pmg@v1
+        with:
+          server-mode: true
+          api-key: ${{ secrets.PMG_PUBLIC_REPOS_TOKEN }}
+          tenant-id: ${{ secrets.PMG_TENANT_ID }}
+
       - name: Set up Go
         uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b
         with:
@@ -30,3 +39,12 @@ jobs:
 
       - name: Build
         run: go build -v ./cmd/razorpay-mcp-server
+
+      - name: Enforce PMG policy
+        if: always() && runner.os == 'Linux'
+        run: |
+          if [ "${{ steps.pmg-setup.outcome }}" = "success" ]; then
+            pmg proxy stop --fail-on-violation
+          else
+            pmg proxy stop || true
+          fi
