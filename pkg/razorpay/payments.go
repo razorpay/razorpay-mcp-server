@@ -706,6 +706,39 @@ func createPaymentWithParams(
 	return payment, err
 }
 
+// looksLikeUnroutedEndpointError detects a generic web-server/gateway "not
+// found" response body (e.g. "The requested URL was not found on the
+// server.") as opposed to Razorpay's normal structured validation/decline
+// error messages (which read like "The api key/secret provided is invalid"
+// or a specific field complaint). In practice this shape has been observed
+// on the create/json and create/recurring payment-creation endpoints when
+// the calling account does not have Server-to-Server (S2S) JSON payment API
+// access enabled, and the raw text alone gives no indication of that -- it
+// reads exactly like a client bug even when it isn't one.
+func looksLikeUnroutedEndpointError(msg string) bool {
+	lower := strings.ToLower(msg)
+	return strings.Contains(lower, "requested url") &&
+		strings.Contains(lower, "not found")
+}
+
+// wrapPaymentCreationError appends actionable guidance to a payment-creation
+// error when its shape suggests an unrouted/unavailable endpoint rather than
+// a normal Razorpay validation error, so a caller isn't left debugging what
+// looks like a code bug when it's more likely an account configuration gap.
+func wrapPaymentCreationError(err error) string {
+	msg := fmt.Sprintf("initiating payment failed: %s", err.Error())
+	if looksLikeUnroutedEndpointError(err.Error()) {
+		msg += ". This looks like a generic 'not found' response rather than " +
+			"a normal Razorpay validation error, which has been seen when the " +
+			"account does not have Server-to-Server (S2S) JSON payment API " +
+			"access enabled. Confirm S2S/create-payment access is enabled for " +
+			"this key (contact Razorpay support if unsure), or see " +
+			"https://razorpay.com/docs/payment-gateway/s2s-integration/ for " +
+			"prerequisites."
+	}
+	return msg
+}
+
 // InitiatePayment returns a tool that initiates a payment using order_id
 // and token
 // This implements the S2S JSON v1 flow for creating payments
@@ -836,8 +869,7 @@ func InitiatePayment(
 		// Create payment
 		payment, err := createPaymentWithParams(client, params, currency, customerID)
 		if err != nil {
-			return mcpgo.NewToolResultError(
-				fmt.Sprintf("initiating payment failed: %s", err.Error())), nil
+			return mcpgo.NewToolResultError(wrapPaymentCreationError(err)), nil
 		}
 
 		// Process payment result

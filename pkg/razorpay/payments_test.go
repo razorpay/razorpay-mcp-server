@@ -664,6 +664,17 @@ func Test_InitiatePayment(t *testing.T) {
 		},
 	}
 
+	// Modeled on a real, live-reproduced failure: the create/json payment
+	// endpoint returning a generic web-server "not found" style description
+	// instead of a normal Razorpay validation error -- observed when the
+	// calling account lacked Server-to-Server (S2S) JSON payment API access.
+	unroutedEndpointErrorResp := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":        "BAD_REQUEST_ERROR",
+			"description": "The requested URL was not found on the server.",
+		},
+	}
+
 	tests := []RazorpayToolTestCase{
 		{
 			Name: "successful payment initiation without next actions",
@@ -793,6 +804,30 @@ func Test_InitiatePayment(t *testing.T) {
 			},
 			ExpectError:    true,
 			ExpectedErrMsg: "initiating payment failed:",
+		},
+		{
+			Name: "payment initiation with unrouted-endpoint-style API error " +
+				"gets actionable S2S guidance appended",
+			Request: map[string]interface{}{
+				"amount":   10000,
+				"token":    "token_MT48CvBhIC98MQ",
+				"order_id": "order_129837127313912",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     initiatePaymentPath,
+						Method:   "POST",
+						Response: unroutedEndpointErrorResp,
+					},
+				)
+			},
+			ExpectError: true,
+			ExpectedErrMsg: "initiating payment failed: The requested URL was " +
+				"not found on the server.. This looks like a generic 'not " +
+				"found' response rather than a normal Razorpay validation " +
+				"error, which has been seen when the account does not have " +
+				"Server-to-Server (S2S) JSON payment API access enabled.",
 		},
 		{
 			Name: "missing required amount parameter",
@@ -4328,5 +4363,75 @@ func TestPayments100PercentCoverage_ContextErrors4(t *testing.T) {
 			ExpectedErrMsg: "failed",
 		}
 		runToolTest(t, testCase, FetchAllPayments, "Collection")
+	})
+}
+
+func Test_looksLikeUnroutedEndpointError(t *testing.T) {
+	tests := []struct {
+		name string
+		msg  string
+		want bool
+	}{
+		{
+			name: "the exact real-world message this was written for",
+			msg:  "The requested URL was not found on the server.",
+			want: true,
+		},
+		{
+			name: "case-insensitive match",
+			msg:  "THE REQUESTED URL WAS NOT FOUND ON THE SERVER.",
+			want: true,
+		},
+		{
+			name: "normal Razorpay validation error is not flagged",
+			msg:  "Invalid token",
+			want: false,
+		},
+		{
+			name: "normal Razorpay validation error mentioning 'found' alone " +
+				"is not flagged",
+			msg:  "No customer found for the given contact",
+			want: false,
+		},
+		{
+			name: "empty message",
+			msg:  "",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := looksLikeUnroutedEndpointError(tt.msg)
+			if got != tt.want {
+				t.Errorf("looksLikeUnroutedEndpointError(%q) = %v, want %v",
+					tt.msg, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_wrapPaymentCreationError(t *testing.T) {
+	t.Run("unrouted error gets guidance appended", func(t *testing.T) {
+		got := wrapPaymentCreationError(
+			fmt.Errorf("The requested URL was not found on the server."))
+		if !strings.Contains(got, "initiating payment failed: "+
+			"The requested URL was not found on the server.") {
+			t.Errorf("wrapPaymentCreationError did not preserve the "+
+				"original message, got: %q", got)
+		}
+		if !strings.Contains(got, "Server-to-Server (S2S)") {
+			t.Errorf("wrapPaymentCreationError did not append S2S guidance, "+
+				"got: %q", got)
+		}
+	})
+
+	t.Run("normal validation error is not decorated", func(t *testing.T) {
+		got := wrapPaymentCreationError(fmt.Errorf("Invalid token"))
+		want := "initiating payment failed: Invalid token"
+		if got != want {
+			t.Errorf("wrapPaymentCreationError(%q) = %q, want %q",
+				"Invalid token", got, want)
+		}
 	})
 }
