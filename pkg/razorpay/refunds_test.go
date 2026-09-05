@@ -117,6 +117,18 @@ func Test_CreateRefund(t *testing.T) {
 			ExpectedErrMsg: "creating refund failed: Razorpay API error: Bad request",
 		},
 		{
+			// Regression test for #134: a fractional subunit amount must be
+			// rejected before any request is made, never truncated to 100.
+			Name: "fractional amount is rejected without calling the API",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"amount":     float64(100.75),
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: amount must be a whole number",
+		},
+		{
 			Name: "multiple validation errors",
 			Request: map[string]interface{}{
 				// Missing payment_id parameter

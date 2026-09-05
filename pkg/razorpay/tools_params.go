@@ -3,6 +3,7 @@ package razorpay
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -79,10 +80,27 @@ func extractValueGeneric[T any](
 
 	err = json.Unmarshal(data, &result)
 	if err != nil {
+		if isFractionalForInteger[T](val) {
+			return nil, errors.New("invalid parameter type: " + name +
+				" must be a whole number")
+		}
 		return nil, errors.New("invalid parameter type: " + name)
 	}
 
 	return &result, nil
+}
+
+// isFractionalForInteger reports whether an integer was expected but the
+// caller sent a number with a fractional part (e.g. 100.75 paise). Amounts in
+// currency subunits are integers, so such input is rejected instead of being
+// silently truncated.
+func isFractionalForInteger[T any](val interface{}) bool {
+	var zero T
+	if _, isInt := any(zero).(int64); !isInt {
+		return false
+	}
+	f, isFloat := val.(float64)
+	return isFloat && f != math.Trunc(f)
 }
 
 // Generic validation functions

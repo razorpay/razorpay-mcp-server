@@ -121,7 +121,7 @@ func CreateOrder(
 		payload := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredFloat(payload, "amount").
+			ValidateAndAddRequiredInt(payload, "amount").
 			ValidateAndAddRequiredString(payload, "currency").
 			ValidateAndAddOptionalString(payload, "receipt").
 			ValidateAndAddOptionalMap(payload, "notes").
@@ -133,7 +133,7 @@ func CreateOrder(
 
 		// Add first_payment_min_amount only if partial_payment is true
 		if payload["partial_payment"] == true {
-			validator.ValidateAndAddOptionalFloat(payload, "first_payment_min_amount")
+			validator.ValidateAndAddOptionalInt(payload, "first_payment_min_amount")
 		}
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {

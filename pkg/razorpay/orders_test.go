@@ -453,6 +453,17 @@ func Test_CreateOrder(t *testing.T) {
 		},
 	}
 
+	tests = append(tests, RazorpayToolTestCase{
+		Name: "fractional amount is rejected",
+		Request: map[string]interface{}{
+			"amount":   float64(100.75),
+			"currency": "INR",
+		},
+		MockHttpClient: nil,
+		ExpectError:    true,
+		ExpectedErrMsg: "invalid parameter type: amount must be a whole number",
+	})
+
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			runToolTest(t, tc, CreateOrder, "Order")
