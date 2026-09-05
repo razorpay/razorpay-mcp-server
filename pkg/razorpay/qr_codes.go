@@ -98,7 +98,7 @@ func CreateQRCode(
 			ValidateAndAddRequiredString(qrData, "usage").
 			ValidateAndAddOptionalString(qrData, "name").
 			ValidateAndAddOptionalBool(qrData, "fixed_amount").
-			ValidateAndAddOptionalFloat(qrData, "payment_amount").
+			ValidateAndAddOptionalInt(qrData, "payment_amount").
 			ValidateAndAddOptionalString(qrData, "description").
 			ValidateAndAddOptionalString(qrData, "customer_id").
 			ValidateAndAddOptionalFloat(qrData, "close_by").

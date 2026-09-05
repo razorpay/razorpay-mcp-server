@@ -85,6 +85,34 @@ func TestValidator(t *testing.T) {
 			expectKey:      "test_param",
 		},
 
+		{
+			name:           "required int - fractional",
+			args:           map[string]interface{}{"test_param": float64(100.75)},
+			paramName:      "test_param",
+			validationFunc: (*Validator).ValidateAndAddRequiredInt,
+			expectError:    true,
+			expectValue:    nil,
+			expectKey:      "test_param",
+		},
+		{
+			name:           "optional int - fractional",
+			args:           map[string]interface{}{"test_param": float64(0.5)},
+			paramName:      "test_param",
+			validationFunc: (*Validator).ValidateAndAddOptionalInt,
+			expectError:    true,
+			expectValue:    nil,
+			expectKey:      "test_param",
+		},
+		{
+			name:           "required int - whole float is accepted",
+			args:           map[string]interface{}{"test_param": float64(500100)},
+			paramName:      "test_param",
+			validationFunc: (*Validator).ValidateAndAddRequiredInt,
+			expectError:    false,
+			expectValue:    int64(500100),
+			expectKey:      "test_param",
+		},
+
 		// Float tests
 		{
 			name:           "required float - valid",
