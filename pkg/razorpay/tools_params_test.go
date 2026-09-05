@@ -339,25 +339,33 @@ func TestValidatorExpand(t *testing.T) {
 	tests := []struct {
 		name         string
 		args         map[string]interface{}
-		expectExpand string
+		expectExpand []string
 		expectError  bool
 	}{
 		{
 			name:         "valid expand param",
 			args:         map[string]interface{}{"expand": []interface{}{"payments"}},
-			expectExpand: "payments",
+			expectExpand: []string{"payments"},
+			expectError:  false,
+		},
+		{
+			name: "multiple expand params are all retained",
+			args: map[string]interface{}{
+				"expand": []interface{}{"payments", "transfers", "virtual_account"},
+			},
+			expectExpand: []string{"payments", "transfers", "virtual_account"},
 			expectError:  false,
 		},
 		{
 			name:         "empty expand array",
 			args:         map[string]interface{}{"expand": []interface{}{}},
-			expectExpand: "",
+			expectExpand: nil,
 			expectError:  false,
 		},
 		{
 			name:         "invalid expand type",
 			args:         map[string]interface{}{"expand": "not an array"},
-			expectExpand: "",
+			expectExpand: nil,
 			expectError:  true,
 		},
 	}
@@ -376,7 +384,7 @@ func TestValidatorExpand(t *testing.T) {
 				assert.True(t, validator.HasErrors(), "Expected validation error")
 			} else {
 				assert.False(t, validator.HasErrors(), "Did not expect validation error")
-				if tt.expectExpand != "" {
+				if len(tt.expectExpand) > 0 {
 					assert.Equal(t,
 						tt.expectExpand,
 						result["expand[]"],
@@ -999,8 +1007,8 @@ func TestValidateAndAddExpand(t *testing.T) {
 		validator := NewValidator(request).ValidateAndAddExpand(params)
 
 		assert.False(t, validator.HasErrors())
-		// The function sets expand[] for each value, so check the last one
-		assert.Equal(t, "customer", params["expand[]"])
+		// Every requested value must survive, not just the last one.
+		assert.Equal(t, []string{"payments", "customer"}, params["expand[]"])
 	})
 
 	t.Run("missing expand parameter", func(t *testing.T) {
