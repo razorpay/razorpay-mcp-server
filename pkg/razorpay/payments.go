@@ -334,10 +334,12 @@ func FetchAllPayments(
 	)
 }
 
-// extractPaymentID extracts the payment ID from the payment response
+// extractPaymentID extracts the payment ID from the payment response.
+// A missing, null or non-string id yields the empty string rather than a
+// panic, since the value comes from the API response and is not validated.
 func extractPaymentID(payment map[string]interface{}) string {
-	if id, exists := payment["razorpay_payment_id"]; exists && id != nil {
-		return id.(string)
+	if id, ok := payment["razorpay_payment_id"].(string); ok {
+		return id
 	}
 	return ""
 }
@@ -431,25 +433,33 @@ func buildInitiatePaymentResponse(
 		hasUPIIntent := false
 
 		for _, action := range actions {
-			if actionType, exists := action["action"]; exists {
-				actionStr := actionType.(string)
-				actionTypes = append(actionTypes, actionStr)
-				if actionStr == "otp_generate" {
-					hasOTP = true
-					otpUrl = action["url"].(string)
-				}
+			// Values here come from the API response, so an entry with a
+			// missing or non-string action is skipped rather than asserted.
+			actionStr, ok := action["action"].(string)
+			if !ok {
+				continue
+			}
 
-				if actionStr == "redirect" {
-					hasRedirect = true
+			actionTypes = append(actionTypes, actionStr)
+			if actionStr == "otp_generate" {
+				hasOTP = true
+				// A missing url leaves otpUrl empty; processPaymentResult
+				// already skips the OTP request in that case.
+				if url, ok := action["url"].(string); ok {
+					otpUrl = url
 				}
+			}
 
-				if actionStr == "upi_collect" {
-					hasUPICollect = true
-				}
+			if actionStr == "redirect" {
+				hasRedirect = true
+			}
 
-				if actionStr == "upi_intent" {
-					hasUPIIntent = true
-				}
+			if actionStr == "upi_collect" {
+				hasUPICollect = true
+			}
+
+			if actionStr == "upi_intent" {
+				hasUPIIntent = true
 			}
 		}
 
