@@ -1,0 +1,37 @@
+service: razorpay-mcp-server  # required, canonical slug — immutable once registered
+displayName: "Razorpay MCP Server"  # required, human-readable name — README H1 "# Razorpay MCP Server (Official)"
+description: "Official Model Context Protocol server exposing Razorpay's public APIs — payments, orders, refunds, payment links, QR codes, settlements and OTP flows — as MCP tools for developers and AI tools, available as a Razorpay-hosted remote server or a locally run Go binary over stdio."  # required, one-sentence description — README (Quick Start's Remote vs Local options and the Available Tools table)
+type: library  # required, one of: service | worker | cron | library | pipeline — this repo ships the distributable Go server (cmd/razorpay-mcp-server with stdio transport, goreleaser + docker-publish workflows) that developers run locally; no Spinnaker application, Netra deployment or alert rules exist for it. The hosted remote-MCP deployment is registered separately as razorpay-remote-mcp-server in the merged manifests — do not double-count it here · retype after the serviceTypes enum widens: tool
+tier: T2  # required, one of: T0 | T1 | T2 | T3 — no priority column for this batch, judged from function: an official, externally distributed artifact that merchants install, so a bad release reaches outside the org (same reasoning as razorpay-cli, T2); it is a client-side tool with no paged runtime of its own, keeping it off T1
+lifecycle: live  # optional — active (last push 2026-08-28) with published releases (goreleaser, docker-publish workflows, SECURITY.md/CONTRIBUTING.md in place); this is a shipped product artifact
+
+domain: tech-infra/developer-productivity  # required, two-level domain/subgroup slug — family tech-infra from cache/miss_seed.json l1 (BU "Payments", csv_group "Tech Infra", EM ankit.choudhary); area reuses the tech-infra/developer-productivity slug already carried by the merged razorpay-remote-mcp-server manifest, which is this repo's hosted sibling under the same owner — keeping the pair together
+
+owner:
+  team:  # required, owning team slug — TO FILL: this repo has no CODEOWNERS file, .github/repo_owners.json carries no team slug, and the GitHub repository-teams API is not readable with the current token; ask the POD lead for the owning GitHub team
+  em:  # name | @slack | email — TO FILL: DevRev runnable owner not found in SuccessFactors
+  org_group:  # SuccessFactors group of the EM — TO FILL: the declared owner has no SuccessFactors record, so the org tree cannot be resolved; ask the POD lead
+  org_sub_group:  # SuccessFactors sub-group of the EM — TO FILL: the declared owner has no SuccessFactors record; ask the POD lead
+  org_pod:  # SuccessFactors pod of the EM — TO FILL: the declared owner has no SuccessFactors record; ask the POD lead
+  pm:  # product manager — TO FILL: not derived on purpose; ask the Tech Infra pod lead
+  overrides: []  # optional, region-scoped owner overrides — TO FILL only if some region is owned by a different team; each entry is a "region" code plus the owning "team" slug
+
+links:
+  repo: "https://github.com/razorpay/razorpay-mcp-server"  # canonical GitHub repo URL
+  alerts_repo:  # this service's alert rules in razorpay/alert-rules — TO FILL: no matching ruleset found; add one in razorpay/alert-rules, then link the file here
+  slos:  # SLO definitions — TO FILL: no slo.yaml at this repo root and no sloth ruleset for it under razorpay/alert-rules/slo/prod (the two places SLOs are defined today); add one there and link it here
+  slack_channel:  # primary Slack channel — TO FILL: no slack_candidates in the draft; ask the Tech Infra pod lead (ankit.choudhary)
+  zenduty_policy:  # Zenduty policy/service name used for paging — TO FILL: the service-to-policy mapping is not in DevRev or alert-rules for this service; it lives in the external Zenduty policies sheet
+  escalation_l1:  # service EM — TO FILL: no owner could be resolved for this service
+  escalation_l2:  # EM's manager — TO FILL: the EM has no SuccessFactors record, so no manager chain is available
+  escalation_l3:  # manager's manager — TO FILL: the EM has no SuccessFactors record, so no manager chain is available
+  oncall_handle:  # Slack/PagerDuty oncall handle or usergroup — TO FILL: not set on the DevRev runnable
+  runbook:  # link to the incident runbook — TO FILL: no runbook directory for this service in razorpay/rzp-oncall-agent; add one or link the Google Doc / alpha.razorpay.com page
+  api_docs:  # API documentation — TO FILL: no swagger/openapi/proto found in the repo tree; link the API spec or Postman collection
+  dashboard:  # primary dashboard — TO FILL: no Grafana hit and no alert rules; the hosted deployment's monitoring belongs on the razorpay-remote-mcp-server manifest
+  logs_and_traces: "https://razorpay-prod.app.coralogix.in/#/query-new/archive-logs"  # org-standard prod Coralogix — filter subsystem "razorpay-mcp-server"
+  strategy_okr:  # TO FILL: link the FY strategy doc for the owning group.
+  risk_assessment:  # TO FILL: no .agents/skills/risk-assessment in this repo; add the per-repo risk-assessment skill
+  regions:  # per-region links — TO FILL: no prod region deployment found for this service in spinacode or alert-rules; add a block per geography once it ships
+
+dependencies: []  # optional, declared service dependencies — TO FILL: shape: - service: <slug> for internal deps, - vendor: <name> for external (gateways, banks)
