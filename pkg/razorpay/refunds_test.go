@@ -63,6 +63,18 @@ func Test_CreateRefund(t *testing.T) {
 			ExpectedResult: successfulRefundResp,
 		},
 		{
+			Name: "fractional amount fails validation",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"amount":     100.75,
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient()
+			},
+			ExpectError:    true,
+			ExpectedError:  "Validation errors:\n- invalid parameter type: amount",
+		},
+		{
 			Name: "refund with speed parameter",
 			Request: map[string]interface{}{
 				"payment_id": "pay_29QQoUBi66xm2f",
