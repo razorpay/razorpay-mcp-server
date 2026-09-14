@@ -61,7 +61,7 @@ func CreateRefund(
 
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "payment_id").
-			ValidateAndAddRequiredFloat(payload, "amount").
+			ValidateAndAddRequiredInt(payload, "amount").
 			ValidateAndAddOptionalString(data, "speed").
 			ValidateAndAddOptionalString(data, "receipt").
 			ValidateAndAddOptionalMap(data, "notes")
@@ -72,7 +72,7 @@ func CreateRefund(
 
 		refund, err := client.Payment.Refund(
 			payload["payment_id"].(string),
-			int(payload["amount"].(float64)), data, nil)
+			int(payload["amount"].(int64)), data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("creating refund failed", err)), nil
