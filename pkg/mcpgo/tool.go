@@ -435,6 +435,36 @@ func (t *mark3labsToolImpl) SetReadOnly(readOnly bool) {
 	t.isReadOnly = readOnly
 }
 
+// GetName returns the tool name
+func (t *mark3labsToolImpl) GetName() string {
+	return t.name
+}
+
+// Localize rewrites the tool description and every parameter description,
+// including those nested in object properties and array items, with fn.
+func (t *mark3labsToolImpl) Localize(fn func(string) string) {
+	t.description = fn(t.description)
+	for _, p := range t.parameters {
+		localizeSchema(p.Schema, fn)
+	}
+}
+
+func localizeSchema(schema map[string]interface{}, fn func(string) string) {
+	if desc, ok := schema["description"].(string); ok {
+		schema["description"] = fn(desc)
+	}
+	if props, ok := schema["properties"].(map[string]interface{}); ok {
+		for _, prop := range props {
+			if s, ok := prop.(map[string]interface{}); ok {
+				localizeSchema(s, fn)
+			}
+		}
+	}
+	if items, ok := schema["items"].(map[string]interface{}); ok {
+		localizeSchema(items, fn)
+	}
+}
+
 // toMCPServerTool converts our Tool to mcp's ServerTool
 func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
 	// Create the mcp tool with appropriate options
