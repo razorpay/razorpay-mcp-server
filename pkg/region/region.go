@@ -7,11 +7,11 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 
@@ -151,11 +151,7 @@ func Get(profiles map[string]Profile, code string) (Profile, error) {
 	if p, ok := profiles[code]; ok {
 		return p, nil
 	}
-	available := make([]string, 0, len(profiles))
-	for c := range profiles {
-		available = append(available, c)
-	}
-	sort.Strings(available)
+	available := slices.Sorted(maps.Keys(profiles))
 	return Profile{}, fmt.Errorf("no region profile for %q; available: %s",
 		code, strings.Join(available, ", "))
 }
