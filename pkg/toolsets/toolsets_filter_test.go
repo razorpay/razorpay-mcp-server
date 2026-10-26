@@ -79,3 +79,17 @@ func TestToolsetGroup_AllowedToolCount(t *testing.T) {
 		assert.Equal(t, 0, newFilterGroup(false).AllowedToolCount("nope"))
 	})
 }
+
+func TestToolsetGroup_AllTools(t *testing.T) {
+	t.Run("returns read and write tools of every toolset", func(t *testing.T) {
+		tools := newFilterGroup(true).AllTools()
+
+		names := []string{}
+		for _, tool := range tools {
+			names = append(names, tool.(interface{ GetName() string }).GetName())
+		}
+		assert.ElementsMatch(t,
+			[]string{"fetch_payment", "capture_payment", "fetch_all_payouts"},
+			names)
+	})
+}

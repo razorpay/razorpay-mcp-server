@@ -177,3 +177,14 @@ func (tg *ToolsetGroup) RegisterTools(s mcpgo.Server) {
 		toolset.RegisterTools(s)
 	}
 }
+
+// AllTools returns every tool in the group, read and write, regardless of
+// whether its toolset is enabled or the tool passes the filter.
+func (tg *ToolsetGroup) AllTools() []mcpgo.Tool {
+	var tools []mcpgo.Tool
+	for _, ts := range tg.Toolsets {
+		tools = append(tools, ts.readTools...)
+		tools = append(tools, ts.writeTools...)
+	}
+	return tools
+}

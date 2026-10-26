@@ -9,11 +9,26 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
+	"github.com/razorpay/razorpay-mcp-server/pkg/region"
 )
 
 func NewRzpMcpServer(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
+	enabledToolsets []string,
+	readOnly bool,
+	mcpOpts ...mcpgo.ServerOption,
+) (mcpgo.Server, error) {
+	return NewRzpMcpServerForRegion(
+		obs, client, region.India(), enabledToolsets, readOnly, mcpOpts...)
+}
+
+// NewRzpMcpServerForRegion creates the server with tools built for the
+// given region profile.
+func NewRzpMcpServerForRegion(
+	obs *observability.Observability,
+	client *rzpsdk.Client,
+	profile region.Profile,
 	enabledToolsets []string,
 	readOnly bool,
 	mcpOpts ...mcpgo.ServerOption,
@@ -40,7 +55,8 @@ func NewRzpMcpServer(
 	server := mcpgo.NewMcpServer("razorpay-mcp-server", "1.0.0", mcpOpts...)
 
 	// Register Razorpay tools
-	toolsets, err := NewToolSets(obs, client, enabledToolsets, readOnly)
+	toolsets, err := NewToolSets(obs, client, enabledToolsets, readOnly,
+		WithRegionProfile(profile))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create toolsets: %w", err)
 	}
