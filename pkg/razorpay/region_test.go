@@ -1,7 +1,11 @@
 package razorpay
 
 import (
+	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"sort"
 	"testing"
 
@@ -66,6 +70,19 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 		assert.Equal(t, want, toolNames(listedTools(t, srv)))
 	})
 
+	t.Run("SG tool list never mentions paise, rupee or INR",
+		func(t *testing.T) {
+			srv, err := NewRzpMcpServerForRegion(
+				obs, client, sgProfile(t), nil, false)
+			require.NoError(t, err)
+
+			for name, tool := range listedTools(t, srv) {
+				for _, banned := range []string{"paise", "₹", "INR"} {
+					assert.NotContains(t, tool, banned, "tool %s", name)
+				}
+			}
+		})
+
 	t.Run("no placeholder is left for IN, SG or the default server",
 		func(t *testing.T) {
 			in, err := NewRzpMcpServerForRegion(
@@ -99,5 +116,101 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 		}
 		_, err := NewRzpMcpServerForRegion(obs, client, bad, nil, false)
 		assert.ErrorContains(t, err, `region SG: unknown tool "fetch_paymnt"`)
+	})
+}
+
+func TestNewRzpMcpServerForRegion_AmountMinimum(t *testing.T) {
+	srv, err := NewRzpMcpServerForRegion(CreateTestObservability(),
+		rzpsdk.NewClient("key", "secret"), sgProfile(t), nil, false)
+	require.NoError(t, err)
+
+	var order struct {
+		InputSchema struct {
+			Properties map[string]struct {
+				Minimum float64 `json:"minimum"`
+			} `json:"properties"`
+		} `json:"inputSchema"`
+	}
+	require.NoError(t,
+		json.Unmarshal([]byte(listedTools(t, srv)["create_order"]), &order))
+
+	// SGD minimum is 50, so the schema must not impose INR's 100.
+	assert.Equal(t, float64(1), order.InputSchema.Properties["amount"].Minimum)
+}
+
+// recordPaymentCreate serves the payment create endpoints and records the
+// path and body of the last request.
+func recordPaymentCreate(t *testing.T) (*rzpsdk.Client, *string, *string) {
+	t.Helper()
+	var gotPath, gotBody string
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			gotPath, gotBody = r.URL.Path, string(body)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"razorpay_payment_id": "pay_123"}`))
+		}))
+	t.Cleanup(server.Close)
+
+	client := rzpsdk.NewClient("key", "secret")
+	client.Request.BaseURL = server.URL
+	return client, &gotPath, &gotBody
+}
+
+func callInitiatePayment(
+	t *testing.T,
+	ctx context.Context,
+	client *rzpsdk.Client,
+	args map[string]interface{},
+) {
+	t.Helper()
+	tool := InitiatePayment(CreateTestObservability(), client)
+	_, err := tool.GetHandler()(ctx, createMCPRequest(args))
+	require.NoError(t, err)
+}
+
+func TestInitiatePayment_DefaultCurrency(t *testing.T) {
+	args := map[string]interface{}{"amount": 5000, "order_id": "order_123"}
+
+	t.Run("no profile in context defaults to INR", func(t *testing.T) {
+		client, _, body := recordPaymentCreate(t)
+		callInitiatePayment(t, context.Background(), client, args)
+		assert.Contains(t, *body, `"currency":"INR"`)
+	})
+
+	t.Run("SG profile defaults to SGD", func(t *testing.T) {
+		client, _, body := recordPaymentCreate(t)
+		ctx := region.WithProfile(context.Background(), sgProfile(t))
+		callInitiatePayment(t, ctx, client, args)
+		assert.Contains(t, *body, `"currency":"SGD"`)
+	})
+
+	t.Run("explicit currency wins over the region default", func(t *testing.T) {
+		client, _, body := recordPaymentCreate(t)
+		ctx := region.WithProfile(context.Background(), sgProfile(t))
+		callInitiatePayment(t, ctx, client, map[string]interface{}{
+			"amount": 5000, "order_id": "order_123", "currency": "USD",
+		})
+		assert.Contains(t, *body, `"currency":"USD"`)
+	})
+}
+
+func TestInitiatePayment_RecurringSwitchUnchanged(t *testing.T) {
+	recurring := map[string]interface{}{
+		"amount": 5000, "order_id": "order_123",
+		"token": "token_123", "recurring": true,
+	}
+
+	t.Run("INR recurring uses the JSON API", func(t *testing.T) {
+		client, path, _ := recordPaymentCreate(t)
+		callInitiatePayment(t, context.Background(), client, recurring)
+		assert.Equal(t, "/v1/payments/create/json", *path)
+	})
+
+	t.Run("SGD recurring uses the recurring API", func(t *testing.T) {
+		client, path, _ := recordPaymentCreate(t)
+		ctx := region.WithProfile(context.Background(), sgProfile(t))
+		callInitiatePayment(t, ctx, client, recurring)
+		assert.Equal(t, "/v1/payments/create/recurring", *path)
 	})
 }

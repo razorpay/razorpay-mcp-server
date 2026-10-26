@@ -18,15 +18,15 @@ func CreateOrder(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Payment amount in paise (smallest currency sub-unit). "+
-				"For INR: 100 paise = ₹1. Example: for ₹295, use 29500"),
+			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
+				amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+			mcpgo.Min(1), // Per-currency minimum is enforced by the API
 		),
 		mcpgo.WithString(
 			"currency",
 			mcpgo.Description("ISO code for the currency "+
-				"(e.g., INR, USD, SGD)"),
+				"(e.g., {{currency}})"),
 			mcpgo.Required(),
 			mcpgo.Pattern("^[A-Z]{3}$"), // ISO currency codes are 3 uppercase letters
 		),
@@ -49,9 +49,9 @@ func CreateOrder(
 		),
 		mcpgo.WithNumber(
 			"first_payment_min_amount",
-			mcpgo.Description("Minimum amount in paise for first partial "+
-				"payment (only if partial_payment is true). For INR: 100 paise = ₹1"),
-			mcpgo.Min(100),
+			mcpgo.Description("Minimum amount for the first partial "+
+				"payment (only if partial_payment is true), "+amountUnitDesc),
+			mcpgo.Min(1),
 		),
 		mcpgo.WithArray(
 			"transfers",
@@ -69,7 +69,7 @@ func CreateOrder(
 					},
 					"amount": map[string]interface{}{
 						"type":        "number",
-						"description": "Amount to transfer in paise (currency subunits). For INR: 100 paise = ₹1", //nolint:lll
+						"description": "Amount to transfer " + amountUnitDesc,
 						"minimum":     1,
 					},
 					"currency": map[string]interface{}{
@@ -99,7 +99,7 @@ func CreateOrder(
 			"token",
 			mcpgo.Description("Token object for mandate orders. "+
 				"REQUIRED for mandate orders. Must contain: max_amount "+
-				"(positive number in paise, maximum debit amount - For INR: 100 paise = ₹1), frequency "+ //nolint:lll
+				"(positive number, maximum debit amount "+amountUnitDesc+"), frequency "+ //nolint:lll
 				"(as_presented/monthly/one_time/yearly/weekly/daily), "+
 				"type='single_block_multiple_debit' (only supported type), "+
 				"and optionally expire_at (Unix timestamp, defaults to today+60days). "+
@@ -161,14 +161,14 @@ func CreateOrder(
 			"amount, currency, method='upi', customer_id (starts with 'cust_'), "+
 			"and token object. "+
 			"\n\nThe token object is required for mandate orders and must contain: "+
-			"max_amount (positive number in paise - For INR: 100 paise = ₹1), frequency "+ //nolint:lll
+			"max_amount (positive number "+amountUnitDesc+"), frequency "+ //nolint:lll
 			"(as_presented/monthly/one_time/yearly/weekly/daily), "+
 			"type='single_block_multiple_debit', and optionally expire_at "+
 			"(defaults to today+60days). "+
 			"\n\nIMPORTANT: When token.type is 'single_block_multiple_debit', "+
 			"the method MUST be 'upi'. "+
 			"\n\nExample mandate order payload: "+
-			`{"amount": 100, "currency": "INR", "method": "upi", `+
+			`{"amount": 100, "currency": "{{currency}}", "method": "upi", `+
 			`"customer_id": "cust_abc123", `+
 			`"token": {"max_amount": 100, "frequency": "as_presented", `+
 			`"type": "single_block_multiple_debit"}, `+

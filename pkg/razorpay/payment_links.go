@@ -18,14 +18,14 @@ func CreatePaymentLink(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Amount to be paid using the link in paise (smallest "+
-				"currency unit). For INR: 100 paise = ₹1. Example: for ₹300, use 30000"),
+			mcpgo.Description("Amount to be paid using the link "+
+				amountUnitDesc+". "+amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+			mcpgo.Min(1), // Per-currency minimum is enforced by the API
 		),
 		mcpgo.WithString(
 			"currency",
-			mcpgo.Description("Three-letter ISO code for the currency (e.g., INR)"),
+			mcpgo.Description(currencyCodeDesc),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
@@ -38,7 +38,9 @@ func CreatePaymentLink(
 		),
 		mcpgo.WithNumber(
 			"first_min_partial_amount",
-			mcpgo.Description("Minimum amount in paise that must be paid by the customer as the first partial payment. For INR: 100 paise = ₹1. Default value is 100."), // nolint:lll
+			mcpgo.Description("Minimum amount that must be paid by the "+
+				"customer as the first partial payment, "+amountUnitDesc+
+				". Default value is 100."),
 		),
 		mcpgo.WithNumber(
 			"expire_by",
@@ -160,9 +162,11 @@ func CreateUpiPaymentLink(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Amount to be paid using the link in paise (smallest currency unit). For INR: 100 paise = ₹1. Example: for ₹300, use 30000. Only accepted currency is INR"), // nolint:lll
+			mcpgo.Description("Amount to be paid using the link "+
+				amountUnitDesc+". "+amountExampleDesc+
+				". Only accepted currency is INR"),
 			mcpgo.Required(),
-			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+			mcpgo.Min(1), // Per-currency minimum is enforced by the API
 		),
 		mcpgo.WithString(
 			"currency",
@@ -179,7 +183,9 @@ func CreateUpiPaymentLink(
 		),
 		mcpgo.WithNumber(
 			"first_min_partial_amount",
-			mcpgo.Description("Minimum amount in paise that must be paid by the customer as the first partial payment. For INR: 100 paise = ₹1. Default value is 100."), // nolint:lll
+			mcpgo.Description("Minimum amount that must be paid by the "+
+				"customer as the first partial payment, "+amountUnitDesc+
+				". Default value is 100."),
 		),
 		mcpgo.WithNumber(
 			"expire_by",

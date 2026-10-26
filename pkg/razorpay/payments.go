@@ -12,6 +12,7 @@ import (
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
+	"github.com/razorpay/razorpay-mcp-server/pkg/region"
 )
 
 // FetchPayment returns a tool that fetches payment details using payment_id
@@ -198,14 +199,14 @@ func CapturePayment(
 		),
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("The amount to be captured in paise. "+
-				"For INR: 100 paise = ₹1. Should be equal to the authorized amount"),
+			mcpgo.Description("The amount to be captured "+amountUnitDesc+
+				". Should be equal to the authorized amount"),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
 			"currency",
 			mcpgo.Description("ISO code of the currency in which the payment "+
-				"was made (e.g., INR)"),
+				"was made (e.g., {{currency}})"),
 			mcpgo.Required(),
 		),
 	}
@@ -716,14 +717,15 @@ func InitiatePayment(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Payment amount in paise (smallest currency sub-unit). "+
-				"For INR: 100 paise = ₹1. Example: for ₹100, use 10000"),
+			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
+				amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(100),
+			mcpgo.Min(1),
 		),
 		mcpgo.WithString(
 			"currency",
-			mcpgo.Description("Currency code for the payment. Default is 'INR'"),
+			mcpgo.Description("Currency code for the payment. "+
+				"Default is '{{currency}}'"),
 		),
 		mcpgo.WithString(
 			"token",
@@ -807,8 +809,8 @@ func InitiatePayment(
 			return result, err
 		}
 
-		// Set default currency
-		currency := "INR"
+		// Default to the region's currency
+		currency := region.FromContext(ctx).Currency()
 		if c, exists := params["currency"]; exists && c != "" {
 			currency = c.(string)
 		}
