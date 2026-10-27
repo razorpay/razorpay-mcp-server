@@ -188,6 +188,11 @@ func TestProfileLocalize(t *testing.T) {
 		assert.Equal(t, "INR ₹", India().Localize("{{currency}} {{symbol}}"))
 	})
 
+	t.Run("fills dial code from i18nify", func(t *testing.T) {
+		assert.Equal(t, "+65", sg.Localize("{{dial_code}}"))
+		assert.Equal(t, "+91", India().Localize("{{dial_code}}"))
+	})
+
 	t.Run("text without placeholders is unchanged", func(t *testing.T) {
 		assert.Equal(t, `{"amount": 100}`, sg.Localize(`{"amount": 100}`))
 	})

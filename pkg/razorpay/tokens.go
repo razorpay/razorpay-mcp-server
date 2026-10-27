@@ -31,8 +31,8 @@ func FetchSavedPaymentMethods(
 		mcpgo.WithString(
 			"contact",
 			mcpgo.Description(
-				"Contact number of the customer to fetch all saved payment methods for. "+
-					"For example, +919876543210 or +6591234567. "+
+				"Contact number of the customer to fetch all saved payment methods for, "+
+					"with country code (e.g., {{dial_code}} followed by the number). "+
 					"Used only when customer_id is not provided."),
 		),
 	}

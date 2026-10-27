@@ -36,34 +36,41 @@ type Profile struct {
 	Tools       []string `yaml:"tools"`
 }
 
-// Currency returns the region's default currency from i18nify, or "" when
-// i18nify does not know the country. It uses GetCountriesByCodes because
-// GetMetadataInformation prints to stdout for unknown codes, and stdout is
-// the MCP protocol channel in stdio mode.
-func (p Profile) Currency() string {
+// country returns the i18nify metadata for the profile's country. It uses
+// GetCountriesByCodes because GetMetadataInformation prints to stdout for
+// unknown codes, and stdout is the MCP protocol channel in stdio mode.
+func (p Profile) country() (country_metadata.CountryInfo, bool) {
 	if p.CountryCode == "" {
-		return ""
+		return country_metadata.CountryInfo{}, false
 	}
 	countries, err := country_metadata.GetCountriesByCodes(
 		[]string{p.CountryCode})
 	if err != nil || len(countries) == 0 {
-		return ""
+		return country_metadata.CountryInfo{}, false
 	}
-	return countries[0].DefaultCurrency
+	return countries[0], true
 }
 
-// Localize fills the {{currency}}, {{minor_unit}} and {{symbol}}
-// placeholders in text with the region's currency facts from i18nify.
+// Currency returns the region's default currency from i18nify, or "" when
+// i18nify does not know the country.
+func (p Profile) Currency() string {
+	c, _ := p.country()
+	return c.DefaultCurrency
+}
+
+// Localize fills the {{currency}}, {{minor_unit}}, {{symbol}} and
+// {{dial_code}} placeholders in text with the region's facts from i18nify.
 func (p Profile) Localize(text string) string {
 	if !strings.Contains(text, "{{") {
 		return text
 	}
-	code := p.Currency()
-	info, _ := currency.GetCurrencyInformation(code)
+	c, _ := p.country()
+	info, _ := currency.GetCurrencyInformation(c.DefaultCurrency)
 	return strings.NewReplacer(
-		"{{currency}}", code,
+		"{{currency}}", c.DefaultCurrency,
 		"{{minor_unit}}", info.MinorUnit,
 		"{{symbol}}", info.Symbol,
+		"{{dial_code}}", c.DialCode,
 	).Replace(text)
 }
 

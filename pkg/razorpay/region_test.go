@@ -222,3 +222,42 @@ func TestInitiatePayment_RecurringSwitchUnchanged(t *testing.T) {
 		assert.Equal(t, "/v1/payments/create/recurring", *path)
 	})
 }
+
+func TestRegionContactExample(t *testing.T) {
+	dial := map[string]string{"IN": "+91", "SG": "+65", "MY": "+60", "US": "+1"}
+	for code, want := range dial {
+		t.Run(code+" shows only its own dial code", func(t *testing.T) {
+			srv, err := NewRzpMcpServerForRegion(CreateTestObservability(),
+				rzpsdk.NewClient("key", "secret"), builtinProfile(t, code), nil, false)
+			require.NoError(t, err)
+
+			var tool struct {
+				InputSchema struct {
+					Properties map[string]struct {
+						Description string `json:"description"`
+					} `json:"properties"`
+				} `json:"inputSchema"`
+			}
+			require.NoError(t, json.Unmarshal(
+				[]byte(listedTools(t, srv)["fetch_tokens"]), &tool))
+			desc := tool.InputSchema.Properties["contact"].Description
+
+			assert.Contains(t, desc, want)
+			for other, d := range dial {
+				if other != code {
+					assert.NotContains(t, desc, d)
+				}
+			}
+		})
+	}
+}
+
+func TestIndiaToolTextHasNoPaise(t *testing.T) {
+	srv, err := NewRzpMcpServerForRegion(CreateTestObservability(),
+		rzpsdk.NewClient("key", "secret"), region.India(), nil, false)
+	require.NoError(t, err)
+
+	for name, tool := range listedTools(t, srv) {
+		assert.NotContains(t, tool, "paise", "tool %s", name)
+	}
+}
