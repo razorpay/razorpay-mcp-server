@@ -59,6 +59,12 @@ def verify_payment(request):
             'razorpay_signature': razorpay_signature,
         })
 
+        # Remember the verified payment so the checkout view can trust it
+        request.session['razorpay_verified'] = {
+            'order_id': razorpay_order_id,
+            'payment_id': razorpay_payment_id,
+        }
+
         return JsonResponse({
             'success': True,
             'message': 'Payment verified',
@@ -203,29 +209,20 @@ Add: path('api/razorpay/', include('razorpay_payments.urls'))
 
 **STEP 6: UPDATE orders/views.py (SERVER-SIDE VERIFICATION REQUIRED)**
 NEVER mark an order paid based on client-controlled input such as payment_method.
-Find the checkout view, add before order.save():
+verify_payment (already provided) stores the signature-verified payment in
+request.session['razorpay_verified']. Find the checkout view, add before order.save():
   order.payment_method = request.POST.get('payment_method', 'cod')
   if order.payment_method == 'razorpay':
-      from razorpay_payments.views import client as razorpay_client
-      order_id = request.POST.get('razorpay_order_id')
-      payment_id = request.POST.get('razorpay_payment_id')
-      signature = request.POST.get('razorpay_signature')
-      try:
-          razorpay_client.utility.verify_payment_signature({
-              'razorpay_order_id': order_id,
-              'razorpay_payment_id': payment_id,
-              'razorpay_signature': signature,
-          })
-      except Exception:
-          # Missing or invalid signature: do NOT create or mark the order paid
-          return HttpResponseBadRequest('Payment verification failed')
-      order.payment_status = 'paid'
-      # Persist payment_id and order_id (add fields to the Order model if missing)
-      # so payments can be reconciled and refunded later.
-      order.razorpay_order_id = order_id
-      order.razorpay_payment_id = payment_id
-The checkout JS MUST submit razorpay_order_id, razorpay_payment_id and
-razorpay_signature (from the Razorpay success handler) as hidden form fields.
+      verified = request.session.pop('razorpay_verified', None)
+      posted_payment_id = request.POST.get('razorpay_payment_id')
+      if verified and verified['payment_id'] == posted_payment_id:
+          order.payment_status = 'paid'
+          # Persist ids (add fields to the Order model if missing) for reconciliation/refunds
+          order.razorpay_order_id = verified['order_id']
+          order.razorpay_payment_id = verified['payment_id']
+      # otherwise leave payment_status as-is (pending); never default to 'paid'
+The checkout form MUST include a hidden input named razorpay_payment_id, set from
+the paymentId returned to the onSuccess callback BEFORE the form is submitted.
 
 **STEP 6b: CHECK orders/models.py FOR PAYMENT_METHOD_CHOICES**
 If the Order model has PAYMENT_METHOD_CHOICES, add ('razorpay', 'Razorpay') to it:
