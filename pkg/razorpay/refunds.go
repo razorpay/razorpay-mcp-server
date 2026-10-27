@@ -31,8 +31,10 @@ func CreateRefund(
 		mcpgo.WithString(
 			"speed",
 			mcpgo.Description("The speed at which the refund is to be "+
-				"processed. Default is 'normal'. For instant refunds, speed "+
-				"is set as 'optimum'."),
+				"processed. Default is 'normal'. 'optimum' requests an "+
+				"Instant Refund, a value-added service Razorpay charges the "+
+				"merchant for, so set it only when the merchant has asked "+
+				"for an instant refund."),
 		),
 		mcpgo.WithObject(
 			"notes",
