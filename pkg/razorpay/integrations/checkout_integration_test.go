@@ -286,6 +286,9 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 					}
 				}
 				assert.True(t, hasRazorpay, "should have razorpay dependency")
+				// Orders must only be marked paid after server-side signature verification
+				assert.Contains(t, result.AIInstructions, "verify_payment_signature")
+				assert.NotContains(t, result.AIInstructions, "if order.payment_method == 'razorpay':\n      order.payment_status")
 			},
 		},
 		{

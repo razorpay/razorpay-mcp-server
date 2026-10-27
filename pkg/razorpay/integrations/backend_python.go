@@ -129,7 +129,7 @@ urlpatterns = [
 The "Files" section above contains TESTED, WORKING code. Use it as your primary source.
 You MAY use your knowledge to integrate it properly with the existing project.
 You MUST NOT replace the provided code with generic boilerplate.
-You MUST NOT create new models or run migrations - the project already has what it needs.
+You MUST NOT create new models. You MAY add razorpay_order_id / razorpay_payment_id fields to the existing Order model and run migrations so payments can be reconciled.
 You MUST complete everything - no "Next Steps" for the user.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -138,7 +138,7 @@ You MUST complete everything - no "Next Steps" for the user.
 - DO NOT delete or revert existing files/code - you are ADDING to the project
 - DO NOT create Order model or PaymentOrder model (project already has Order model)
 - DO NOT create razorpay_checkout.html (modify EXISTING checkout template instead)
-- DO NOT run migrations unless model has no razorpay choice yet
+- DO run migrations when adding razorpay choice or payment id fields to the Order model
 - DO NOT hardcode keys like "YOUR_KEY_ID" (use os.environ.get())
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -201,11 +201,31 @@ Create .env in project root with the ACTUAL keys provided:
 **STEP 5: UPDATE main urls.py**
 Add: path('api/razorpay/', include('razorpay_payments.urls'))
 
-**STEP 6: UPDATE orders/views.py (MINIMAL CHANGE)**
+**STEP 6: UPDATE orders/views.py (SERVER-SIDE VERIFICATION REQUIRED)**
+NEVER mark an order paid based on client-controlled input such as payment_method.
 Find the checkout view, add before order.save():
   order.payment_method = request.POST.get('payment_method', 'cod')
   if order.payment_method == 'razorpay':
+      from razorpay_payments.views import client as razorpay_client
+      order_id = request.POST.get('razorpay_order_id')
+      payment_id = request.POST.get('razorpay_payment_id')
+      signature = request.POST.get('razorpay_signature')
+      try:
+          razorpay_client.utility.verify_payment_signature({
+              'razorpay_order_id': order_id,
+              'razorpay_payment_id': payment_id,
+              'razorpay_signature': signature,
+          })
+      except Exception:
+          # Missing or invalid signature: do NOT create or mark the order paid
+          return HttpResponseBadRequest('Payment verification failed')
       order.payment_status = 'paid'
+      # Persist payment_id and order_id (add fields to the Order model if missing)
+      # so payments can be reconciled and refunded later.
+      order.razorpay_order_id = order_id
+      order.razorpay_payment_id = payment_id
+The checkout JS MUST submit razorpay_order_id, razorpay_payment_id and
+razorpay_signature (from the Razorpay success handler) as hidden form fields.
 
 **STEP 6b: CHECK orders/models.py FOR PAYMENT_METHOD_CHOICES**
 If the Order model has PAYMENT_METHOD_CHOICES, add ('razorpay', 'Razorpay') to it:
@@ -213,6 +233,7 @@ If the Order model has PAYMENT_METHOD_CHOICES, add ('razorpay', 'Razorpay') to i
       ('cod', 'Cash on Delivery'),
       ('razorpay', 'Razorpay'),  # <-- ADD THIS
   ]
+Add razorpay_order_id and razorpay_payment_id CharField(max_length=64, blank=True, default='') to the Order model if absent.
 Then run: ./venv/bin/python manage.py makemigrations && ./venv/bin/python manage.py migrate
 
 **STEP 7: CREATE static/js/razorpay.js**
@@ -250,7 +271,7 @@ CRITICAL RULES:
 ⛔ FORBIDDEN - NEVER DO THESE:
 ═══════════════════════════════════════════════════════════════════════════════
 ❌ NEVER create Order/PaymentOrder models - project already has Order model
-❌ NEVER run makemigrations or migrate - NO DATABASE CHANGES NEEDED
+❌ NEVER skip the migration for razorpay_order_id / razorpay_payment_id fields on the existing Order model
 ❌ NEVER create razorpay_checkout.html - modify EXISTING templates/orders/checkout.html
 ❌ NEVER create a separate payment page - ADD Razorpay option to existing checkout
 ❌ NEVER hardcode "YOUR_KEY_ID" or "your_key_secret" - use os.environ.get()
@@ -263,7 +284,7 @@ CRITICAL RULES:
 ❌ NEVER add form inputs OUTSIDE <form> - radios/hidden fields must be INSIDE to be submitted
 ❌ NEVER reference elements without checking they exist - READ the template first!
 ❌ NEVER use {% static %} without {% load static %} at the top of the template
-❌ NEVER set order.razorpay_payment_id - this field doesn't exist on the model
+❌ NEVER mark an order paid without verifying the Razorpay signature server-side
 ❌ NEVER break the existing COD payment flow - both options must work
 ❌ NEVER delete or revert existing files - you are ADDING integration, not replacing
 ❌ NEVER create Django order BEFORE Razorpay payment - payment must happen FIRST
