@@ -38,10 +38,10 @@ func init() {
 	rootCmd.PersistentFlags().StringP("key", "k", "", "your razorpay api key")
 	rootCmd.PersistentFlags().StringP("secret", "s", "", "your razorpay api secret")
 	rootCmd.PersistentFlags().StringP("log-file", "l", "", "path to the log file")
-	rootCmd.PersistentFlags().StringSliceP("toolsets", "t", []string{}, "comma-separated list of toolsets to enable")
+	rootCmd.PersistentFlags().StringSliceP("toolsets", "t", []string{}, "comma-separated list of toolsets to enable (within the tools the region allows)")
 	rootCmd.PersistentFlags().Bool("read-only", false, "run server in read-only mode")
-	rootCmd.PersistentFlags().String("region", "", "region profile to run with, e.g. SG (default IN)")
-	rootCmd.PersistentFlags().String("region-config", "", "path to a YAML file overriding region profiles")
+	rootCmd.PersistentFlags().String("region", "", "region profile to run with: IN, SG, MY or US (default IN); decides which tools are available")
+	rootCmd.PersistentFlags().String("region-config", "", "path to a YAML file overriding region profiles (host and tools per region)")
 
 	// bind flags to viper
 	_ = viper.BindPFlag("key", rootCmd.PersistentFlags().Lookup("key"))

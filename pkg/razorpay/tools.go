@@ -1,6 +1,7 @@
 package razorpay
 
 import (
+	"context"
 	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
@@ -160,6 +161,7 @@ func NewToolSets(
 		toolsetGroup, cfg.profile, enabledToolsets); err != nil {
 		return nil, err
 	}
+	logHiddenRegionTools(obs, toolsetGroup, cfg.profile, enabledToolsets)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
@@ -203,4 +205,25 @@ func applyRegionProfile(
 		}
 	}
 	return nil
+}
+
+// logHiddenRegionTools records tools left out of explicitly requested
+// toolsets because the region profile does not enable them. The profile is
+// the ceiling; --toolsets only narrows within it.
+func logHiddenRegionTools(
+	obs *observability.Observability,
+	tg *toolsets.ToolsetGroup,
+	p region.Profile,
+	enabledToolsets []string,
+) {
+	if obs == nil || obs.Logger == nil {
+		return
+	}
+	for _, name := range enabledToolsets {
+		if hidden := tg.HiddenTools(name); len(hidden) > 0 {
+			obs.Logger.Infof(context.Background(),
+				"tools not available in region", "region", p.CountryCode,
+				"toolset", name, "tools", hidden)
+		}
+	}
 }

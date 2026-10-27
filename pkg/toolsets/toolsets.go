@@ -170,6 +170,25 @@ func (tg *ToolsetGroup) RegisterTools(s mcpgo.Server) {
 	}
 }
 
+// HiddenTools returns the names of tools in the named toolset that the tool
+// filter removes.
+func (tg *ToolsetGroup) HiddenTools(name string) []string {
+	ts, ok := tg.Toolsets[name]
+	if !ok {
+		return nil
+	}
+	var hidden []string
+	for _, tools := range [][]mcpgo.Tool{ts.readTools, ts.writeTools} {
+		for _, tool := range tools {
+			if named, ok := tool.(interface{ GetName() string }); ok &&
+				!ts.allows(tool) {
+				hidden = append(hidden, named.GetName())
+			}
+		}
+	}
+	return hidden
+}
+
 // AllTools returns every tool in the group, read and write, regardless of
 // whether its toolset is enabled or the tool passes the filter.
 func (tg *ToolsetGroup) AllTools() []mcpgo.Tool {

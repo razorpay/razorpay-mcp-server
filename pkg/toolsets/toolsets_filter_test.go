@@ -93,3 +93,15 @@ func TestToolsetGroup_AllTools(t *testing.T) {
 			names)
 	})
 }
+
+func TestToolsetGroup_HiddenTools(t *testing.T) {
+	t.Run("lists tools the filter removes", func(t *testing.T) {
+		tg := newFilterGroup(false)
+		tg.SetToolFilter(func(name string) bool { return name != "capture_payment" })
+		assert.Equal(t, []string{"capture_payment"}, tg.HiddenTools("payments"))
+	})
+
+	t.Run("no filter hides nothing", func(t *testing.T) {
+		assert.Empty(t, newFilterGroup(false).HiddenTools("payments"))
+	})
+}
