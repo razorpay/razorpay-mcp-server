@@ -36,9 +36,20 @@ type Profile struct {
 	Tools       []string `yaml:"tools"`
 }
 
-// Currency returns the region's default currency from i18nify.
+// Currency returns the region's default currency from i18nify, or "" when
+// i18nify does not know the country. It uses GetCountriesByCodes because
+// GetMetadataInformation prints to stdout for unknown codes, and stdout is
+// the MCP protocol channel in stdio mode.
 func (p Profile) Currency() string {
-	return country_metadata.GetMetadataInformation(p.CountryCode).DefaultCurrency
+	if p.CountryCode == "" {
+		return ""
+	}
+	countries, err := country_metadata.GetCountriesByCodes(
+		[]string{p.CountryCode})
+	if err != nil || len(countries) == 0 {
+		return ""
+	}
+	return countries[0].DefaultCurrency
 }
 
 // Localize fills the {{currency}}, {{minor_unit}} and {{symbol}}

@@ -18,11 +18,17 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/region"
 )
 
-func sgProfile(t *testing.T) region.Profile {
+func builtinProfile(t *testing.T, code string) region.Profile {
 	t.Helper()
 	profiles, err := region.Load("")
 	require.NoError(t, err)
-	return profiles["SG"]
+	p, ok := profiles[code]
+	require.True(t, ok, "no built-in profile %s", code)
+	return p
+}
+
+func sgProfile(t *testing.T) region.Profile {
+	return builtinProfile(t, "SG")
 }
 
 // listedTools returns the tools/list payload per tool name, as JSON text.
@@ -60,28 +66,30 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 		assert.Len(t, listedTools(t, srv), 45)
 	})
 
-	t.Run("SG registers exactly its profile tools", func(t *testing.T) {
-		sg := sgProfile(t)
-		srv, err := NewRzpMcpServerForRegion(obs, client, sg, nil, false)
-		require.NoError(t, err)
-
-		want := append([]string{}, sg.Tools...)
-		sort.Strings(want)
-		assert.Equal(t, want, toolNames(listedTools(t, srv)))
-	})
-
-	t.Run("SG tool list never mentions paise, rupee or INR",
-		func(t *testing.T) {
-			srv, err := NewRzpMcpServerForRegion(
-				obs, client, sgProfile(t), nil, false)
+	for _, code := range []string{"SG", "MY", "US"} {
+		t.Run(code+" registers exactly its profile tools", func(t *testing.T) {
+			p := builtinProfile(t, code)
+			srv, err := NewRzpMcpServerForRegion(obs, client, p, nil, false)
 			require.NoError(t, err)
 
-			for name, tool := range listedTools(t, srv) {
-				for _, banned := range []string{"paise", "₹", "INR"} {
-					assert.NotContains(t, tool, banned, "tool %s", name)
-				}
-			}
+			want := append([]string{}, p.Tools...)
+			sort.Strings(want)
+			assert.Equal(t, want, toolNames(listedTools(t, srv)))
 		})
+
+		t.Run(code+" tool list never mentions paise, rupee or INR",
+			func(t *testing.T) {
+				srv, err := NewRzpMcpServerForRegion(
+					obs, client, builtinProfile(t, code), nil, false)
+				require.NoError(t, err)
+
+				for name, tool := range listedTools(t, srv) {
+					for _, banned := range []string{"paise", "₹", "INR"} {
+						assert.NotContains(t, tool, banned, "tool %s", name)
+					}
+				}
+			})
+	}
 
 	t.Run("no placeholder is left for IN, SG or the default server",
 		func(t *testing.T) {

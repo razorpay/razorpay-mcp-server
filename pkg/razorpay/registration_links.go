@@ -28,15 +28,13 @@ func CreateRegistrationLink(
 		mcpgo.WithNumber(
 			"amount",
 			mcpgo.Description(
-				"Amount in the smallest currency "+
-					"unit (e.g., paise for INR)."),
+				"Amount "+amountUnitDesc+"."),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
 			"currency",
 			mcpgo.Description(
-				"Three-letter ISO currency code "+
-					"(e.g., INR, MYR)."),
+				currencyCodeDesc+"."),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(

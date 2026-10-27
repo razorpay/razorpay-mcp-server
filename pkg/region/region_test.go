@@ -2,6 +2,7 @@ package region
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,6 +27,16 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, []string{"*"}, profiles["IN"].Tools)
 		assert.Equal(t, "https://api-sg.razorpay.com", profiles["SG"].APIBaseURL)
 		assert.NotEmpty(t, profiles["SG"].Tools)
+	})
+
+	t.Run("loads built-in MY and US profiles", func(t *testing.T) {
+		profiles, err := Load("")
+		require.NoError(t, err)
+
+		assert.Equal(t, "https://api.razorpay.com", profiles["MY"].APIBaseURL)
+		assert.NotEmpty(t, profiles["MY"].Tools)
+		assert.Equal(t, "https://api-us.razorpay.com", profiles["US"].APIBaseURL)
+		assert.NotEmpty(t, profiles["US"].Tools)
 	})
 
 	t.Run("India matches the built-in IN profile", func(t *testing.T) {
@@ -146,7 +157,7 @@ func TestGet(t *testing.T) {
 	t.Run("unknown code lists available regions", func(t *testing.T) {
 		_, err := Get(profiles, "XX")
 		assert.EqualError(t, err,
-			`no region profile for "XX"; available: IN, SG`)
+			`no region profile for "XX"; available: IN, MY, SG, US`)
 	})
 }
 
@@ -156,6 +167,8 @@ func TestProfileCurrency(t *testing.T) {
 	profiles, err := Load("")
 	require.NoError(t, err)
 	assert.Equal(t, "SGD", profiles["SG"].Currency())
+	assert.Equal(t, "MYR", profiles["MY"].Currency())
+	assert.Equal(t, "USD", profiles["US"].Currency())
 }
 
 func TestProfileLocalize(t *testing.T) {
@@ -205,4 +218,28 @@ func TestContext(t *testing.T) {
 		ctx := WithProfile(context.Background(), sg)
 		assert.Equal(t, sg, FromContext(ctx))
 	})
+}
+
+func TestUnknownCountryPrintsNothingToStdout(t *testing.T) {
+	// stdout is the MCP protocol channel in stdio mode.
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	orig := os.Stdout
+	os.Stdout = w
+
+	_, loadErr := Load(writeOverride(t, `
+XX:
+  country_code: XX
+  api_base_url: https://api-xx.razorpay.com
+  tools: ["*"]
+`))
+	_ = Profile{}.Currency()
+
+	os.Stdout = orig
+	require.NoError(t, w.Close())
+	out, err := io.ReadAll(r)
+	require.NoError(t, err)
+
+	assert.Error(t, loadErr)
+	assert.Empty(t, string(out))
 }
