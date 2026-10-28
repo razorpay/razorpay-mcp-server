@@ -673,6 +673,23 @@ func Test_FetchAllOrders(t *testing.T) {
 			ExpectedResult: ordersResp,
 		},
 		{
+			Name: "successful fetch all orders with multiple expand values",
+			Request: map[string]interface{}{
+				"expand": []interface{}{"payments", "transfers"},
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fetchAllOrdersPath,
+						Method:   "GET",
+						Response: ordersResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: ordersResp,
+		},
+		{
 			Name: "multiple validation errors",
 			Request: map[string]interface{}{
 				"count":  "not-a-number",

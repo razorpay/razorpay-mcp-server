@@ -1,8 +1,12 @@
 package razorpay
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
@@ -339,25 +343,25 @@ func TestValidatorExpand(t *testing.T) {
 	tests := []struct {
 		name         string
 		args         map[string]interface{}
-		expectExpand string
+		expectExpand []string
 		expectError  bool
 	}{
 		{
 			name:         "valid expand param",
 			args:         map[string]interface{}{"expand": []interface{}{"payments"}},
-			expectExpand: "payments",
+			expectExpand: []string{"payments"},
 			expectError:  false,
 		},
 		{
 			name:         "empty expand array",
 			args:         map[string]interface{}{"expand": []interface{}{}},
-			expectExpand: "",
+			expectExpand: nil,
 			expectError:  false,
 		},
 		{
 			name:         "invalid expand type",
 			args:         map[string]interface{}{"expand": "not an array"},
-			expectExpand: "",
+			expectExpand: nil,
 			expectError:  true,
 		},
 	}
@@ -376,7 +380,7 @@ func TestValidatorExpand(t *testing.T) {
 				assert.True(t, validator.HasErrors(), "Expected validation error")
 			} else {
 				assert.False(t, validator.HasErrors(), "Did not expect validation error")
-				if tt.expectExpand != "" {
+				if tt.expectExpand != nil {
 					assert.Equal(t,
 						tt.expectExpand,
 						result["expand[]"],
@@ -999,8 +1003,7 @@ func TestValidateAndAddExpand(t *testing.T) {
 		validator := NewValidator(request).ValidateAndAddExpand(params)
 
 		assert.False(t, validator.HasErrors())
-		// The function sets expand[] for each value, so check the last one
-		assert.Equal(t, "customer", params["expand[]"])
+		assert.Equal(t, []string{"payments", "customer"}, params["expand[]"])
 	})
 
 	t.Run("missing expand parameter", func(t *testing.T) {
@@ -1029,6 +1032,39 @@ func TestValidateAndAddExpand(t *testing.T) {
 
 		assert.True(t, validator.HasErrors())
 	})
+}
+
+func TestValidateAndAddExpandSDKSerialization(t *testing.T) {
+	var capturedQuery string
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			capturedQuery = r.URL.RawQuery
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"entity": "collection",
+				"count":  0,
+				"items":  []interface{}{},
+			})
+		},
+	))
+	defer server.Close()
+
+	client := rzpsdk.NewClient("sample_key", "sample_secret")
+	client.Order.Request.BaseURL = server.URL
+
+	params := make(map[string]interface{})
+	args := map[string]interface{}{
+		"expand": []string{"payments", "transfers"},
+	}
+	request := &mcpgo.CallToolRequest{Arguments: args}
+	validator := NewValidator(request).ValidateAndAddExpand(params)
+
+	assert.False(t, validator.HasErrors())
+
+	_, err := client.Order.All(params, nil)
+	assert.NoError(t, err)
+	assert.Contains(t, capturedQuery, "expand%5B%5D=payments")
+	assert.Contains(t, capturedQuery, "expand%5B%5D=transfers")
 }
 
 // Test for token validation functions edge cases
