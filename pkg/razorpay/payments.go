@@ -61,7 +61,7 @@ func FetchPayment(
 	return mcpgo.NewTool(
 		"fetch_payment",
 		"Use this tool to retrieve the details of a specific payment "+
-			"using its id. Amount returned is in paisa",
+			"using its id. Amount returned is in paise",
 		parameters,
 		handler,
 	)
