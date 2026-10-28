@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	stdlog "log"
@@ -98,13 +99,17 @@ func runStdioServer(
 		"Razorpay MCP Server running on stdio\n",
 	)
 
-	// Wait for shutdown signal
+	// Wait for shutdown signal or server error.
+	// context.Canceled is treated as a clean shutdown — not a real error.
+	// When the context is cancelled, stdioSrv.Listen returns context.Canceled
+	// into errC at roughly the same time ctx.Done() fires. Whichever branch
+	// the select picks, the outcome should be the same: graceful exit.
 	select {
 	case <-ctx.Done():
 		obs.Logger.Infof(ctx, "shutting down server...")
 		return nil
 	case err := <-errC:
-		if err != nil {
+		if err != nil && !errors.Is(err, context.Canceled) {
 			obs.Logger.Errorf(ctx, "server error", "error", err)
 			return err
 		}
