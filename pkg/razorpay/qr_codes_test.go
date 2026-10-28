@@ -770,6 +770,16 @@ func TestFetchPaymentsForQRCode(t *testing.T) {
 			ExpectedErrMsg: "invalid parameter type: qr_code_id",
 		},
 		{
+			Name: "validator error - invalid count parameter type",
+			Request: map[string]interface{}{
+				"qr_code_id": "qr_test123",
+				"count":      "not-a-number",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: count",
+		},
+		{
 			Name: "API error",
 			Request: map[string]interface{}{
 				"qr_code_id": "qr_test123",
