@@ -829,6 +829,19 @@ func Test_detectProjectStack(t *testing.T) {
 				Language:       "php",
 				Framework:      "laravel",
 				PackageManager: "composer",
+				Confidence:     0.95,
+			},
+		},
+		{
+			name: "php composer only uses base confidence",
+			args: map[string]interface{}{
+				"files": []interface{}{"composer.json"},
+			},
+			expected: DetectStackOutput{
+				Language:       "php",
+				Framework:      "laravel",
+				PackageManager: "composer",
+				Confidence:     0.85,
 			},
 		},
 		{
@@ -840,6 +853,7 @@ func Test_detectProjectStack(t *testing.T) {
 				Language:       "ruby",
 				Framework:      "rails",
 				PackageManager: "bundler",
+				Confidence:     0.95,
 			},
 		},
 		{
@@ -873,6 +887,19 @@ func Test_detectProjectStack(t *testing.T) {
 				Language:       "python",
 				Framework:      "flask",
 				PackageManager: "pip",
+			},
+		},
+		{
+			name: "python flask via app.py raises confidence",
+			args: map[string]interface{}{
+				"files":           []interface{}{"app.py", "requirements.txt"},
+				"requirementsTxt": "flask==3.0\ngunicorn==21.0",
+			},
+			expected: DetectStackOutput{
+				Language:       "python",
+				Framework:      "flask",
+				PackageManager: "pip",
+				Confidence:     0.95,
 			},
 		},
 		{
@@ -989,6 +1016,9 @@ func Test_detectProjectStack(t *testing.T) {
 			assert.Equal(t, tc.expected.Framework, result.Framework)
 			if tc.expected.PackageManager != "" {
 				assert.Equal(t, tc.expected.PackageManager, result.PackageManager)
+			}
+			if tc.expected.Confidence > 0 {
+				assert.Equal(t, tc.expected.Confidence, result.Confidence)
 			}
 		})
 	}

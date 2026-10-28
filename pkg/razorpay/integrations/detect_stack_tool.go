@@ -171,32 +171,39 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 	// PHP/Laravel detection
 	if containsSuffix(files, "composer.json") {
 		framework := "laravel" // default for PHP
+		// Strong framework signals raise confidence instead of re-assigning.
+		confidence := 0.85
+		notes := []string{"PHP project detected"}
 		if containsPath(files, "artisan") {
-			framework = "laravel"
+			confidence = 0.95
+			notes = append(notes, "Laravel artisan file found")
 		}
 		return DetectStackOutput{
 			Language:       "php",
 			Framework:      framework,
 			PackageManager: "composer",
 			IsFullStack:    true,
-			Confidence:     0.85,
-			Notes:          []string{"PHP project detected"},
+			Confidence:     confidence,
+			Notes:          notes,
 		}
 	}
 
 	// Ruby/Rails detection
 	if containsSuffix(files, "Gemfile") {
 		framework := "rails" // default for Ruby web
+		confidence := 0.85
+		notes := []string{"Ruby project detected"}
 		if containsPath(files, "config/routes.rb") {
-			framework = "rails"
+			confidence = 0.95
+			notes = append(notes, "Rails routes file found")
 		}
 		return DetectStackOutput{
 			Language:       "ruby",
 			Framework:      framework,
 			PackageManager: "bundler",
 			IsFullStack:    true,
-			Confidence:     0.85,
-			Notes:          []string{"Ruby project detected"},
+			Confidence:     confidence,
+			Notes:          notes,
 		}
 	}
 
@@ -226,8 +233,12 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 		if containsPath(files, "manage.py") {
 			framework = "django"
 		}
+
+		confidence := 0.85
+		notes := []string{"Python project with " + framework}
 		if containsSuffix(files, "app.py") && framework == "flask" {
-			framework = "flask"
+			confidence = 0.95
+			notes = append(notes, "Flask app.py entrypoint found")
 		}
 
 		return DetectStackOutput{
@@ -235,8 +246,8 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 			Framework:      framework,
 			PackageManager: "pip",
 			IsFullStack:    true,
-			Confidence:     0.85,
-			Notes:          []string{"Python project with " + framework},
+			Confidence:     confidence,
+			Notes:          notes,
 		}
 	}
 
