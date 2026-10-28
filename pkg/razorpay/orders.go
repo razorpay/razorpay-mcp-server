@@ -441,8 +441,11 @@ func UpdateOrder(
 
 	return mcpgo.NewTool(
 		"update_order",
-		"Use this tool to update the notes for a specific order. "+
-			"Only the notes field can be modified.",
+		"Update the notes of an existing Razorpay order by its ID. "+
+			"Use when you need to modify metadata or annotations on a created order. "+
+			"Only the 'notes' field can be updated; all other order fields are "+
+			"immutable after creation. "+
+			"Returns the full updated order object.",
 		parameters,
 		handler,
 	)
