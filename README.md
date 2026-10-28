@@ -59,6 +59,8 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `create_registration_link`           | Create a registration link (auth link) for subscription registration | [Registration Link](https://razorpay.com/docs/api/payments/recurring-payments/registration-link/) | ❌ |
 | `detect_stack` | Detect project language/framework for checkout integration | N/A (MCP Integration Helper) | ✅ |
 | `integrate_razorpay_checkout` | Generate end-to-end Razorpay Standard Checkout integration code for supported frameworks | N/A (MCP Integration Helper) | ✅ |
+| `search_documentation` | Search Razorpay documentation and return relevant sections with runnable code examples | N/A (MCP Integration Helper) | ✅ |
+| `explain_error` | Explain a Razorpay error code/description with common causes and resolution steps | N/A (MCP Integration Helper) | ✅ |
 
 
 ## Use Cases

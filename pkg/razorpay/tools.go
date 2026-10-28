@@ -121,8 +121,19 @@ func NewToolSets(
 			integrations.DetectStack(obs, client),
 		)
 
+	// Documentation toolset - static-data helpers for docs search and
+	// error explanation, no Razorpay API calls
+	documentation := toolsets.NewToolset(
+		"documentation",
+		"Razorpay documentation search and error explanation tools").
+		AddReadTools(
+			SearchDocumentation(obs),
+			ExplainError(obs),
+		)
+
 	// Add toolsets to the group
 	toolsetGroup.AddToolset(checkoutIntegration)
+	toolsetGroup.AddToolset(documentation)
 	toolsetGroup.AddToolset(payments)
 	toolsetGroup.AddToolset(paymentLinks)
 	toolsetGroup.AddToolset(orders)
