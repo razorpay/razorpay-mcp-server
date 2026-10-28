@@ -11,17 +11,19 @@ This guide explains how to add new Razorpay API tools to the MCP server.
 1. Locate the API documentation at https://razorpay.com/docs/api/
 2. Identify the equivalent function call for the API in the razorpay go sdk.
 3. Create a new tool function in the appropriate file (or create a new file for a new resource type). Add validations for mandatory fields and call the sdk
-5. Register the tool in `server.go`
+5. Register the tool in `tools.go`
 6. Update "Available Tools" section in the main README.md
 
 ### Tool Structure
 
-Add the tool definition inside pkg/razorpay's resource file. You can define a new tool using this following template:
+Add the tool definition inside pkg/razorpay's resource file. Tool functions take
+`*observability.Observability` (not `*slog.Logger`). You can define a new tool
+using this following template:
 
 ```go
 // ToolName returns a tool that [description of what it does]
 func ToolName(
-    log *slog.Logger,
+    obs *observability.Observability,
     client *rzpsdk.Client,
 ) mcpgo.Tool {
     parameters := []mcpgo.ToolParameter{
@@ -98,8 +100,8 @@ v.ValidateAndAddRequiredString(payload, "id").
 v.ValidateAndAddPagination(payload).
   ValidateAndAddExpand(payload)
 
-// Check for validation errors
-if result, err := validator.HandleErrorsIfAny(); result != nil {
+// Check for validation errors (receiver is v, not validator)
+if result, err := v.HandleErrorsIfAny(); result != nil {
 	return result, err
 }
 
@@ -111,7 +113,7 @@ if result, err := validator.HandleErrorsIfAny(); result != nil {
 ```go
 // FetchResource returns a tool that fetches a resource by ID
 func FetchResource(
-    log *slog.Logger,
+    obs *observability.Observability,
     client *rzpsdk.Client,
 ) mcpgo.Tool {
     parameters := []mcpgo.ToolParameter{
@@ -132,7 +134,7 @@ func FetchResource(
             ValidateAndAddRequiredString(payload, "id")
         
         // Check for validation errors
-        if result, err := validator.HandleErrorsIfAny(); result != nil {
+        if result, err := v.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
@@ -161,7 +163,7 @@ func FetchResource(
 ```go
 // CreateResource returns a tool that creates a new resource
 func CreateResource(
-    log *slog.Logger,
+    obs *observability.Observability,
     client *rzpsdk.Client,
 ) mcpgo.Tool {
     parameters := []mcpgo.ToolParameter{
@@ -193,7 +195,7 @@ func CreateResource(
             ValidateAndAddOptionalString(data, "description")
         
         // Check for validation errors
-        if result, err := validator.HandleErrorsIfAny(); result != nil {
+        if result, err := v.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
@@ -223,7 +225,7 @@ Add your tool to the appropriate toolset in the `NewToolSets` function in [`pkg/
 ```go
 // NewToolSets creates and configures all available toolsets
 func NewToolSets(
-    log *slog.Logger,
+    obs *observability.Observability,
     client *rzpsdk.Client,
     enabledToolsets []string,
     readOnly bool,
@@ -234,7 +236,7 @@ func NewToolSets(
     // Create toolsets
     payments := toolsets.NewToolset("payments", "Razorpay Payments related tools").
         AddReadTools(
-            FetchPayment(log, client),
+            FetchPayment(obs, client),
             // Add your read-only payment tool here
         ).
         AddWriteTools(
@@ -245,21 +247,21 @@ func NewToolSets(
         "payment_links",
         "Razorpay Payment Links related tools").
         AddReadTools(
-            FetchPaymentLink(log, client),
+            FetchPaymentLink(obs, client),
             // Add your read-only payment link tool here
         ).
         AddWriteTools(
-            CreatePaymentLink(log, client),
+            CreatePaymentLink(obs, client),
             // Add your write payment link tool here
         )
 
     orders := toolsets.NewToolset("orders", "Razorpay Orders related tools").
         AddReadTools(
-            FetchOrder(log, client),
+            FetchOrder(obs, client),
             // Add your read-only order tool here
         ).
         AddWriteTools(
-            CreateOrder(log, client),
+            CreateOrder(obs, client),
             // Add your write order tool here
         )
 
@@ -267,10 +269,10 @@ func NewToolSets(
     /*
     newResource := toolsets.NewToolset("new_resource", "Razorpay New Resource related tools").
         AddReadTools(
-            FetchNewResource(log, client),
+            FetchNewResource(obs, client),
         ).
         AddWriteTools(
-            CreateNewResource(log, client),
+            CreateNewResource(obs, client),
         )
     toolsetGroup.AddToolset(newResource)
     */
@@ -394,7 +396,7 @@ After adding a new tool, Update the "Available Tools" section in the README.md i
 3. **Validation**: Always validate required parameters and collect all validation errors before returning using fluent validator pattern.
    - Use the `NewValidator` to create a validator
    - Chain validation methods (`ValidateAndAddRequiredString`, etc.)
-   - Return formatted errors with `HandleErrorsIfAny()`
+   - Return formatted errors with `v.HandleErrorsIfAny()`
 
 4. **Documentation**: Describe all the parameters clearly for the LLMs to understand.
 
