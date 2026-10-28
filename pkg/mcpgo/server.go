@@ -2,6 +2,7 @@ package mcpgo
 
 import (
 	"context"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -106,6 +107,34 @@ func WithToolCapabilities(enabled bool) ServerOption {
 	}
 }
 
+// redactSensitiveFields removes sensitive payment data from maps before logging
+func redactSensitiveFields(data map[string]interface{}) map[string]interface{} {
+	redacted := make(map[string]interface{})
+	sensitiveKeys := map[string]bool{
+		"card": true, "bank_account": true, "token": true,
+		"password": true, "secret": true, "cvv": true,
+		"card_number": true, "account_number": true,
+	}
+	for k, v := range data {
+		if sensitiveKeys[strings.ToLower(k)] {
+			redacted[k] = "[REDACTED]"
+		} else if nested, ok := v.(map[string]interface{}); ok {
+			redacted[k] = redactSensitiveFields(nested)
+		} else {
+			redacted[k] = v
+		}
+	}
+	return redacted
+}
+
+// redactIfMap attempts to redact a value if it is a map
+func redactIfMap(v any) any {
+	if m, ok := v.(map[string]interface{}); ok {
+		return redactSensitiveFields(m)
+	}
+	return v
+}
+
 // SetupHooks creates and configures the server hooks with logging
 func SetupHooks(obs *observability.Observability) *server.Hooks {
 	hooks := &server.Hooks{}
@@ -114,7 +143,7 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		obs.Logger.Infof(ctx, "MCP_METHOD_CALLED",
 			"method", method,
 			"id", id,
-			"message", message)
+			"message", redactIfMap(message))
 	})
 
 	hooks.AddOnSuccess(func(ctx context.Context, id any, method mcp.MCPMethod,
@@ -136,7 +165,7 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		obs.Logger.Infof(ctx, "MCP_METHOD_SUCCEEDED",
 			"method", method,
 			"id", id,
-			"result", logResult)
+			"result", redactIfMap(logResult))
 	})
 
 	hooks.AddOnError(func(ctx context.Context, id any, method mcp.MCPMethod,
@@ -144,7 +173,7 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		obs.Logger.Infof(ctx, "MCP_METHOD_FAILED",
 			"method", method,
 			"id", id,
-			"message", message,
+			"message", redactIfMap(message),
 			"error", err)
 	})
 
@@ -152,15 +181,15 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		message *mcp.CallToolRequest) {
 		obs.Logger.Infof(ctx, "TOOL_CALL_STARTED",
 			"id", id,
-			"request", message)
+			"request", redactIfMap(message))
 	})
 
 	hooks.AddAfterCallTool(func(ctx context.Context, id any,
 		message *mcp.CallToolRequest, result *mcp.CallToolResult) {
 		obs.Logger.Infof(ctx, "TOOL_CALL_COMPLETED",
 			"id", id,
-			"request", message,
-			"result", result)
+			"request", redactIfMap(message),
+			"result", redactIfMap(result))
 	})
 
 	return hooks

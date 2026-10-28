@@ -2,6 +2,7 @@ package razorpay
 
 import (
 	"encoding/json"
+	"fmt"
 	"errors"
 	"strings"
 	"time"
@@ -261,9 +262,11 @@ func (v *Validator) ValidateAndAddExpand(
 	}
 
 	if len(*expand) > 0 {
+		expandValues := make([]string, 0, len(*expand))
 		for _, val := range *expand {
-			params["expand[]"] = val
+			expandValues = append(expandValues, val)
 		}
+		params["expand[]"] = expandValues
 	}
 	return v
 }
@@ -475,4 +478,16 @@ func formatErrorMessage(prefix string, err error) string {
 	}
 
 	return prefix + ": " + errMsg
+}
+
+// validateRazorpayID checks that a Razorpay entity ID is non-empty and
+// starts with the expected prefix followed by an underscore.
+func validateRazorpayID(id string, prefix string) error {
+	if id == "" {
+		return fmt.Errorf("%s ID cannot be empty", prefix)
+	}
+	if !strings.HasPrefix(id, prefix+"_") {
+		return fmt.Errorf("invalid %s ID format: must start with '%s_'", prefix, prefix)
+	}
+	return nil
 }

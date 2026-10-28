@@ -41,6 +41,13 @@ var stdioCmd = &cobra.Command{
 			observability.WithLoggingService(logger),
 		)
 
+		// Validate that API credentials are provided
+		if viper.GetString("key") == "" || viper.GetString("secret") == "" {
+			fmt.Fprintln(os.Stderr, "Error: razorpay API key and secret are required.")
+			fmt.Fprintln(os.Stderr, "Set via --key/--secret flags or RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET environment variables")
+			os.Exit(1)
+		}
+
 		key := viper.GetString("key")
 		secret := viper.GetString("secret")
 		client := rzpsdk.NewClient(key, secret)
