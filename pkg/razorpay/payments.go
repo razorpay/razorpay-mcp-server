@@ -921,24 +921,16 @@ func ResendOtp(
 			"response_data": otpResponse,
 		}
 
-		// Add next step instructions if OTP submit URL is available
+		// Next-step guidance is always returned; include submit URL when present.
+		response["next_step"] = "Use 'submit_otp' tool with the OTP code received " +
+			"from user to complete payment authentication."
+		response["next_tool"] = "submit_otp"
+		response["next_tool_params"] = map[string]interface{}{
+			"payment_id": paymentID,
+			"otp_string": "{OTP_CODE_FROM_USER}",
+		}
 		if otpSubmitURL != "" {
 			response["otp_submit_url"] = otpSubmitURL
-			response["next_step"] = "Use 'submit_otp' tool with the OTP code received " +
-				"from user to complete payment authentication."
-			response["next_tool"] = "submit_otp"
-			response["next_tool_params"] = map[string]interface{}{
-				"payment_id": paymentID,
-				"otp_string": "{OTP_CODE_FROM_USER}",
-			}
-		} else {
-			response["next_step"] = "Use 'submit_otp' tool with the OTP code received " +
-				"from user to complete payment authentication."
-			response["next_tool"] = "submit_otp"
-			response["next_tool_params"] = map[string]interface{}{
-				"payment_id": paymentID,
-				"otp_string": "{OTP_CODE_FROM_USER}",
-			}
 		}
 
 		result, err := mcpgo.NewToolResultJSON(response)
