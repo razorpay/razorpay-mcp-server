@@ -247,7 +247,10 @@ func (v *Validator) ValidateAndAddPagination(
 		ValidateAndAddOptionalInt(params, "skip")
 }
 
-// ValidateAndAddExpand validates and adds expand parameters
+// ValidateAndAddExpand validates and adds expand parameters.
+// The full slice is passed through so that the SDK can serialise it as
+// expand[]=val1&expand[]=val2; assigning one value at a time would leave
+// only the last one.
 func (v *Validator) ValidateAndAddExpand(
 	params map[string]interface{},
 ) *Validator {
@@ -261,9 +264,7 @@ func (v *Validator) ValidateAndAddExpand(
 	}
 
 	if len(*expand) > 0 {
-		for _, val := range *expand {
-			params["expand[]"] = val
-		}
+		params["expand[]"] = *expand
 	}
 	return v
 }

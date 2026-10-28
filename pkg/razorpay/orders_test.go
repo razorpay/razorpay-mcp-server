@@ -1,11 +1,15 @@
 package razorpay
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
+	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
@@ -977,4 +981,42 @@ func Test_UpdateOrder(t *testing.T) {
 			runToolTest(t, tc, UpdateOrder, "Order")
 		})
 	}
+}
+
+// Test_FetchAllOrders_ExpandQueryParams asserts that every value supplied to
+// expand reaches the outgoing request. The validator writes the slice into the
+// params map and the SDK serialises it as expand[]=a&expand[]=b, so this covers
+// both halves together; asserting on the params map alone would not catch a
+// regression in how the value is shaped.
+func Test_FetchAllOrders_ExpandQueryParams(t *testing.T) {
+	var capturedQuery string
+
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			capturedQuery = r.URL.RawQuery
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"entity":"collection","count":0,"items":[]}`))
+		}))
+	defer server.Close()
+
+	client := rzpsdk.NewClient("sample_key", "sample_secret")
+	client.Order.Request.BaseURL = server.URL
+	client.Order.Request.HTTPClient = server.Client()
+
+	tool := FetchAllOrders(CreateTestObservability(), client)
+	request := createMCPRequest(map[string]interface{}{
+		"expand": []interface{}{"payments", "transfers", "virtual_account"},
+	})
+
+	_, err := tool.GetHandler()(context.Background(), request)
+	assert.NoError(t, err)
+
+	// url.Values.Encode escapes the brackets, so expand[] becomes expand%5B%5D
+	assert.Equal(t,
+		"expand%5B%5D=payments&expand%5B%5D=transfers"+
+			"&expand%5B%5D=virtual_account",
+		capturedQuery,
+		"every expand value should reach the request",
+	)
 }
