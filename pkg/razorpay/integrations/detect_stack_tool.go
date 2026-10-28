@@ -76,14 +76,17 @@ func DetectStack(
 	return mcpgo.NewTool(
 		"detect_stack",
 		"Detect the technology stack of a project based on file information. "+
-			"Returns language, framework, frontend framework, and package manager. "+
+			"Returns language, framework, frontend, and package manager. "+
 			"IMPORTANT: Always call this tool FIRST before calling integrate_razorpay_checkout. "+
 			"Before calling this tool, you MUST: "+
 			"1) List the project's files and pass them in the 'files' parameter, "+
 			"2) Read the relevant dependency file (package.json for Node.js, requirements.txt for Python, "+
 			"go.mod for Go, pubspec.yaml for Flutter, Cargo.toml for Rust, pom.xml for Java, etc.) "+
 			"and pass its contents in the corresponding parameter. "+
-			"Then pass the detected language, framework, and frontend to integrate_razorpay_checkout.",
+			"Then pass language, framework as backendFramework, and frontend as frontendFramework "+
+			"to integrate_razorpay_checkout. Frontend values match that tool's enum "+
+			"(vanilla, react, nextjs, vue, angular, svelte, solid, native); "+
+			"empty or backend-only projects default to vanilla.",
 		parameters,
 		handler,
 	)
@@ -113,14 +116,14 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 
 	// Flutter detection
 	if pubspecYaml != "" || containsSuffix(files, "pubspec.yaml") {
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       "dart",
 			Framework:      "flutter",
 			PackageManager: "pub",
 			IsFullStack:    false,
 			Confidence:     0.95,
 			Notes:          []string{"Flutter mobile app detected"},
-		}
+		})
 	}
 
 	// Go detection
@@ -133,39 +136,39 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 			framework = "fiber"
 		}
 
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       "go",
 			Framework:      framework,
 			PackageManager: "go-mod",
 			IsFullStack:    true,
 			Confidence:     0.9,
 			Notes:          []string{"Go project with " + framework},
-		}
+		})
 	}
 
 	// Rust detection
 	if containsSuffix(files, "Cargo.toml") {
 		framework := "actix" // default for Rust web
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       "rust",
 			Framework:      framework,
 			PackageManager: "cargo",
 			IsFullStack:    true,
 			Confidence:     0.9,
 			Notes:          []string{"Rust project detected"},
-		}
+		})
 	}
 
 	// Java/Spring detection
 	if containsSuffix(files, "pom.xml") || containsSuffix(files, "build.gradle") {
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       "java",
 			Framework:      "spring",
 			PackageManager: "maven",
 			IsFullStack:    true,
 			Confidence:     0.85,
 			Notes:          []string{"Java project detected - assuming Spring Boot"},
-		}
+		})
 	}
 
 	// PHP/Laravel detection
@@ -174,14 +177,14 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 		if containsPath(files, "artisan") {
 			framework = "laravel"
 		}
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       "php",
 			Framework:      framework,
 			PackageManager: "composer",
 			IsFullStack:    true,
 			Confidence:     0.85,
 			Notes:          []string{"PHP project detected"},
-		}
+		})
 	}
 
 	// Ruby/Rails detection
@@ -190,26 +193,26 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 		if containsPath(files, "config/routes.rb") {
 			framework = "rails"
 		}
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       "ruby",
 			Framework:      framework,
 			PackageManager: "bundler",
 			IsFullStack:    true,
 			Confidence:     0.85,
 			Notes:          []string{"Ruby project detected"},
-		}
+		})
 	}
 
 	// .NET detection
 	if containsSuffix(files, ".csproj") || containsSuffix(files, ".sln") {
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       "csharp",
 			Framework:      "aspnet",
 			PackageManager: "nuget",
 			IsFullStack:    true,
 			Confidence:     0.85,
 			Notes:          []string{".NET project detected - assuming ASP.NET Core"},
-		}
+		})
 	}
 
 	// Python detection
@@ -230,14 +233,14 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 			framework = "flask"
 		}
 
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       "python",
 			Framework:      framework,
 			PackageManager: "pip",
 			IsFullStack:    true,
 			Confidence:     0.85,
 			Notes:          []string{"Python project with " + framework},
-		}
+		})
 	}
 
 	// Node.js detection
@@ -313,21 +316,21 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 
 		// React Native special case
 		if frontend == "react-native" {
-			return DetectStackOutput{
+			return withNormalizedFrontend(DetectStackOutput{
 				Language:       language,
 				Framework:      "react-native",
 				PackageManager: packageManager,
 				IsFullStack:    false,
 				Confidence:     0.95,
 				Notes:          []string{"React Native mobile app detected"},
-			}
+			})
 		}
 
 		// Determine if fullstack
 		isFullStack := framework == "nextjs" || framework == "nuxt" || framework == "nestjs" ||
 			(framework != "node" && frontend == "")
 
-		return DetectStackOutput{
+		return withNormalizedFrontend(DetectStackOutput{
 			Language:       language,
 			Framework:      framework,
 			Frontend:       frontend,
@@ -335,7 +338,7 @@ func detectProjectStack(args map[string]interface{}) DetectStackOutput {
 			IsFullStack:    isFullStack,
 			Confidence:     0.9,
 			Notes:          notes,
-		}
+		})
 	}
 
 	// Default fallback

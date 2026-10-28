@@ -44,8 +44,11 @@ type IntegrateCheckoutOutput struct {
 
 // DetectStackOutput is the response from detect_stack
 type DetectStackOutput struct {
-	Language       string   `json:"language"`
-	Framework      string   `json:"framework"`
+	Language  string `json:"language"`
+	Framework string `json:"framework"`
+	// Frontend uses the same vocabulary as integrate_razorpay_checkout's
+	// frontendFramework parameter (vanilla, react, nextjs, vue, angular,
+	// svelte, solid, native). Backend-only projects default to vanilla.
 	Frontend       string   `json:"frontend,omitempty"`
 	PackageManager string   `json:"packageManager"`
 	IsFullStack    bool     `json:"isFullStack"`

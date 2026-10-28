@@ -32,9 +32,10 @@ func IntegrateRazorpayCheckout(
 		),
 		mcpgo.WithString(
 			"frontendFramework",
-			mcpgo.Description("Frontend framework: vanilla, react, nextjs, vue, angular, svelte, or native (for mobile apps)"),
+			mcpgo.Description("Frontend framework: vanilla, react, nextjs, vue, angular, svelte, solid, or native (for mobile apps). "+
+				"Use the frontend value from detect_stack (same vocabulary)."),
 			mcpgo.Required(),
-			mcpgo.Enum("vanilla", "react", "nextjs", "vue", "angular", "svelte", "native"),
+			mcpgo.Enum("vanilla", "react", "nextjs", "vue", "angular", "svelte", "solid", "native"),
 		),
 	}
 
@@ -123,6 +124,7 @@ func IntegrateRazorpayCheckout(
 			"backend routes, frontend integration, and payment verification. "+
 			"IMPORTANT: Before calling this tool, ALWAYS call detect_stack first to determine the "+
 			"project's language, backendFramework, and frontendFramework. Do NOT ask the user for these values. "+
+			"Map detect_stack output: language→language, framework→backendFramework, frontend→frontendFramework. "+
 			"The AI should apply ALL returned files and modifications without asking the user for additional steps.",
 		parameters,
 		handler,

@@ -11,6 +11,8 @@ func getFrontendIntegration(framework string) FrontendIntegration {
 		return getAngularFrontend()
 	case "svelte":
 		return getSvelteFrontend()
+	case "solid":
+		return getSolidFrontend()
 	case "native":
 		return FrontendIntegration{
 			Framework:   "Native Mobile",
@@ -365,5 +367,67 @@ func getSvelteFrontend() FrontendIntegration {
 		FileName:    "src/components/RazorpayButton.svelte",
 		ScriptTag:   "Import and use <RazorpayButton amount={100} on:success={...} />",
 		Description: "Svelte component for Razorpay payments",
+	}
+}
+
+func getSolidFrontend() FrontendIntegration {
+	code := `import { createSignal, onMount } from 'solid-js';
+
+export function createRazorpayPayment() {
+  const [loading, setLoading] = createSignal(false);
+  const [ready, setReady] = createSignal(false);
+
+  onMount(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => setReady(true);
+    document.body.appendChild(script);
+  });
+
+  const pay = async (amount, onSuccess, onError) => {
+    if (!ready() || loading()) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/razorpay/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        order_id: data.orderId,
+        handler: async (response) => {
+          const verify = await fetch('/api/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(response),
+          });
+          const result = await verify.json();
+          result.success ? onSuccess?.(result) : onError?.(new Error(result.error));
+          setLoading(false);
+        },
+        modal: { ondismiss: () => setLoading(false) },
+      };
+      new window.Razorpay(options).open();
+    } catch (e) {
+      onError?.(e);
+      setLoading(false);
+    }
+  };
+
+  return { pay, loading, ready };
+}
+`
+	return FrontendIntegration{
+		Framework:   "Solid.js",
+		Code:        code,
+		FileName:    "src/components/RazorpayPayment.jsx",
+		ScriptTag:   "Import createRazorpayPayment and call pay(amount, onSuccess, onError)",
+		Description: "Solid.js composable for Razorpay payments",
 	}
 }
