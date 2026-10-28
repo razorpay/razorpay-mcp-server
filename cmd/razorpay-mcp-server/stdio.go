@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	stdlog "log"
@@ -104,7 +105,7 @@ func runStdioServer(
 		obs.Logger.Infof(ctx, "shutting down server...")
 		return nil
 	case err := <-errC:
-		if err != nil {
+		if err != nil && !errors.Is(err, context.Canceled) {
 			obs.Logger.Errorf(ctx, "server error", "error", err)
 			return err
 		}
