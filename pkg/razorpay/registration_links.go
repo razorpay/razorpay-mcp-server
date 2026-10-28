@@ -170,10 +170,7 @@ func CreateRegistrationLink(
 			url, payload, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf(
-					"creating registration link "+
-						"failed: %s",
-					err.Error())), nil
+				formatErrorMessage("creating registration link failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(response)

@@ -2,7 +2,6 @@ package razorpay
 
 import (
 	"context"
-	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -138,7 +137,7 @@ func CreatePaymentLink(
 		paymentLink, err := client.PaymentLink.Create(plCreateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("creating payment link failed: %s", err.Error())), nil
+				formatErrorMessage("creating payment link failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(paymentLink)
@@ -281,7 +280,7 @@ func CreateUpiPaymentLink(
 		paymentLink, err := client.PaymentLink.Create(upiPlCreateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("upi pl create failed: %s", err.Error())), nil
+				formatErrorMessage("creating UPI payment link failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(paymentLink)
@@ -398,7 +397,7 @@ func ResendPaymentLinkNotification(
 		response, err := client.PaymentLink.NotifyBy(paymentLinkId, medium, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("sending notification failed: %s", err.Error())), nil
+				formatErrorMessage("sending notification failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(response)
@@ -485,7 +484,7 @@ func UpdatePaymentLink(
 		paymentLink, err := client.PaymentLink.Update(paymentLinkId, plUpdateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("updating payment link failed: %s", err.Error())), nil
+				formatErrorMessage("updating payment link failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(paymentLink)

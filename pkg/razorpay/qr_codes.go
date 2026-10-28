@@ -2,7 +2,6 @@ package razorpay
 
 import (
 	"context"
-	"fmt"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -121,7 +120,7 @@ func CreateQRCode(
 		qrCode, err := client.QrCode.Create(qrData, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("creating QR code failed: %s", err.Error())), nil
+				formatErrorMessage("creating QR code failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(qrCode)
@@ -492,7 +491,7 @@ func CloseQRCode(
 		qrCode, err := client.QrCode.Close(qrCodeID, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
-				fmt.Sprintf("closing QR code failed: %s", err.Error())), nil
+				formatErrorMessage("closing QR code failed", err)), nil
 		}
 
 		return mcpgo.NewToolResultJSON(qrCode)
