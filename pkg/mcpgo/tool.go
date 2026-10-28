@@ -3,6 +3,7 @@ package mcpgo
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -29,7 +30,7 @@ type ToolResult struct {
 // Tool represents a tool that can be added to the server
 type Tool interface {
 	// internal method to convert to mcp's ServerTool
-	toMCPServerTool() server.ServerTool
+	toMCPServerTool() (server.ServerTool, error)
 
 	// GetHandler internal method for fetching the underlying handler
 	GetHandler() ToolHandler
@@ -301,28 +302,35 @@ func addDefaultValueOptions(
 	return propOpts
 }
 
-// addEnumOptions adds enum options if present
+// addEnumOptions adds enum options when all values are strings.
+// mark3labs mcp.Enum accepts only strings; non-string members are
+// rejected instead of being silently dropped from the published schema.
 func addEnumOptions(
 	propOpts []mcp.PropertyOption,
-	enumValues interface{}) []mcp.PropertyOption {
+	enumValues interface{},
+) ([]mcp.PropertyOption, error) {
 	values, ok := enumValues.([]interface{})
 	if !ok {
-		return propOpts
+		return propOpts, fmt.Errorf(
+			"enum must be an array, got %T", enumValues)
 	}
 
-	// Convert values to strings for now
 	strValues := make([]string, 0, len(values))
-	for _, ev := range values {
-		if str, ok := ev.(string); ok {
-			strValues = append(strValues, str)
+	for i, ev := range values {
+		str, ok := ev.(string)
+		if !ok {
+			return propOpts, fmt.Errorf(
+				"enum value at index %d must be a string, got %T",
+				i, ev)
 		}
+		strValues = append(strValues, str)
 	}
 
 	if len(strValues) > 0 {
 		propOpts = append(propOpts, mcp.Enum(strValues...))
 	}
 
-	return propOpts
+	return propOpts, nil
 }
 
 // addObjectPropertyOptions adds object-specific options
@@ -361,16 +369,19 @@ func addArrayPropertyOptions(
 
 // convertSchemaToPropertyOptions converts our schema to mcp property options
 func convertSchemaToPropertyOptions(
-	schema map[string]interface{}) []mcp.PropertyOption {
+	schema map[string]interface{},
+) ([]mcp.PropertyOption, error) {
 	var propOpts []mcp.PropertyOption
 
-	// Add basic properties
 	propOpts = addBasicPropertyOptions(propOpts, schema)
 
-	// Add type-specific properties
-	propOpts = addTypeSpecificPropertyOptions(propOpts, schema)
+	var err error
+	propOpts, err = addTypeSpecificPropertyOptions(propOpts, schema)
+	if err != nil {
+		return nil, err
+	}
 
-	return propOpts
+	return propOpts, nil
 }
 
 // addBasicPropertyOptions adds description and required flags
@@ -393,14 +404,15 @@ func addBasicPropertyOptions(
 // addTypeSpecificPropertyOptions adds type-specific property options
 func addTypeSpecificPropertyOptions(
 	propOpts []mcp.PropertyOption,
-	schema map[string]interface{}) []mcp.PropertyOption {
+	schema map[string]interface{},
+) ([]mcp.PropertyOption, error) {
 	// Skip type, description and required as they're handled separately
 	for k, v := range schema {
 		if k == "type" || k == "description" || k == "required" {
 			continue
 		}
 
-		// Process property based on key
+		var err error
 		switch k {
 		case "minimum", "maximum":
 			propOpts = addNumberPropertyOptions(propOpts, schema)
@@ -409,20 +421,32 @@ func addTypeSpecificPropertyOptions(
 		case "default":
 			propOpts = addDefaultValueOptions(propOpts, v)
 		case "enum":
-			propOpts = addEnumOptions(propOpts, v)
+			propOpts, err = addEnumOptions(propOpts, v)
+			if err != nil {
+				return nil, err
+			}
 		case "maxProperties", "minProperties":
 			propOpts = addObjectPropertyOptions(propOpts, schema)
 		case "minItems", "maxItems":
 			propOpts = addArrayPropertyOptions(propOpts, schema)
 		case "items":
-			// Convert items schema to MCP Items PropertyOption
 			if itemsSchema, ok := v.(map[string]interface{}); ok {
 				propOpts = append(propOpts, mcp.Items(itemsSchema))
 			}
 		}
 	}
 
-	return propOpts
+	return propOpts, nil
+}
+
+// supportedSchemaTypes lists JSON Schema types mapped to mark3labs helpers.
+var supportedSchemaTypes = map[string]struct{}{
+	"string":  {},
+	"number":  {},
+	"integer": {},
+	"boolean": {},
+	"object":  {},
+	"array":   {},
 }
 
 // GetHandler returns the handler for the tool
@@ -436,26 +460,38 @@ func (t *mark3labsToolImpl) SetReadOnly(readOnly bool) {
 }
 
 // toMCPServerTool converts our Tool to mcp's ServerTool
-func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
-	// Create the mcp tool with appropriate options
+func (t *mark3labsToolImpl) toMCPServerTool() (server.ServerTool, error) {
 	var toolOpts []mcp.ToolOption
 
-	// Add description
 	toolOpts = append(toolOpts, mcp.WithDescription(t.description))
 
-	// Add parameters with their schemas
 	for _, param := range t.parameters {
-		// Get property options from schema
-		propOpts := convertSchemaToPropertyOptions(param.Schema)
-
-		// Get the type from the schema
-		schemaType, ok := param.Schema["type"].(string)
-		if !ok {
-			// Default to string if type is missing or not a string
-			schemaType = "string"
+		propOpts, err := convertSchemaToPropertyOptions(param.Schema)
+		if err != nil {
+			return server.ServerTool{}, fmt.Errorf(
+				"tool %q parameter %q: %w", t.name, param.Name, err)
 		}
 
-		// Use the appropriate function based on schema type
+		rawType, hasType := param.Schema["type"]
+		if !hasType {
+			return server.ServerTool{}, fmt.Errorf(
+				"tool %q parameter %q: missing required schema type",
+				t.name, param.Name)
+		}
+
+		schemaType, ok := rawType.(string)
+		if !ok {
+			return server.ServerTool{}, fmt.Errorf(
+				"tool %q parameter %q: type must be a string, got %T",
+				t.name, param.Name, rawType)
+		}
+
+		if _, supported := supportedSchemaTypes[schemaType]; !supported {
+			return server.ServerTool{}, fmt.Errorf(
+				"tool %q parameter %q: unsupported schema type %q",
+				t.name, param.Name, schemaType)
+		}
+
 		switch schemaType {
 		case "string":
 			toolOpts = append(toolOpts, mcp.WithString(param.Name, propOpts...))
@@ -467,9 +503,6 @@ func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
 			toolOpts = append(toolOpts, mcp.WithObject(param.Name, propOpts...))
 		case "array":
 			toolOpts = append(toolOpts, mcp.WithArray(param.Name, propOpts...))
-		default:
-			// Unknown type, default to string
-			toolOpts = append(toolOpts, mcp.WithString(param.Name, propOpts...))
 		}
 	}
 
@@ -518,7 +551,7 @@ func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
 	return server.ServerTool{
 		Tool:    tool,
 		Handler: handlerFunc,
-	}
+	}, nil
 }
 
 // NewToolResultJSON creates a new tool result with JSON content

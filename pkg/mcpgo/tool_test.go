@@ -56,7 +56,8 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 		assert.NotNil(t, mcpTool.Handler)
 	})
@@ -70,7 +71,8 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 	})
 
@@ -83,7 +85,8 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 	})
 
@@ -96,7 +99,8 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 	})
 
@@ -109,7 +113,8 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 	})
 
@@ -126,11 +131,12 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 	})
 
-	t.Run("converts tool with unknown type parameter", func(t *testing.T) {
+	t.Run("rejects unknown type parameter", func(t *testing.T) {
 		param := ToolParameter{
 			Name:   "param1",
 			Schema: map[string]interface{}{"type": "unknown"},
@@ -143,11 +149,12 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
-		assert.NotNil(t, mcpTool.Tool)
+		_, err := tool.toMCPServerTool()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported schema type")
 	})
 
-	t.Run("converts tool with missing type parameter", func(t *testing.T) {
+	t.Run("rejects missing type parameter", func(t *testing.T) {
 		param := ToolParameter{
 			Name:   "param1",
 			Schema: map[string]interface{}{},
@@ -160,11 +167,12 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
-		assert.NotNil(t, mcpTool.Tool)
+		_, err := tool.toMCPServerTool()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing required schema type")
 	})
 
-	t.Run("converts tool with non-string type", func(t *testing.T) {
+	t.Run("rejects non-string type", func(t *testing.T) {
 		param := ToolParameter{
 			Name:   "param1",
 			Schema: map[string]interface{}{"type": 123},
@@ -177,14 +185,15 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
-		assert.NotNil(t, mcpTool.Tool)
+		_, err := tool.toMCPServerTool()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "type must be a string")
 	})
 
-	t.Run("converts tool with truly unknown type parameter", func(t *testing.T) {
+	t.Run("rejects typo in type parameter", func(t *testing.T) {
 		param := ToolParameter{
 			Name:   "param1",
-			Schema: map[string]interface{}{"type": "custom_unknown_type"},
+			Schema: map[string]interface{}{"type": "strng"},
 		}
 		tool := NewTool(
 			"test-tool",
@@ -194,8 +203,30 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultText("success"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
-		assert.NotNil(t, mcpTool.Tool)
+		_, err := tool.toMCPServerTool()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported schema type")
+	})
+
+	t.Run("rejects parameter with numeric enum values", func(t *testing.T) {
+		param := ToolParameter{
+			Name: "param1",
+			Schema: map[string]interface{}{
+				"type": "string",
+				"enum": []interface{}{1, 2, 3},
+			},
+		}
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{param},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+		_, err := tool.toMCPServerTool()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "enum value at index 0 must be a string")
 	})
 
 	t.Run("handler returns error result", func(t *testing.T) {
@@ -207,7 +238,8 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return NewToolResultError("error occurred"), nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Handler)
 
 		req := mcp.CallToolRequest{
@@ -230,7 +262,8 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				return nil, assert.AnError
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Handler)
 
 		req := mcp.CallToolRequest{
@@ -257,7 +290,8 @@ func TestMark3labsToolImpl_ToMCPServerTool(t *testing.T) {
 				}, nil
 			},
 		)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Handler)
 
 		req := mcp.CallToolRequest{
@@ -708,25 +742,39 @@ func TestAddDefaultValueOptions(t *testing.T) {
 func TestAddEnumOptions(t *testing.T) {
 	t.Run("adds enum with string values", func(t *testing.T) {
 		enumValues := []interface{}{"value1", "value2", "value3"}
-		opts := addEnumOptions(nil, enumValues)
+		opts, err := addEnumOptions(nil, enumValues)
+		assert.NoError(t, err)
 		assert.NotNil(t, opts)
 	})
 
-	t.Run("adds enum with mixed values", func(t *testing.T) {
+	t.Run("rejects mixed enum values", func(t *testing.T) {
 		enumValues := []interface{}{"value1", 123, "value2"}
-		opts := addEnumOptions(nil, enumValues)
-		assert.NotNil(t, opts)
-	})
-
-	t.Run("handles non-array enum", func(t *testing.T) {
-		opts := addEnumOptions(nil, "not-an-array")
+		opts, err := addEnumOptions(nil, enumValues)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "enum value at index 1 must be a string")
 		assert.Nil(t, opts)
 	})
 
-	t.Run("handles empty enum array", func(t *testing.T) {
-		enumValues := []interface{}{123, 456} // Non-string values
-		opts := addEnumOptions(nil, enumValues)
-		assert.Nil(t, opts) // Should return nil since no string values
+	t.Run("rejects non-array enum", func(t *testing.T) {
+		opts, err := addEnumOptions(nil, "not-an-array")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "enum must be an array")
+		assert.Nil(t, opts)
+	})
+
+	t.Run("rejects numeric-only enum array", func(t *testing.T) {
+		enumValues := []interface{}{123, 456}
+		opts, err := addEnumOptions(nil, enumValues)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "enum value at index 0 must be a string")
+		assert.Nil(t, opts)
+	})
+
+	t.Run("allows empty enum array", func(t *testing.T) {
+		enumValues := []interface{}{}
+		opts, err := addEnumOptions(nil, enumValues)
+		assert.NoError(t, err)
+		assert.Nil(t, opts)
 	})
 }
 
@@ -787,7 +835,8 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"pattern":     "^[a-z]+$",
 			"default":     "default",
 		}
-		opts := convertSchemaToPropertyOptions(schema)
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.NoError(t, err)
 		assert.NotNil(t, opts)
 	})
 
@@ -798,7 +847,8 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"maximum": 100.0,
 			"default": 42.0,
 		}
-		opts := convertSchemaToPropertyOptions(schema)
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.NoError(t, err)
 		assert.NotNil(t, opts)
 	})
 
@@ -808,7 +858,8 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"minProperties": 1,
 			"maxProperties": 5,
 		}
-		opts := convertSchemaToPropertyOptions(schema)
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.NoError(t, err)
 		assert.NotNil(t, opts)
 	})
 
@@ -818,7 +869,8 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"minItems": 1,
 			"maxItems": 10,
 		}
-		opts := convertSchemaToPropertyOptions(schema)
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.NoError(t, err)
 		assert.NotNil(t, opts)
 	})
 
@@ -827,7 +879,8 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"type": "string",
 			"enum": []interface{}{"value1", "value2"},
 		}
-		opts := convertSchemaToPropertyOptions(schema)
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.NoError(t, err)
 		assert.NotNil(t, opts)
 	})
 
@@ -836,7 +889,8 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"type":        "string",
 			"description": "",
 		}
-		opts := convertSchemaToPropertyOptions(schema)
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.NoError(t, err)
 		// Empty description should not be added
 		// In Go, a nil slice is valid and has length 0
 		assert.Len(t, opts, 0)
@@ -847,7 +901,8 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"type":     "string",
 			"required": false,
 		}
-		opts := convertSchemaToPropertyOptions(schema)
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.NoError(t, err)
 		// False required should not be added
 		// In Go, a nil slice is valid and has length 0
 		assert.Len(t, opts, 0)
@@ -863,10 +918,19 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"minItems": 1,
 			"maxItems": 10,
 		}
-		opts := convertSchemaToPropertyOptions(schema)
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.NoError(t, err)
 		assert.NotNil(t, opts)
-		// The items property should be handled (skipped) in the conversion
-		// This test ensures the items case is covered in the switch statement
+	})
+
+	t.Run("rejects schema with non-string enum values", func(t *testing.T) {
+		schema := map[string]interface{}{
+			"type": "string",
+			"enum": []interface{}{"value1", 42},
+		}
+		opts, err := convertSchemaToPropertyOptions(schema)
+		assert.Error(t, err)
+		assert.Nil(t, opts)
 	})
 }
 
@@ -964,7 +1028,8 @@ func TestSetReadOnly(t *testing.T) {
 
 		// Verify through MCP tool conversion
 		// (annotations should reflect read-only)
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 	})
 
@@ -978,7 +1043,8 @@ func TestSetReadOnly(t *testing.T) {
 			"test-tool", "Test description", []ToolParameter{}, handler)
 		tool.SetReadOnly(false)
 
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 	})
 }
@@ -994,7 +1060,8 @@ func TestToolAnnotations(t *testing.T) {
 			"read-tool", "Read-only operation", []ToolParameter{}, handler)
 		tool.SetReadOnly(true)
 
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 		// The MCP tool should be created with
 		// readOnlyHint=true, destructiveHint=false
@@ -1010,7 +1077,8 @@ func TestToolAnnotations(t *testing.T) {
 			"write-tool", "Write operation", []ToolParameter{}, handler)
 		tool.SetReadOnly(false)
 
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 		// The MCP tool should be created with
 		// readOnlyHint=false, destructiveHint=true
@@ -1026,7 +1094,8 @@ func TestToolAnnotations(t *testing.T) {
 			"default-tool", "Default behavior", []ToolParameter{}, handler)
 		// Without calling SetReadOnly, default is false (destructive)
 
-		mcpTool := tool.toMCPServerTool()
+		mcpTool, err := tool.toMCPServerTool()
+		assert.NoError(t, err)
 		assert.NotNil(t, mcpTool.Tool)
 	})
 }

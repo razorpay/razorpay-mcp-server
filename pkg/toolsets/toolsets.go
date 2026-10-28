@@ -57,20 +57,25 @@ func (t *Toolset) AddReadTools(tools ...mcpgo.Tool) *Toolset {
 }
 
 // RegisterTools registers all active tools with the server
-func (t *Toolset) RegisterTools(s mcpgo.Server) {
+func (t *Toolset) RegisterTools(s mcpgo.Server) error {
 	if !t.Enabled {
-		return
+		return nil
 	}
 	for _, tool := range t.readTools {
 		tool.SetReadOnly(true)
-		s.AddTools(tool)
+		if err := s.AddTools(tool); err != nil {
+			return err
+		}
 	}
 	if !t.readOnly {
 		for _, tool := range t.writeTools {
 			tool.SetReadOnly(false)
-			s.AddTools(tool)
+			if err := s.AddTools(tool); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 // AddToolset adds a toolset to the group
@@ -118,8 +123,11 @@ func (tg *ToolsetGroup) EnableToolsets(names []string) error {
 }
 
 // RegisterTools registers all active toolsets with the server
-func (tg *ToolsetGroup) RegisterTools(s mcpgo.Server) {
+func (tg *ToolsetGroup) RegisterTools(s mcpgo.Server) error {
 	for _, toolset := range tg.Toolsets {
-		toolset.RegisterTools(s)
+		if err := toolset.RegisterTools(s); err != nil {
+			return err
+		}
 	}
+	return nil
 }

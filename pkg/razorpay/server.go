@@ -44,7 +44,9 @@ func NewRzpMcpServer(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create toolsets: %w", err)
 	}
-	toolsets.RegisterTools(server)
+	if err := toolsets.RegisterTools(server); err != nil {
+		return nil, fmt.Errorf("failed to register tools: %w", err)
+	}
 
 	return server, nil
 }

@@ -2,6 +2,7 @@ package mcpgo
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -12,7 +13,7 @@ import (
 // Server defines the minimal MCP server interface needed by the application
 type Server interface {
 	// AddTools adds tools to the server
-	AddTools(tools ...Tool)
+	AddTools(tools ...Tool) error
 }
 
 // NewMcpServer creates a new MCP server
@@ -61,13 +62,17 @@ func (s *mark3labsOptionSetter) SetOption(option interface{}) error {
 }
 
 // AddTools adds tools to the server
-func (s *Mark3labsImpl) AddTools(tools ...Tool) {
-	// Convert our Tool to mcp's ServerTool
+func (s *Mark3labsImpl) AddTools(tools ...Tool) error {
 	var mcpTools []server.ServerTool
 	for _, tool := range tools {
-		mcpTools = append(mcpTools, tool.toMCPServerTool())
+		mcpTool, err := tool.toMCPServerTool()
+		if err != nil {
+			return fmt.Errorf("invalid tool schema: %w", err)
+		}
+		mcpTools = append(mcpTools, mcpTool)
 	}
 	s.McpServer.AddTools(mcpTools...)
+	return nil
 }
 
 // OptionSetter is an interface for setting options on a configurable object
