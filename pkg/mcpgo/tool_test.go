@@ -7,6 +7,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewTool(t *testing.T) {
@@ -502,6 +503,72 @@ func TestPropertyOption_Items(t *testing.T) {
 		itemSchema := map[string]interface{}{"type": "string"}
 		Items(itemSchema)(schema)
 		assert.NotContains(t, schema, "items")
+	})
+}
+
+func TestParameterSchema(t *testing.T) {
+	t.Run("returns schema for existing parameter", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{
+				WithString(
+					"speed",
+					Enum("normal", "optimum"),
+				),
+			},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+
+		schema, ok := ParameterSchema(tool, "speed")
+		require.True(t, ok)
+		assert.Equal(t, []interface{}{"normal", "optimum"}, schema["enum"])
+	})
+
+	t.Run("returns false for missing parameter", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{WithString("speed")},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+
+		_, ok := ParameterSchema(tool, "missing")
+		assert.False(t, ok)
+	})
+
+	t.Run("constraints appear in MCP tool input schema", func(t *testing.T) {
+		tool := NewTool(
+			"test-tool",
+			"Test",
+			[]ToolParameter{
+				WithString("speed", Enum("normal", "optimum")),
+				WithNumber("count", Min(1), Max(100)),
+			},
+			func(ctx context.Context, req CallToolRequest) (*ToolResult, error) {
+				return NewToolResultText("success"), nil
+			},
+		)
+
+		mcpTool := tool.toMCPServerTool()
+		raw, err := json.Marshal(mcpTool.Tool)
+		require.NoError(t, err)
+
+		var decoded map[string]interface{}
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+
+		inputSchema := decoded["inputSchema"].(map[string]interface{})
+		props := inputSchema["properties"].(map[string]interface{})
+		speed := props["speed"].(map[string]interface{})
+		count := props["count"].(map[string]interface{})
+
+		assert.Equal(t, []interface{}{"normal", "optimum"}, speed["enum"])
+		assert.Equal(t, float64(1), count["minimum"])
+		assert.Equal(t, float64(100), count["maximum"])
 	})
 }
 
