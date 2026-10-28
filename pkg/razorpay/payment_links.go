@@ -304,7 +304,7 @@ func FetchPaymentLink(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"payment_link_id",
-			mcpgo.Description("ID of the payment link to be fetched"+
+			mcpgo.Description("ID of the payment link to be fetched "+
 				"(ID should have a plink_ prefix)."),
 			mcpgo.Required(),
 		),
@@ -518,7 +518,7 @@ func FetchAllPaymentLinks(
 		mcpgo.WithNumber(
 			"upi_link",
 			mcpgo.Description("Optional: Filter only upi links. "+
-				"Value should be 1 if you want only upi links, 0 for only standard links"+
+				"Value should be 1 if you want only upi links, 0 for only standard links "+
 				"If not provided, all types of links will be returned"),
 		),
 	}
@@ -555,7 +555,7 @@ func FetchAllPaymentLinks(
 
 	return mcpgo.NewTool(
 		"fetch_all_payment_links",
-		"Fetch all payment links with optional filtering by payment ID or reference ID."+ // nolint:lll
+		"Fetch all payment links with optional filtering by payment ID or reference ID. "+ // nolint:lll
 			"You can specify the upi_link parameter to filter by link type.",
 		parameters,
 		handler,

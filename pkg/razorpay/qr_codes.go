@@ -144,7 +144,7 @@ func FetchQRCode(
 		mcpgo.WithString(
 			"qr_code_id",
 			mcpgo.Description(
-				"Unique identifier of the QR Code to be retrieved"+
+				"Unique identifier of the QR Code to be retrieved "+
 					"The QR code id should start with 'qr_'",
 			),
 			mcpgo.Required(),
@@ -324,7 +324,7 @@ func FetchQRCodesByPaymentID(
 		mcpgo.WithString(
 			"payment_id",
 			mcpgo.Description(
-				"The unique identifier of the payment"+
+				"The unique identifier of the payment "+
 					"The payment id always should start with 'pay_'",
 			),
 			mcpgo.Required(),
@@ -376,7 +376,7 @@ func FetchPaymentsForQRCode(
 		mcpgo.WithString(
 			"qr_code_id",
 			mcpgo.Description(
-				"The unique identifier of the QR Code to fetch payments for"+
+				"The unique identifier of the QR Code to fetch payments for "+
 					"The QR code id should start with 'qr_'",
 			),
 			mcpgo.Required(),
@@ -464,7 +464,7 @@ func CloseQRCode(
 		mcpgo.WithString(
 			"qr_code_id",
 			mcpgo.Description(
-				"Unique identifier of the QR Code to be closed"+
+				"Unique identifier of the QR Code to be closed "+
 					"The QR code id should start with 'qr_'",
 			),
 			mcpgo.Required(),

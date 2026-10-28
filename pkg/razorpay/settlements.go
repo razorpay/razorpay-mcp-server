@@ -18,8 +18,8 @@ func FetchSettlement(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"settlement_id",
-			mcpgo.Description("The ID of the settlement to fetch."+
-				"ID starts with the 'setl_'"),
+			mcpgo.Description("The ID of the settlement to fetch. "+
+				"Starts with 'setl_'"),
 			mcpgo.Required(),
 		),
 	}

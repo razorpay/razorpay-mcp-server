@@ -71,20 +71,20 @@ func FetchAllPayouts(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithString(
 			"account_number",
-			mcpgo.Description("The account from which the payouts were done."+
+			mcpgo.Description("The account from which the payouts were done. "+
 				"For example, 7878780080316316"),
 			mcpgo.Required(),
 		),
 		mcpgo.WithNumber(
 			"count",
-			mcpgo.Description("Number of payouts to be fetched. Default value is 10."+
-				"Maximum value is 100. This can be used for pagination,"+
+			mcpgo.Description("Number of payouts to be fetched. Default value is 10. "+
+				"Maximum value is 100. This can be used for pagination, "+
 				"in combination with the skip parameter"),
 			mcpgo.Min(1),
 		),
 		mcpgo.WithNumber(
 			"skip",
-			mcpgo.Description("Numbers of payouts to be skipped. Default value is 0."+
+			mcpgo.Description("Numbers of payouts to be skipped. Default value is 0. "+
 				"This can be used for pagination, in combination with count"),
 			mcpgo.Min(0),
 		),
