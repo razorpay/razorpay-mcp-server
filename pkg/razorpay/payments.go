@@ -685,12 +685,13 @@ func createPaymentWithParams(
 	paymentDataPtr := buildPaymentData(params, currency, customerID)
 	paymentData := *paymentDataPtr
 
-	// Determine if recurring payment API should be used
-	// Non-INR currency + token + recurring flag = use recurring API
+	// Route INR recurring subsequent payments to /payments/create/recurring.
+	// Razorpay docs use this endpoint for UPI/card/NACH mandate debits (INR).
+	// Non-INR recurring requests fall back to the S2S JSON create/json flow.
 	useRecurringAPI := false
 	if recurring, ok := params["recurring"].(bool); ok && recurring {
 		if tokenStr, ok := params["token"].(string); ok && tokenStr != "" {
-			useRecurringAPI = currency != "INR"
+			useRecurringAPI = currency == "INR"
 		}
 	}
 
@@ -767,8 +768,10 @@ func InitiatePayment(
 		),
 		mcpgo.WithBoolean(
 			"recurring",
-			mcpgo.Description("Set this to true for recurring payments like "+
-				"single block multiple debit."),
+			mcpgo.Description("Set to true for subsequent recurring debits "+
+				"(e.g. UPI single-block-multiple-debit mandates). "+
+				"When true with a token and INR currency, uses the "+
+				"/payments/create/recurring API."),
 		),
 		mcpgo.WithString(
 			"force_terminal_id",
@@ -854,6 +857,8 @@ func InitiatePayment(
 		"Initiate a payment using the S2S JSON v1 flow. "+
 			"Required parameters: amount and order_id. "+
 			"For saved payment methods, provide token. "+
+			"For INR recurring subsequent debits, set recurring=true with "+
+			"a token to use /payments/create/recurring. "+
 			"For UPI collect flow, provide 'vpa' parameter "+
 			"which automatically sets UPI with flow='collect' and expiry_time='6'. "+
 			"For UPI intent flow, set 'upi_intent=true' parameter "+
