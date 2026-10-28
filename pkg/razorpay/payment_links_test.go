@@ -1,6 +1,8 @@
 package razorpay
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -326,6 +328,68 @@ func Test_CreateUpiPaymentLink(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			runToolTest(t, tc, CreateUpiPaymentLink, "UPI Payment Link")
 		})
+	}
+}
+
+func Test_CreateUpiPaymentLink_requestBody(t *testing.T) {
+	createPaymentLinkPath := fmt.Sprintf(
+		"/%s%s",
+		constants.VERSION_V1,
+		constants.PaymentLink_URL,
+	)
+
+	var capturedBody map[string]interface{}
+	successResp := map[string]interface{}{
+		"id":       "plink_UpiBodyTest",
+		"amount":   float64(50000),
+		"currency": "INR",
+		"status":   "created",
+		"upi_link": true,
+	}
+
+	mockClient, server := newMockRzpClient(func() (*http.Client, *httptest.Server) {
+		srv := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != createPaymentLinkPath || r.Method != http.MethodPost {
+					http.NotFound(w, r)
+					return
+				}
+
+				if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(successResp)
+			},
+		))
+		return srv.Client(), srv
+	})
+	defer server.Close()
+
+	obs := CreateTestObservability()
+	tool := CreateUpiPaymentLink(obs, mockClient)
+	request := createMCPRequest(map[string]interface{}{
+		"amount":   float64(50000),
+		"currency": "INR",
+	})
+
+	result, err := tool.GetHandler()(context.Background(), request)
+	if err != nil {
+		t.Fatalf("handler error: %v", err)
+	}
+	if result == nil || result.IsError {
+		t.Fatalf("unexpected tool error: %v", result)
+	}
+
+	upiLink, ok := capturedBody["upi_link"].(bool)
+	if !ok {
+		t.Fatalf("expected upi_link bool in request body, got %T (%v)",
+			capturedBody["upi_link"], capturedBody["upi_link"])
+	}
+	if !upiLink {
+		t.Fatal("expected upi_link to be true")
 	}
 }
 
