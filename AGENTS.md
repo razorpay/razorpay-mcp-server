@@ -74,7 +74,18 @@ Map each parameter to a validator type:
 | number (float) | `mcpgo.WithNumber` | `ValidateAndAddRequiredFloat` / `ValidateAndAddOptionalFloat` |
 | boolean | `mcpgo.WithBoolean` | `ValidateAndAddRequiredBool` / `ValidateAndAddOptionalBool` |
 | object | `mcpgo.WithObject` | `ValidateAndAddRequiredMap` / `ValidateAndAddOptionalMap` |
-| array | `mcpgo.WithArray` | `ValidateAndAddRequiredArray` / `ValidateAndAddOptionalArray` |
+| array | `mcpgo.WithArray` + **`mcpgo.Items(...)`** (required) | `ValidateAndAddRequiredArray` / `ValidateAndAddOptionalArray` |
+
+**Array parameters MUST include `mcpgo.Items(...)`** with the element schema.
+Without it the published MCP schema is invalid and clients cannot use the tool.
+
+```go
+mcpgo.WithArray(
+    "tags",
+    mcpgo.Description("List of tag strings"),
+    mcpgo.Items(map[string]interface{}{"type": "string"}),
+)
+```
 
 For nested objects (e.g., `customer.name` flattened to `customer_name`), use `ValidateAndAddOptionalStringToPath`.
 
