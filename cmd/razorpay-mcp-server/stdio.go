@@ -68,8 +68,9 @@ var stdioCmd = &cobra.Command{
 	},
 }
 
-// buildStdioDeps resolves the region profile and creates an API client that
-// talks to that region's Razorpay API host.
+// buildStdioDeps resolves the region profile (explicit region, else the API
+// key's country, else IN) and creates an API client that talks to that
+// region's Razorpay API host.
 func buildStdioDeps(
 	key, secret, regionCode, regionConfigPath string,
 ) (*rzpsdk.Client, region.Profile, error) {
@@ -77,7 +78,11 @@ func buildStdioDeps(
 	if err != nil {
 		return nil, region.Profile{}, err
 	}
-	profile, err := region.Get(profiles, regionCode)
+	code, err := region.Resolve(regionCode, key)
+	if err != nil {
+		return nil, region.Profile{}, err
+	}
+	profile, err := region.Get(profiles, code)
 	if err != nil {
 		return nil, region.Profile{}, err
 	}

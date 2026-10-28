@@ -54,6 +54,27 @@ func TestBuildStdioDeps(t *testing.T) {
 		assert.Equal(t, "https://api-sg.razorpay.com", client.Request.BaseURL)
 	})
 
+	t.Run("SG key without a region is detected as SG", func(t *testing.T) {
+		client, profile, err := buildStdioDeps(
+			"rzp_test_sg_abcdEFGH123456", "secret", "", "")
+		require.NoError(t, err)
+		assert.Equal(t, "SG", profile.CountryCode)
+		assert.Equal(t, "https://api-sg.razorpay.com", client.Request.BaseURL)
+	})
+
+	t.Run("region disagreeing with the key fails", func(t *testing.T) {
+		_, _, err := buildStdioDeps(
+			"rzp_test_sg_abcdEFGH123456", "secret", "IN", "")
+		assert.ErrorContains(t, err,
+			"region IN does not match API key region SG")
+	})
+
+	t.Run("key with a country that has no profile fails", func(t *testing.T) {
+		_, _, err := buildStdioDeps(
+			"rzp_test_ae_abcdEFGH123456", "secret", "", "")
+		assert.ErrorContains(t, err, `no region profile for "AE"`)
+	})
+
 	t.Run("unknown region fails", func(t *testing.T) {
 		_, _, err := buildStdioDeps("key", "secret", "XX", "")
 		assert.ErrorContains(t, err, `no region profile for "XX"`)

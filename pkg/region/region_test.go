@@ -248,3 +248,48 @@ XX:
 	assert.Error(t, loadErr)
 	assert.Empty(t, string(out))
 }
+
+func TestResolve(t *testing.T) {
+	cases := []struct {
+		name    string
+		flag    string
+		keyID   string
+		want    string
+		wantErr string
+	}{
+		{name: "India key without flag is IN",
+			keyID: "rzp_test_To5abcdEFGH123", want: "IN"},
+		{name: "SG live key is SG", keyID: "rzp_live_sg_dliMITSTxqxl8O", want: "SG"},
+		{name: "SG test key is SG", keyID: "rzp_test_sg_ksFK6g3lElBMB0", want: "SG"},
+		{name: "US key is US", keyID: "rzp_live_us_ToBWuqA9kHMcct", want: "US"},
+		{name: "country segment is case insensitive",
+			keyID: "rzp_live_SG_dliMITSTxqxl8O", want: "SG"},
+		{name: "key without country needs the flag for MY",
+			flag: "my", keyID: "rzp_test_tVGFwIk2vmxd90", want: "MY"},
+		{name: "flag matching the key is accepted",
+			flag: "SG", keyID: "rzp_live_sg_dliMITSTxqxl8O", want: "SG"},
+		{name: "flag wins for keys without a country",
+			flag: "SG", keyID: "rzp_test_To5abcdEFGH123", want: "SG"},
+		{name: "empty key and flag is IN", want: "IN"},
+		{name: "SG partner key is SG",
+			keyID: "rzp_live_sg_partner_dliMITSTxqxl8O", want: "SG"},
+		{name: "SG oauth key is SG",
+			keyID: "rzp_test_sg_oauth_dliMITSTxqxl8O", want: "SG"},
+		{name: "country segment without a full key id is not a country",
+			keyID: "rzp_test_sg_short", want: "IN"},
+		{name: "flag disagreeing with the key fails",
+			flag: "IN", keyID: "rzp_live_sg_dliMITSTxqxl8O",
+			wantErr: `region IN does not match API key region SG`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Resolve(tc.flag, tc.keyID)
+			if tc.wantErr != "" {
+				assert.EqualError(t, err, tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}

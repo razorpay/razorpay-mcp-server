@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -158,6 +159,39 @@ func Load(overridePath string) (map[string]Profile, error) {
 		}
 	}
 	return profiles, nil
+}
+
+// keyCountry matches the country segment of a regional API key id, e.g.
+// rzp_live_sg_xxx or rzp_live_sg_partner_xxx. It is the regex the edge
+// geo-router uses (edge-plugins georouter KEY_WITH_COUNTRY_CODE_REGEX), so a
+// key resolves to the same country here as at the edge. India key ids have
+// no country segment and never match.
+var keyCountry = regexp.MustCompile(
+	`^rzp_(?:test|live)_([a-zA-Z]{2})_(?:(?:partner|oauth)_)?\w{14}`)
+
+// Resolve picks the region code. An explicit region wins; otherwise the
+// country segment of the API key id is used, and keys without one (India,
+// and Malaysia today) resolve to DefaultRegion. An explicit region that
+// disagrees with the key's country is an error, because the key cannot
+// authenticate against another region's API host.
+func Resolve(explicit, keyID string) (string, error) {
+	explicit = strings.ToUpper(explicit)
+	fromKey := ""
+	if m := keyCountry.FindStringSubmatch(keyID); m != nil {
+		fromKey = strings.ToUpper(m[1])
+	}
+
+	switch {
+	case explicit != "" && fromKey != "" && explicit != fromKey:
+		return "", fmt.Errorf("region %s does not match API key region %s",
+			explicit, fromKey)
+	case explicit != "":
+		return explicit, nil
+	case fromKey != "":
+		return fromKey, nil
+	default:
+		return DefaultRegion, nil
+	}
 }
 
 // Get returns the profile for code. An empty code means DefaultRegion.
