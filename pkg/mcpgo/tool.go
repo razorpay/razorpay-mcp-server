@@ -6,6 +6,8 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/region"
 )
 
 // ToolHandler handles tool calls
@@ -230,6 +232,7 @@ type mark3labsToolImpl struct {
 	handler     ToolHandler
 	parameters  []ToolParameter
 	isReadOnly  bool
+	localized   bool
 }
 
 // NewTool creates a new tool with the given
@@ -440,9 +443,9 @@ func (t *mark3labsToolImpl) GetName() string {
 	return t.name
 }
 
-// Localize rewrites the tool description and every parameter description,
-// including those nested in object properties and array items, with fn.
+// Localize rewrites every tool and parameter description, nested ones included.
 func (t *mark3labsToolImpl) Localize(fn func(string) string) {
+	t.localized = true
 	t.description = fn(t.description)
 	for _, p := range t.parameters {
 		localizeSchema(p.Schema, fn)
@@ -467,6 +470,11 @@ func localizeSchema(schema map[string]interface{}, fn func(string) string) {
 
 // toMCPServerTool converts our Tool to mcp's ServerTool
 func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
+	// Tools registered without a region profile (e.g. by importers) show India.
+	if !t.localized {
+		t.Localize(region.India().Localize)
+	}
+
 	// Create the mcp tool with appropriate options
 	var toolOpts []mcp.ToolOption
 

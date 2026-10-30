@@ -146,8 +146,7 @@ func TestNewRzpMcpServerForRegion_AmountMinimum(t *testing.T) {
 	assert.Equal(t, float64(1), order.InputSchema.Properties["amount"].Minimum)
 }
 
-// recordPaymentCreate serves the payment create endpoints and records the
-// path and body of the last request.
+// recordPaymentCreate records the path and body of the last payment create.
 func recordPaymentCreate(t *testing.T) (*rzpsdk.Client, *string, *string) {
 	t.Helper()
 	var gotPath, gotBody string
@@ -260,4 +259,18 @@ func TestIndiaToolTextHasNoPaise(t *testing.T) {
 	for name, tool := range listedTools(t, srv) {
 		assert.NotContains(t, tool, "paise", "tool %s", name)
 	}
+}
+
+// Mirrors razorpay-remote-mcp-server, which does not call NewToolSets.
+func TestToolsRegisteredWithoutNewToolSetsShowIndiaText(t *testing.T) {
+	obs := CreateTestObservability()
+	client := rzpsdk.NewClient("key", "secret")
+	srv := mcpgo.NewMcpServer("remote-like", "1.0.0")
+	srv.AddTools(CreateOrder(obs, client), FetchSavedPaymentMethods(obs, client))
+
+	for name, tool := range listedTools(t, srv) {
+		assert.NotContains(t, tool, "{{", "tool %s", name)
+	}
+	assert.Contains(t, listedTools(t, srv)["create_order"],
+		"smallest unit of INR")
 }
