@@ -2,6 +2,8 @@ package region
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -290,6 +292,50 @@ func TestResolve(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func jwtPart(t *testing.T, v any) string {
+	t.Helper()
+	data, err := json.Marshal(v)
+	require.NoError(t, err)
+	return base64.RawURLEncoding.EncodeToString(data)
+}
+
+func TestFromToken(t *testing.T) {
+	header := jwtPart(t, map[string]string{"alg": "RS256", "typ": "JWT"})
+	sig := base64.RawURLEncoding.EncodeToString([]byte("signature"))
+	sg := map[string]any{"country_code": "SG"}
+	token := func(h string, claims map[string]any) string {
+		return h + "." + jwtPart(t, claims) + "." + sig
+	}
+
+	us := map[string]any{"country_code": "us"}
+	noClaim := map[string]any{"scopes": []string{"read_only"}}
+	numeric := map[string]any{"country_code": 65}
+	noneAlg := jwtPart(t, map[string]string{"alg": "none"})
+	padded := header + "==." + jwtPart(t, sg) + "=." + sig
+
+	cases := []struct {
+		name  string
+		token string
+		want  string
+	}{
+		{"country_code claim", token(header, sg), "SG"},
+		{"lower case claim is upper cased", token(header, us), "US"},
+		{"no claim", token(header, noClaim), ""},
+		{"non-string claim", token(header, numeric), ""},
+		{"unsupported alg", token(noneAlg, sg), ""},
+		{"padded segments", padded, "SG"},
+		{"two segments", header + "." + jwtPart(t, sg), ""},
+		{"undecodable signature", token(header, sg) + "!", ""},
+		{"not a jwt", "rzp_live_sg_oauth_dliMITSTxqxl8O", ""},
+		{"empty", "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, FromToken(tc.token))
 		})
 	}
 }
