@@ -16,6 +16,7 @@ import (
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/region"
+	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
 
 func builtinProfile(t *testing.T, code string) region.Profile {
@@ -273,4 +274,24 @@ func TestToolsRegisteredWithoutNewToolSetsShowIndiaText(t *testing.T) {
 	}
 	assert.Contains(t, listedTools(t, srv)["create_order"],
 		"smallest unit of INR")
+}
+
+// Mirrors razorpay-remote-mcp-server, which builds its own toolset group.
+func TestApplyRegionProfileOnOwnToolsetGroup(t *testing.T) {
+	obs := CreateTestObservability()
+	client := rzpsdk.NewClient("key", "secret")
+	tg := toolsets.NewToolsetGroup(false)
+	tg.AddToolset(toolsets.NewToolset("orders", "Orders").
+		AddWriteTools(CreateOrder(obs, client)))
+	tg.AddToolset(toolsets.NewToolset("payouts", "Payouts").
+		AddReadTools(FetchAllPayouts(obs, client)))
+
+	require.NoError(t, ApplyRegionProfile(tg, sgProfile(t), nil))
+	require.NoError(t, tg.EnableToolsets(nil))
+	srv := mcpgo.NewMcpServer("own-group", "1.0.0")
+	tg.RegisterTools(srv)
+
+	tools := listedTools(t, srv)
+	assert.Equal(t, []string{"create_order"}, toolNames(tools))
+	assert.Contains(t, tools["create_order"], "smallest unit of SGD")
 }

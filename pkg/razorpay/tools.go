@@ -156,7 +156,10 @@ func NewToolSets(
 	toolsetGroup.AddToolset(settlements)
 	toolsetGroup.AddToolset(registrationLinks)
 
-	if err := applyRegionProfile(
+	if err := validateProfileTools(toolsetGroup, cfg.profile); err != nil {
+		return nil, err
+	}
+	if err := ApplyRegionProfile(
 		toolsetGroup, cfg.profile, enabledToolsets); err != nil {
 		return nil, err
 	}
@@ -170,29 +173,20 @@ func NewToolSets(
 	return toolsetGroup, nil
 }
 
-// applyRegionProfile localizes every tool and keeps only the profile's tools.
-func applyRegionProfile(
+// ApplyRegionProfile localizes every tool and keeps only the profile's tools.
+func ApplyRegionProfile(
 	tg *toolsets.ToolsetGroup,
 	p region.Profile,
 	enabledToolsets []string,
 ) error {
-	known := map[string]bool{}
 	for _, tool := range tg.AllTools() {
 		if l, ok := tool.(interface{ Localize(func(string) string) }); ok {
 			l.Localize(p.Localize)
-		}
-		if n, ok := tool.(interface{ GetName() string }); ok {
-			known[n.GetName()] = true
 		}
 	}
 
 	if p.AllowsAll() {
 		return nil
-	}
-	for _, name := range p.Tools {
-		if !known[name] {
-			return fmt.Errorf("region %s: unknown tool %q", p.CountryCode, name)
-		}
 	}
 	tg.SetToolFilter(p.AllowsTool)
 
@@ -222,4 +216,23 @@ func logHiddenRegionTools(
 				"toolset", name, "tools", hidden)
 		}
 	}
+}
+
+// validateProfileTools fails on profile tool names this full tool set lacks.
+func validateProfileTools(tg *toolsets.ToolsetGroup, p region.Profile) error {
+	if p.AllowsAll() {
+		return nil
+	}
+	known := map[string]bool{}
+	for _, tool := range tg.AllTools() {
+		if n, ok := tool.(interface{ GetName() string }); ok {
+			known[n.GetName()] = true
+		}
+	}
+	for _, name := range p.Tools {
+		if !known[name] {
+			return fmt.Errorf("region %s: unknown tool %q", p.CountryCode, name)
+		}
+	}
+	return nil
 }
