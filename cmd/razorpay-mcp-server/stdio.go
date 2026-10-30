@@ -19,6 +19,7 @@ import (
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay"
+	"github.com/razorpay/razorpay-mcp-server/pkg/region"
 )
 
 // stdioCmd starts the mcp server in stdio transport mode
@@ -41,11 +42,16 @@ var stdioCmd = &cobra.Command{
 			observability.WithLoggingService(logger),
 		)
 
-		key := viper.GetString("key")
-		secret := viper.GetString("secret")
-		client := rzpsdk.NewClient(key, secret)
-
-		client.SetUserAgent("razorpay-mcp" + version + "/stdio")
+		client, profile, err := buildStdioDeps(
+			viper.GetString("key"),
+			viper.GetString("secret"),
+			viper.GetString("razorpay_region"),
+			viper.GetString("razorpay_region_config"),
+		)
+		if err != nil {
+			stdlog.Fatalf("failed to load region profile: %v", err)
+		}
+		ctx = region.WithProfile(ctx, profile)
 
 		// Get toolsets to enable from config
 		enabledToolsets := viper.GetStringSlice("toolsets")
@@ -53,7 +59,7 @@ var stdioCmd = &cobra.Command{
 		// Get read-only mode from config
 		readOnly := viper.GetBool("read_only")
 
-		err := runStdioServer(ctx, obs, client, enabledToolsets, readOnly)
+		err = runStdioServer(ctx, obs, client, enabledToolsets, readOnly)
 		if err != nil {
 			obs.Logger.Errorf(ctx,
 				"error running stdio server", "error", err)
@@ -62,6 +68,30 @@ var stdioCmd = &cobra.Command{
 	},
 }
 
+// buildStdioDeps resolves the region and builds a client for its API host.
+func buildStdioDeps(
+	key, secret, regionCode, regionConfigPath string,
+) (*rzpsdk.Client, region.Profile, error) {
+	profiles, err := region.Load(regionConfigPath)
+	if err != nil {
+		return nil, region.Profile{}, err
+	}
+	code, err := region.Resolve(regionCode, key)
+	if err != nil {
+		return nil, region.Profile{}, err
+	}
+	profile, err := region.Get(profiles, code)
+	if err != nil {
+		return nil, region.Profile{}, err
+	}
+
+	client := rzpsdk.NewClient(key, secret)
+	client.SetUserAgent("razorpay-mcp" + version + "/stdio")
+	client.Request.BaseURL = profile.APIBaseURL
+	return client, profile, nil
+}
+
+// runStdioServer serves MCP over stdio for the region profile in ctx.
 func runStdioServer(
 	ctx context.Context,
 	obs *observability.Observability,
@@ -76,7 +106,9 @@ func runStdioServer(
 	)
 	defer stop()
 
-	srv, err := razorpay.NewRzpMcpServer(obs, client, enabledToolsets, readOnly)
+	profile := region.FromContext(ctx)
+	srv, err := razorpay.NewRzpMcpServerForRegion(
+		obs, client, profile, enabledToolsets, readOnly)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
@@ -95,7 +127,8 @@ func runStdioServer(
 
 	_, _ = fmt.Fprintf(
 		os.Stderr,
-		"Razorpay MCP Server running on stdio\n",
+		"Razorpay MCP Server running on stdio (region %s)\n",
+		profile.CountryCode,
 	)
 
 	// Wait for shutdown signal

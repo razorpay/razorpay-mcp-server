@@ -386,6 +386,8 @@ The server requires the following configuration:
 - `LOG_FILE` (optional): Path to log file for server logs
 - `TOOLSETS` (optional): Comma-separated list of toolsets to enable (default: "all")
 - `READ_ONLY` (optional): Run server in read-only mode (default: false)
+- `RAZORPAY_REGION` (optional): Region of your Razorpay account: `IN`, `SG`, `MY` or `US` (default: detected from the API key, else `IN`)
+- `RAZORPAY_REGION_CONFIG` (optional): Path to a YAML file that overrides region profiles
 
 ### Command Line Flags
 
@@ -396,6 +398,66 @@ The server supports the following command line flags:
 - `--log-file` or `-l`: Path to log file
 - `--toolsets` or `-t`: Comma-separated list of toolsets to enable
 - `--read-only`: Run server in read-only mode
+- `--region`: Region of your Razorpay account: `IN`, `SG`, `MY` or `US` (default: detected from the API key, else `IN`)
+- `--region-config`: Path to a YAML file that overrides region profiles
+
+### Regions
+
+The local server runs for one region at a time. The region decides:
+
+- which Razorpay API host is called,
+- which tools are available (products not offered in the region are hidden),
+- the default currency and how amounts are described to the AI, taken from [i18nify](https://github.com/razorpay/i18nify).
+
+How the region is chosen:
+
+1. `--region` / `RAZORPAY_REGION`, if set.
+2. Otherwise the country in the API key: keys like `rzp_live_sg_…` or `rzp_test_us_…` select `SG` or `US`.
+3. Otherwise `IN`, exactly as before. Malaysia keys carry no country code, so Malaysian accounts must set `--region MY`.
+
+Setting a region that does not match the key's country (for example `--region IN` with an `rzp_live_sg_…` key) stops the server with an error.
+
+| Region | API host | Not available |
+|---|---|---|
+| `IN` | `api.razorpay.com` | none (all tools) |
+| `SG` | `api-sg.razorpay.com` | UPI payment links, QR codes, payouts, registration links, instant settlements, checkout integration |
+| `MY` | `api.razorpay.com` | UPI payment links, QR codes, payouts, instant settlements, checkout integration |
+| `US` | `api-us.razorpay.com` | UPI payment links, QR codes, payouts, registration links, instant settlements, checkout integration |
+
+Region profiles live in [`pkg/region/profiles`](pkg/region/profiles).
+
+**Region and `--toolsets` together:** the region profile is the ceiling. It
+decides which tools exist for the region; `--toolsets` (and `--read-only`)
+only narrow that set further. Asking for a toolset with no tools in the region
+(for example `--toolsets payouts --region SG`) stops the server with an error;
+tools of a requested toolset that the region does not offer are left out and
+logged. The same applies to profiles loaded with `--region-config`.
+
+If you have accounts in more than one region, add one server per region in
+your MCP client, each with that region's keys:
+
+```json
+{
+    "mcpServers": {
+        "razorpay-in": {
+            "command": "docker",
+            "args": ["run", "--rm", "-i", "-e", "RAZORPAY_KEY_ID", "-e", "RAZORPAY_KEY_SECRET", "razorpay/mcp"],
+            "env": {
+                "RAZORPAY_KEY_ID": "your_india_key_id",
+                "RAZORPAY_KEY_SECRET": "your_india_key_secret"
+            }
+        },
+        "razorpay-sg": {
+            "command": "docker",
+            "args": ["run", "--rm", "-i", "-e", "RAZORPAY_KEY_ID", "-e", "RAZORPAY_KEY_SECRET", "razorpay/mcp"],
+            "env": {
+                "RAZORPAY_KEY_ID": "your_singapore_key_id",
+                "RAZORPAY_KEY_SECRET": "your_singapore_key_secret"
+            }
+        }
+    }
+}
+```
 
 ## Debugging the Server
 

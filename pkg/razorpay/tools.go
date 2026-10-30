@@ -1,19 +1,43 @@
 package razorpay
 
 import (
+	"context"
+	"fmt"
+
 	rzpsdk "github.com/razorpay/razorpay-go"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/integrations"
+	"github.com/razorpay/razorpay-mcp-server/pkg/region"
 	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
 )
+
+type toolsetConfig struct {
+	profile region.Profile
+}
+
+// ToolsetOption customises NewToolSets.
+type ToolsetOption func(*toolsetConfig)
+
+// WithRegionProfile sets the region the tools are built for (default India).
+func WithRegionProfile(p region.Profile) ToolsetOption {
+	return func(c *toolsetConfig) {
+		c.profile = p
+	}
+}
 
 func NewToolSets(
 	obs *observability.Observability,
 	client *rzpsdk.Client,
 	enabledToolsets []string,
 	readOnly bool,
+	opts ...ToolsetOption,
 ) (*toolsets.ToolsetGroup, error) {
+	cfg := toolsetConfig{profile: region.India()}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
 	// Create a new toolset group
 	toolsetGroup := toolsets.NewToolsetGroup(readOnly)
 
@@ -132,10 +156,83 @@ func NewToolSets(
 	toolsetGroup.AddToolset(settlements)
 	toolsetGroup.AddToolset(registrationLinks)
 
+	if err := validateProfileTools(toolsetGroup, cfg.profile); err != nil {
+		return nil, err
+	}
+	if err := ApplyRegionProfile(
+		toolsetGroup, cfg.profile, enabledToolsets); err != nil {
+		return nil, err
+	}
+	logHiddenRegionTools(obs, toolsetGroup, cfg.profile, enabledToolsets)
+
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
 		return nil, err
 	}
 
 	return toolsetGroup, nil
+}
+
+// ApplyRegionProfile localizes every tool and keeps only the profile's tools.
+func ApplyRegionProfile(
+	tg *toolsets.ToolsetGroup,
+	p region.Profile,
+	enabledToolsets []string,
+) error {
+	for _, tool := range tg.AllTools() {
+		if l, ok := tool.(interface{ Localize(func(string) string) }); ok {
+			l.Localize(p.Localize)
+		}
+	}
+
+	if p.AllowsAll() {
+		return nil
+	}
+	tg.SetToolFilter(p.AllowsTool)
+
+	for _, name := range enabledToolsets {
+		if _, ok := tg.Toolsets[name]; ok && tg.AllowedToolCount(name) == 0 {
+			return fmt.Errorf("toolset %q has no tools available in region %s",
+				name, p.CountryCode)
+		}
+	}
+	return nil
+}
+
+// logHiddenRegionTools logs tools a requested toolset loses to the region.
+func logHiddenRegionTools(
+	obs *observability.Observability,
+	tg *toolsets.ToolsetGroup,
+	p region.Profile,
+	enabledToolsets []string,
+) {
+	if obs == nil || obs.Logger == nil {
+		return
+	}
+	for _, name := range enabledToolsets {
+		if hidden := tg.HiddenTools(name); len(hidden) > 0 {
+			obs.Logger.Infof(context.Background(),
+				"tools not available in region", "region", p.CountryCode,
+				"toolset", name, "tools", hidden)
+		}
+	}
+}
+
+// validateProfileTools fails on profile tool names this full tool set lacks.
+func validateProfileTools(tg *toolsets.ToolsetGroup, p region.Profile) error {
+	if p.AllowsAll() {
+		return nil
+	}
+	known := map[string]bool{}
+	for _, tool := range tg.AllTools() {
+		if n, ok := tool.(interface{ GetName() string }); ok {
+			known[n.GetName()] = true
+		}
+	}
+	for _, name := range p.Tools {
+		if !known[name] {
+			return fmt.Errorf("region %s: unknown tool %q", p.CountryCode, name)
+		}
+	}
+	return nil
 }

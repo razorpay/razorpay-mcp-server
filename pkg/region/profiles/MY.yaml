@@ -1,0 +1,34 @@
+# Malaysia (Curlec): SG tools plus registration links, on api.razorpay.com.
+country_code: MY
+api_base_url: https://api.razorpay.com
+tools:
+  - fetch_payment
+  - fetch_payment_card_details
+  - fetch_all_payments
+  - capture_payment
+  - update_payment
+  - initiate_payment
+  - resend_otp
+  - submit_otp
+  - fetch_tokens
+  - revoke_token
+  - fetch_payment_link
+  - fetch_all_payment_links
+  - create_payment_link
+  - payment_link_notify
+  - update_payment_link
+  - fetch_order
+  - fetch_all_orders
+  - fetch_order_payments
+  - create_order
+  - update_order
+  - fetch_refund
+  - fetch_multiple_refunds_for_payment
+  - fetch_specific_refund_for_payment
+  - fetch_all_refunds
+  - create_refund
+  - update_refund
+  - fetch_settlement_with_id
+  - fetch_settlement_recon_details
+  - fetch_all_settlements
+  - create_registration_link

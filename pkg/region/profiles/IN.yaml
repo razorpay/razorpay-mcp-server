@@ -1,0 +1,4 @@
+# India. Every registered tool is enabled.
+country_code: IN
+api_base_url: https://api.razorpay.com
+tools: ["*"]
