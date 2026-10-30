@@ -88,9 +88,7 @@ func main() {
 	}
 }
 
-// bindRegionConfig binds the region flags and env vars. The keys carry a
-// razorpay_ prefix so AutomaticEnv never reads a bare REGION variable from
-// the user's environment.
+// bindRegionConfig uses razorpay_ keys so a bare REGION env is ignored.
 func bindRegionConfig() {
 	flags := rootCmd.PersistentFlags()
 	_ = viper.BindPFlag("razorpay_region", flags.Lookup("region"))

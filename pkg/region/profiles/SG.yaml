@@ -1,7 +1,4 @@
-# Singapore. India-only products are not listed: UPI payment links, QR codes
-# (UPI QR), payouts (RazorpayX), registration links (eMandate/NACH/UPI
-# autopay), instant settlements, and the checkout integration generator
-# (its templates are INR-only).
+# Singapore: no UPI, QR, payouts, mandates or instant settlements.
 country_code: SG
 api_base_url: https://api-sg.razorpay.com
 tools:

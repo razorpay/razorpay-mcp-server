@@ -1,6 +1,4 @@
-// Package region holds the per-region profile the MCP server runs with: the
-// Razorpay API host and the tools enabled for the region. Country facts such
-// as the default currency come from i18nify.
+// Package region holds per-region API host and tools; facts from i18nify.
 package region
 
 import (
@@ -37,9 +35,7 @@ type Profile struct {
 	Tools       []string `yaml:"tools"`
 }
 
-// country returns the i18nify metadata for the profile's country. It uses
-// GetCountriesByCodes because GetMetadataInformation prints to stdout for
-// unknown codes, and stdout is the MCP protocol channel in stdio mode.
+// country uses GetCountriesByCodes: GetMetadataInformation prints to stdout.
 func (p Profile) country() (country_metadata.CountryInfo, bool) {
 	if p.CountryCode == "" {
 		return country_metadata.CountryInfo{}, false
@@ -52,15 +48,13 @@ func (p Profile) country() (country_metadata.CountryInfo, bool) {
 	return countries[0], true
 }
 
-// Currency returns the region's default currency from i18nify, or "" when
-// i18nify does not know the country.
+// Currency returns the region's default currency from i18nify, or "".
 func (p Profile) Currency() string {
 	c, _ := p.country()
 	return c.DefaultCurrency
 }
 
-// Localize fills the {{currency}}, {{minor_unit}}, {{symbol}} and
-// {{dial_code}} placeholders in text with the region's facts from i18nify.
+// Localize fills region placeholders with the country's facts from i18nify.
 func (p Profile) Localize(text string) string {
 	if !strings.Contains(text, "{{") {
 		return text
@@ -121,9 +115,7 @@ func readBuiltin(name string) (Profile, error) {
 	return p, nil
 }
 
-// Load returns the built-in profiles keyed by region code. When overridePath
-// is set, each region in that file replaces the built-in profile for that
-// region.
+// Load returns built-in profiles, with regions in overridePath replacing them.
 func Load(overridePath string) (map[string]Profile, error) {
 	profiles := map[string]Profile{}
 
@@ -161,19 +153,11 @@ func Load(overridePath string) (map[string]Profile, error) {
 	return profiles, nil
 }
 
-// keyCountry matches the country segment of a regional API key id, e.g.
-// rzp_live_sg_xxx or rzp_live_sg_partner_xxx. It is the regex the edge
-// geo-router uses (edge-plugins georouter KEY_WITH_COUNTRY_CODE_REGEX), so a
-// key resolves to the same country here as at the edge. India key ids have
-// no country segment and never match.
+// keyCountry is the edge geo-router key regex, so countries match the edge.
 var keyCountry = regexp.MustCompile(
 	`^rzp_(?:test|live)_([a-zA-Z]{2})_(?:(?:partner|oauth)_)?\w{14}`)
 
-// Resolve picks the region code. An explicit region wins; otherwise the
-// country segment of the API key id is used, and keys without one (India,
-// and Malaysia today) resolve to DefaultRegion. An explicit region that
-// disagrees with the key's country is an error, because the key cannot
-// authenticate against another region's API host.
+// Resolve picks the explicit region, else the key's country, else IN.
 func Resolve(explicit, keyID string) (string, error) {
 	explicit = strings.ToUpper(explicit)
 	fromKey := ""

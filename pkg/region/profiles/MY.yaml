@@ -1,8 +1,4 @@
-# Malaysia (Curlec). MY merchants are served by api.razorpay.com. Same set as
-# SG, plus registration links (card and eMandate recurring support MYR).
-# India-only products are not listed: UPI payment links, QR codes (UPI QR),
-# payouts (RazorpayX), instant settlements, and the checkout integration
-# generator (its templates are INR-only).
+# Malaysia (Curlec): SG tools plus registration links, on api.razorpay.com.
 country_code: MY
 api_base_url: https://api.razorpay.com
 tools:

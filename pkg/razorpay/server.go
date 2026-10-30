@@ -23,8 +23,7 @@ func NewRzpMcpServer(
 		obs, client, region.India(), enabledToolsets, readOnly, mcpOpts...)
 }
 
-// NewRzpMcpServerForRegion creates the server with tools built for the
-// given region profile.
+// NewRzpMcpServerForRegion creates the server with tools built for profile.
 func NewRzpMcpServerForRegion(
 	obs *observability.Observability,
 	client *rzpsdk.Client,

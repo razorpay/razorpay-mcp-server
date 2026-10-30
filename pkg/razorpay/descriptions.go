@@ -1,9 +1,6 @@
 package razorpay
 
-// Shared description text for amount and currency parameters. The
-// {{currency}}, {{minor_unit}}, {{symbol}} and {{dial_code}} placeholders are
-// filled from i18nify for the active region when the toolsets are built (see
-// region.Profile.Localize).
+// Region placeholders in these texts are filled by region.Profile.Localize.
 const (
 	// amountUnitDesc completes a sentence such as "Payment amount ...".
 	amountUnitDesc = "in the smallest unit of {{currency}} " +

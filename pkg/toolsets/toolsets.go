@@ -69,9 +69,7 @@ func (t *Toolset) RegisterTools(s mcpgo.Server) {
 	})
 }
 
-// forEachRegistrable calls fn for every tool RegisterTools would add, after
-// the read-only setting and the tool filter, ignoring whether the toolset is
-// enabled.
+// forEachRegistrable visits each tool RegisterTools would add, enabled or not.
 func (t *Toolset) forEachRegistrable(fn func(tool mcpgo.Tool, readOnly bool)) {
 	for _, tool := range t.readTools {
 		if t.allows(tool) {
@@ -88,8 +86,7 @@ func (t *Toolset) forEachRegistrable(fn func(tool mcpgo.Tool, readOnly bool)) {
 	}
 }
 
-// allows reports whether the tool passes the toolset's filter. Tools are
-// allowed when no filter is set or when the tool has no name to filter on.
+// allows reports whether the tool passes the filter; unnamed tools pass.
 func (t *Toolset) allows(tool mcpgo.Tool) bool {
 	if t.allow == nil {
 		return true
@@ -115,8 +112,7 @@ func (tg *ToolsetGroup) SetToolFilter(allow func(toolName string) bool) {
 	}
 }
 
-// AllowedToolCount returns how many tools the named toolset would register
-// after the read-only setting and the tool filter are applied.
+// AllowedToolCount counts tools the toolset would register after filtering.
 func (tg *ToolsetGroup) AllowedToolCount(name string) int {
 	ts, ok := tg.Toolsets[name]
 	if !ok {
@@ -170,8 +166,7 @@ func (tg *ToolsetGroup) RegisterTools(s mcpgo.Server) {
 	}
 }
 
-// HiddenTools returns the names of tools in the named toolset that the tool
-// filter removes.
+// HiddenTools lists tools in the toolset that the filter removes.
 func (tg *ToolsetGroup) HiddenTools(name string) []string {
 	ts, ok := tg.Toolsets[name]
 	if !ok {
@@ -189,8 +184,7 @@ func (tg *ToolsetGroup) HiddenTools(name string) []string {
 	return hidden
 }
 
-// AllTools returns every tool in the group, read and write, regardless of
-// whether its toolset is enabled or the tool passes the filter.
+// AllTools returns every tool in the group, ignoring enablement and filter.
 func (tg *ToolsetGroup) AllTools() []mcpgo.Tool {
 	var tools []mcpgo.Tool
 	for _, ts := range tg.Toolsets {

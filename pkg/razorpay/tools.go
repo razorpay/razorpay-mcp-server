@@ -19,8 +19,7 @@ type toolsetConfig struct {
 // ToolsetOption customises NewToolSets.
 type ToolsetOption func(*toolsetConfig)
 
-// WithRegionProfile sets the region the tools are built for. Without it the
-// tools are built for India.
+// WithRegionProfile sets the region the tools are built for (default India).
 func WithRegionProfile(p region.Profile) ToolsetOption {
 	return func(c *toolsetConfig) {
 		c.profile = p
@@ -171,8 +170,7 @@ func NewToolSets(
 	return toolsetGroup, nil
 }
 
-// applyRegionProfile fills region placeholders in every tool description and
-// limits the group to the tools the profile enables.
+// applyRegionProfile localizes every tool and keeps only the profile's tools.
 func applyRegionProfile(
 	tg *toolsets.ToolsetGroup,
 	p region.Profile,
@@ -207,9 +205,7 @@ func applyRegionProfile(
 	return nil
 }
 
-// logHiddenRegionTools records tools left out of explicitly requested
-// toolsets because the region profile does not enable them. The profile is
-// the ceiling; --toolsets only narrows within it.
+// logHiddenRegionTools logs tools a requested toolset loses to the region.
 func logHiddenRegionTools(
 	obs *observability.Observability,
 	tg *toolsets.ToolsetGroup,
