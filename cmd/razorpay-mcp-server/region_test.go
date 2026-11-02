@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"path/filepath"
 	"testing"
 
@@ -41,14 +43,14 @@ func TestRegionFlags(t *testing.T) {
 
 func TestBuildStdioDeps(t *testing.T) {
 	t.Run("no region uses IN and the India API host", func(t *testing.T) {
-		client, profile, err := buildStdioDeps("key", "secret", "", "")
+		client, profile, err := buildStdioDeps("key", "secret", "", "", io.Discard)
 		require.NoError(t, err)
 		assert.Equal(t, "IN", profile.CountryCode)
 		assert.Equal(t, "https://api.razorpay.com", client.Request.BaseURL)
 	})
 
 	t.Run("SG uses the SG API host", func(t *testing.T) {
-		client, profile, err := buildStdioDeps("key", "secret", "sg", "")
+		client, profile, err := buildStdioDeps("key", "secret", "sg", "", io.Discard)
 		require.NoError(t, err)
 		assert.Equal(t, "SG", profile.CountryCode)
 		assert.Equal(t, "https://api-sg.razorpay.com", client.Request.BaseURL)
@@ -56,7 +58,7 @@ func TestBuildStdioDeps(t *testing.T) {
 
 	t.Run("SG key without a region is detected as SG", func(t *testing.T) {
 		client, profile, err := buildStdioDeps(
-			"rzp_test_sg_abcdEFGH123456", "secret", "", "")
+			"rzp_test_sg_abcdEFGH123456", "secret", "", "", io.Discard)
 		require.NoError(t, err)
 		assert.Equal(t, "SG", profile.CountryCode)
 		assert.Equal(t, "https://api-sg.razorpay.com", client.Request.BaseURL)
@@ -64,27 +66,50 @@ func TestBuildStdioDeps(t *testing.T) {
 
 	t.Run("region disagreeing with the key fails", func(t *testing.T) {
 		_, _, err := buildStdioDeps(
-			"rzp_test_sg_abcdEFGH123456", "secret", "IN", "")
+			"rzp_test_sg_abcdEFGH123456", "secret", "IN", "", io.Discard)
 		assert.ErrorContains(t, err,
 			"region IN does not match API key region SG")
 	})
 
 	t.Run("key with a country that has no profile fails", func(t *testing.T) {
 		_, _, err := buildStdioDeps(
-			"rzp_test_ae_abcdEFGH123456", "secret", "", "")
+			"rzp_test_ae_abcdEFGH123456", "secret", "", "", io.Discard)
 		assert.ErrorContains(t, err, `no region profile for "AE"`)
 	})
 
 	t.Run("unknown region fails", func(t *testing.T) {
-		_, _, err := buildStdioDeps("key", "secret", "XX", "")
+		_, _, err := buildStdioDeps("key", "secret", "XX", "", io.Discard)
 		assert.ErrorContains(t, err, `no region profile for "XX"`)
 	})
 
 	t.Run("unreadable region config fails", func(t *testing.T) {
 		missing := filepath.Join(t.TempDir(), "missing.yaml")
-		_, _, err := buildStdioDeps("key", "secret", "", missing)
+		_, _, err := buildStdioDeps("key", "secret", "", missing, io.Discard)
 		assert.ErrorContains(t, err, "region config")
 	})
+	t.Run("key without a country segment notes the IN default",
+		func(t *testing.T) {
+			var notice bytes.Buffer
+			_, profile, err := buildStdioDeps(
+				"rzp_test_abcdEFGH123456", "secret", "", "", &notice)
+			require.NoError(t, err)
+			assert.Equal(t, "IN", profile.CountryCode)
+			assert.Contains(t, notice.String(),
+				"region defaulted to IN (API key has no country segment); "+
+					"use --region MY for Curlec accounts")
+		})
+
+	t.Run("explicit region or a key country prints no notice",
+		func(t *testing.T) {
+			var notice bytes.Buffer
+			_, _, err := buildStdioDeps(
+				"rzp_test_abcdEFGH123456", "secret", "MY", "", &notice)
+			require.NoError(t, err)
+			_, _, err = buildStdioDeps(
+				"rzp_test_sg_abcdEFGH123456", "secret", "", "", &notice)
+			require.NoError(t, err)
+			assert.Empty(t, notice.String())
+		})
 }
 
 func TestRunStdioServerUsesProfileFromContext(t *testing.T) {

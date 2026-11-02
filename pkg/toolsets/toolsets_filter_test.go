@@ -32,7 +32,7 @@ func notPayouts(name string) bool { return name != "fetch_all_payouts" }
 func registeredNames(s *mockServer) []string {
 	names := []string{}
 	for _, tool := range s.GetTools() {
-		names = append(names, tool.(interface{ GetName() string }).GetName())
+		names = append(names, tool.GetName())
 	}
 	return names
 }
@@ -86,7 +86,7 @@ func TestToolsetGroup_AllTools(t *testing.T) {
 
 		names := []string{}
 		for _, tool := range tools {
-			names = append(names, tool.(interface{ GetName() string }).GetName())
+			names = append(names, tool.GetName())
 		}
 		assert.ElementsMatch(t,
 			[]string{"fetch_payment", "capture_payment", "fetch_all_payouts"},
@@ -103,5 +103,9 @@ func TestToolsetGroup_HiddenTools(t *testing.T) {
 
 	t.Run("no filter hides nothing", func(t *testing.T) {
 		assert.Empty(t, newFilterGroup(false).HiddenTools("payments"))
+	})
+
+	t.Run("unknown toolset hides nothing", func(t *testing.T) {
+		assert.Nil(t, newFilterGroup(false).HiddenTools("no_such_toolset"))
 	})
 }

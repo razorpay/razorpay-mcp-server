@@ -84,9 +84,8 @@ func (p Profile) validate(code string) error {
 		return fmt.Errorf("region %s: country_code %q does not match region %q",
 			code, p.CountryCode, code)
 	}
-	u, err := url.Parse(p.APIBaseURL)
-	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return fmt.Errorf("region %s: api_base_url must use https", code)
+	if err := validateBaseURL(p.APIBaseURL); err != nil {
+		return fmt.Errorf("region %s: %w", code, err)
 	}
 	if len(p.Tools) == 0 {
 		return fmt.Errorf("region %s: tools must not be empty", code)
@@ -96,11 +95,40 @@ func (p Profile) validate(code string) error {
 		return fmt.Errorf("region %s: no default currency for country %q",
 			code, p.CountryCode)
 	}
-	if _, err := currency.GetCurrencyInformation(cur); err != nil {
+	info, err := currency.GetCurrencyInformation(cur)
+	if err != nil {
 		return fmt.Errorf("region %s: currency %q not found in i18nify",
 			code, cur)
 	}
+	// Amount descriptions assume 100 minor units per major unit.
+	if info.MinorUnit != "2" {
+		return fmt.Errorf("region %s: currency %q has %s decimal places; "+
+			"only 2 are supported", code, cur, info.MinorUnit)
+	}
 	return nil
+}
+
+// apiDomains are the only hosts the key and secret may be sent to.
+var apiDomains = []string{"razorpay.com", "razorpay.in", "curlec.com"}
+
+func validateBaseURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return fmt.Errorf("api_base_url must use https")
+	}
+	if u.User != nil || u.Port() != "" || u.Path != "" || u.RawQuery != "" ||
+		u.Fragment != "" || u.Opaque != "" {
+		return fmt.Errorf("api_base_url must be scheme and host only, "+
+			"e.g. https://api.razorpay.com; got %q", raw)
+	}
+	host := strings.ToLower(u.Hostname())
+	for _, d := range apiDomains {
+		if host == d || strings.HasSuffix(host, "."+d) {
+			return nil
+		}
+	}
+	return fmt.Errorf("api_base_url host must be under %s; got %q",
+		strings.Join(apiDomains, ", "), host)
 }
 
 func readBuiltin(name string) (Profile, error) {
@@ -157,13 +185,18 @@ func Load(overridePath string) (map[string]Profile, error) {
 var keyCountry = regexp.MustCompile(
 	`^rzp_(?:test|live)_([a-zA-Z]{2})_(?:(?:partner|oauth)_)?\w{14}`)
 
+// KeyCountry returns the country segment of an API key, or "" if it has none.
+func KeyCountry(keyID string) string {
+	if m := keyCountry.FindStringSubmatch(keyID); m != nil {
+		return strings.ToUpper(m[1])
+	}
+	return ""
+}
+
 // Resolve picks the explicit region, else the key's country, else IN.
 func Resolve(explicit, keyID string) (string, error) {
 	explicit = strings.ToUpper(explicit)
-	fromKey := ""
-	if m := keyCountry.FindStringSubmatch(keyID); m != nil {
-		fromKey = strings.ToUpper(m[1])
-	}
+	fromKey := KeyCountry(keyID)
 
 	switch {
 	case explicit != "" && fromKey != "" && explicit != fromKey:
@@ -212,9 +245,15 @@ func WithProfile(ctx context.Context, p Profile) context.Context {
 	return context.WithValue(ctx, contextKey{}, p)
 }
 
+// Lookup returns the profile in ctx and whether one was set.
+func Lookup(ctx context.Context) (Profile, bool) {
+	p, ok := ctx.Value(contextKey{}).(Profile)
+	return p, ok
+}
+
 // FromContext returns the profile in ctx, or India() when none is set.
 func FromContext(ctx context.Context) Profile {
-	if p, ok := ctx.Value(contextKey{}).(Profile); ok {
+	if p, ok := Lookup(ctx); ok {
 		return p
 	}
 	return India()

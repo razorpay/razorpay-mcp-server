@@ -33,6 +33,12 @@ type Tool interface {
 	// internal method to convert to mcp's ServerTool
 	toMCPServerTool() server.ServerTool
 
+	// GetName returns the tool name used by region and toolset filters
+	GetName() string
+
+	// ApplyProfile localizes the tool and binds its default region profile
+	ApplyProfile(p region.Profile)
+
 	// GetHandler internal method for fetching the underlying handler
 	GetHandler() ToolHandler
 
@@ -449,6 +455,18 @@ func (t *mark3labsToolImpl) Localize(fn func(string) string) {
 	t.description = fn(t.description)
 	for _, p := range t.parameters {
 		localizeSchema(p.Schema, fn)
+	}
+}
+
+// ApplyProfile localizes for p and defaults the handler's ctx profile to p.
+func (t *mark3labsToolImpl) ApplyProfile(p region.Profile) {
+	t.Localize(p.Localize)
+	next := t.handler
+	t.handler = func(ctx context.Context, r CallToolRequest) (*ToolResult, error) {
+		if _, ok := region.Lookup(ctx); !ok {
+			ctx = region.WithProfile(ctx, p)
+		}
+		return next(ctx, r)
 	}
 }
 

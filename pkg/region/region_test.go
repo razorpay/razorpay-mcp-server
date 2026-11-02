@@ -51,13 +51,13 @@ func TestLoad(t *testing.T) {
 		path := writeOverride(t, `
 SG:
   country_code: SG
-  api_base_url: https://api-sg.stage.example.com
+  api_base_url: https://api-sg.stage.razorpay.in
   tools: ["fetch_payment"]
 `)
 		profiles, err := Load(path)
 		require.NoError(t, err)
 
-		assert.Equal(t, "https://api-sg.stage.example.com",
+		assert.Equal(t, "https://api-sg.stage.razorpay.in",
 			profiles["SG"].APIBaseURL)
 		assert.Equal(t, []string{"fetch_payment"}, profiles["SG"].Tools)
 		assert.Equal(t, "https://api.razorpay.com", profiles["IN"].APIBaseURL)
@@ -67,13 +67,13 @@ SG:
 		path := writeOverride(t, `
 US:
   country_code: US
-  api_base_url: https://api-us.example.com
+  api_base_url: https://api-us.curlec.com
   tools: ["*"]
 `)
 		profiles, err := Load(path)
 		require.NoError(t, err)
 
-		assert.Equal(t, "https://api-us.example.com", profiles["US"].APIBaseURL)
+		assert.Equal(t, "https://api-us.curlec.com", profiles["US"].APIBaseURL)
 	})
 
 	t.Run("missing override file errors", func(t *testing.T) {
@@ -120,6 +120,76 @@ SG:
   tools: ["*"]
 `,
 			errMsg: `country_code "MY" does not match region "SG"`,
+		},
+		{
+			name: "base url outside razorpay and curlec domains",
+			content: `
+SG:
+  country_code: SG
+  api_base_url: https://api-sg.razorpay.com.evil.tld
+  tools: ["*"]
+`,
+			errMsg: "api_base_url host must be under razorpay.com",
+		},
+		{
+			name: "base url with a path",
+			content: `
+SG:
+  country_code: SG
+  api_base_url: https://api-sg.razorpay.com/v1
+  tools: ["*"]
+`,
+			errMsg: "api_base_url must be scheme and host only",
+		},
+		{
+			name: "base url with a trailing slash",
+			content: `
+SG:
+  country_code: SG
+  api_base_url: https://api-sg.razorpay.com/
+  tools: ["*"]
+`,
+			errMsg: "api_base_url must be scheme and host only",
+		},
+		{
+			name: "base url with userinfo",
+			content: `
+SG:
+  country_code: SG
+  api_base_url: https://user@api-sg.razorpay.com
+  tools: ["*"]
+`,
+			errMsg: "api_base_url must be scheme and host only",
+		},
+		{
+			name: "base url with a query",
+			content: `
+SG:
+  country_code: SG
+  api_base_url: https://api-sg.razorpay.com?x=1
+  tools: ["*"]
+`,
+			errMsg: "api_base_url must be scheme and host only",
+		},
+		{
+			name: "base url with a port",
+			content: `
+SG:
+  country_code: SG
+  api_base_url: https://api-sg.razorpay.com:8443
+  tools: ["*"]
+`,
+			errMsg: "api_base_url must be scheme and host only",
+		},
+		{
+			name: "currency without two decimal places",
+			content: `
+JP:
+  country_code: JP
+  api_base_url: https://api.razorpay.com
+  tools: ["*"]
+`,
+			errMsg: `currency "JPY" has 0 decimal places; only 2 are supported`,
 		},
 		{
 			name: "country unknown to i18nify",
@@ -330,6 +400,10 @@ func TestFromToken(t *testing.T) {
 		{"padded segments", padded, "SG"},
 		{"two segments", header + "." + jwtPart(t, sg), ""},
 		{"undecodable signature", token(header, sg) + "!", ""},
+		{"undecodable header", "!!." + jwtPart(t, sg) + "." + sig, ""},
+		{"undecodable claims", header + ".!!." + sig, ""},
+		{"newline in a segment", header + "\n." + jwtPart(t, sg) + "." + sig,
+			""},
 		{"not a jwt", "rzp_live_sg_oauth_dliMITSTxqxl8O", ""},
 		{"empty", "", ""},
 	}

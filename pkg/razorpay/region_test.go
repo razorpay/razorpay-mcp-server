@@ -203,6 +203,47 @@ func TestInitiatePayment_DefaultCurrency(t *testing.T) {
 	})
 }
 
+// regionTool returns the named tool from toolsets built for profile p.
+func regionTool(
+	t *testing.T, client *rzpsdk.Client, p region.Profile, name string,
+) mcpgo.Tool {
+	t.Helper()
+	tg, err := NewToolSets(CreateTestObservability(), client, nil, false,
+		WithRegionProfile(p))
+	require.NoError(t, err)
+	for _, tool := range tg.AllTools() {
+		if tool.GetName() == name {
+			return tool
+		}
+	}
+	t.Fatalf("tool %s not found", name)
+	return nil
+}
+
+func TestInitiatePayment_CurrencyMatchesBuildProfile(t *testing.T) {
+	args := map[string]interface{}{"amount": 5000, "order_id": "order_123"}
+
+	t.Run("SG toolsets default to SGD without a profile in ctx",
+		func(t *testing.T) {
+			client, _, body := recordPaymentCreate(t)
+			tool := regionTool(t, client, sgProfile(t), "initiate_payment")
+			_, err := tool.GetHandler()(
+				context.Background(), createMCPRequest(args))
+			require.NoError(t, err)
+			assert.Contains(t, *body, `"currency":"SGD"`)
+		})
+
+	t.Run("a profile in ctx still overrides per request", func(t *testing.T) {
+		client, _, body := recordPaymentCreate(t)
+		tool := regionTool(t, client, sgProfile(t), "initiate_payment")
+		ctx := region.WithProfile(context.Background(),
+			builtinProfile(t, "US"))
+		_, err := tool.GetHandler()(ctx, createMCPRequest(args))
+		require.NoError(t, err)
+		assert.Contains(t, *body, `"currency":"USD"`)
+	})
+}
+
 func TestInitiatePayment_RecurringSwitchUnchanged(t *testing.T) {
 	recurring := map[string]interface{}{
 		"amount": 5000, "order_id": "order_123",
@@ -294,4 +335,28 @@ func TestApplyRegionProfileOnOwnToolsetGroup(t *testing.T) {
 	tools := listedTools(t, srv)
 	assert.Equal(t, []string{"create_order"}, toolNames(tools))
 	assert.Contains(t, tools["create_order"], "smallest unit of SGD")
+}
+
+func TestRegionToolsetLosesIndiaOnlyTools(t *testing.T) {
+	client := rzpsdk.NewClient("key", "secret")
+	sg := sgProfile(t)
+
+	t.Run("requested toolset serves only the region's tools",
+		func(t *testing.T) {
+			srv, err := NewRzpMcpServerForRegion(CreateTestObservability(),
+				client, sg, []string{"payment_links"}, false)
+			require.NoError(t, err)
+			tools := listedTools(t, srv)
+			assert.Contains(t, tools, "create_payment_link")
+			assert.NotContains(t, tools, "create_upi_payment_link")
+		})
+
+	t.Run("hidden tool logging tolerates a missing logger", func(t *testing.T) {
+		tg, err := NewToolSets(nil, client, nil, false)
+		require.NoError(t, err)
+		tg.SetToolFilter(sg.AllowsTool)
+		assert.NotPanics(t, func() {
+			logHiddenRegionTools(nil, tg, sg, []string{"payment_links"})
+		})
+	})
 }

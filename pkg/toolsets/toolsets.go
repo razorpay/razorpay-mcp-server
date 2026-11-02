@@ -86,13 +86,9 @@ func (t *Toolset) forEachRegistrable(fn func(tool mcpgo.Tool, readOnly bool)) {
 	}
 }
 
-// allows reports whether the tool passes the filter; unnamed tools pass.
+// allows reports whether the tool passes the filter.
 func (t *Toolset) allows(tool mcpgo.Tool) bool {
-	if t.allow == nil {
-		return true
-	}
-	named, ok := tool.(interface{ GetName() string })
-	return !ok || t.allow(named.GetName())
+	return t.allow == nil || t.allow(tool.GetName())
 }
 
 // AddToolset adds a toolset to the group
@@ -175,9 +171,8 @@ func (tg *ToolsetGroup) HiddenTools(name string) []string {
 	var hidden []string
 	for _, tools := range [][]mcpgo.Tool{ts.readTools, ts.writeTools} {
 		for _, tool := range tools {
-			if named, ok := tool.(interface{ GetName() string }); ok &&
-				!ts.allows(tool) {
-				hidden = append(hidden, named.GetName())
+			if !ts.allows(tool) {
+				hidden = append(hidden, tool.GetName())
 			}
 		}
 	}

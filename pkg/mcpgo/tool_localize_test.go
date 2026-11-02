@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/region"
 )
 
 func noopHandler(context.Context, CallToolRequest) (*ToolResult, error) {
@@ -57,4 +60,39 @@ func TestMark3labsToolImpl_Localize(t *testing.T) {
 			amount := props["amount"].(map[string]interface{})
 			assert.Equal(t, "Transfer in SGD", amount["description"])
 		})
+}
+
+func TestMark3labsToolImpl_ApplyProfile(t *testing.T) {
+	sg := region.Profile{CountryCode: "SG"}
+	us := region.Profile{CountryCode: "US"}
+	countryHandler := func(
+		ctx context.Context, _ CallToolRequest,
+	) (*ToolResult, error) {
+		return NewToolResultText(region.FromContext(ctx).CountryCode), nil
+	}
+	call := func(t *testing.T, tool Tool, ctx context.Context) string {
+		t.Helper()
+		res, err := tool.GetHandler()(ctx, CallToolRequest{})
+		require.NoError(t, err)
+		return res.Text
+	}
+
+	t.Run("localizes the description", func(t *testing.T) {
+		tool := NewTool("t", "Charge in {{currency}}", nil, noopHandler)
+		tool.ApplyProfile(sg)
+		assert.Equal(t, "Charge in SGD", tool.description)
+	})
+
+	t.Run("handler gets the profile when ctx has none", func(t *testing.T) {
+		tool := NewTool("t", "d", nil, countryHandler)
+		tool.ApplyProfile(sg)
+		assert.Equal(t, "SG", call(t, tool, context.Background()))
+	})
+
+	t.Run("profile in ctx overrides the applied one", func(t *testing.T) {
+		tool := NewTool("t", "d", nil, countryHandler)
+		tool.ApplyProfile(sg)
+		ctx := region.WithProfile(context.Background(), us)
+		assert.Equal(t, "US", call(t, tool, ctx))
+	})
 }

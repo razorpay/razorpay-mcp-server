@@ -180,9 +180,7 @@ func ApplyRegionProfile(
 	enabledToolsets []string,
 ) error {
 	for _, tool := range tg.AllTools() {
-		if l, ok := tool.(interface{ Localize(func(string) string) }); ok {
-			l.Localize(p.Localize)
-		}
+		tool.ApplyProfile(p)
 	}
 
 	if p.AllowsAll() {
@@ -225,9 +223,7 @@ func validateProfileTools(tg *toolsets.ToolsetGroup, p region.Profile) error {
 	}
 	known := map[string]bool{}
 	for _, tool := range tg.AllTools() {
-		if n, ok := tool.(interface{ GetName() string }); ok {
-			known[n.GetName()] = true
-		}
+		known[tool.GetName()] = true
 	}
 	for _, name := range p.Tools {
 		if !known[name] {
