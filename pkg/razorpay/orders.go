@@ -21,7 +21,7 @@ func CreateOrder(
 			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
 				amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(1), // Per-currency minimum is enforced by the API
+			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
 		mcpgo.WithString(
 			"currency",
@@ -51,7 +51,7 @@ func CreateOrder(
 			"first_payment_min_amount",
 			mcpgo.Description("Minimum amount for the first partial "+
 				"payment (only if partial_payment is true), "+amountUnitDesc),
-			mcpgo.Min(1),
+			mcpgo.Min(100),
 		),
 		mcpgo.WithArray(
 			"transfers",

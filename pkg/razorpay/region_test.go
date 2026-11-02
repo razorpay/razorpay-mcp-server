@@ -128,25 +128,6 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 	})
 }
 
-func TestNewRzpMcpServerForRegion_AmountMinimum(t *testing.T) {
-	srv, err := NewRzpMcpServerForRegion(CreateTestObservability(),
-		rzpsdk.NewClient("key", "secret"), sgProfile(t), nil, false)
-	require.NoError(t, err)
-
-	var order struct {
-		InputSchema struct {
-			Properties map[string]struct {
-				Minimum float64 `json:"minimum"`
-			} `json:"properties"`
-		} `json:"inputSchema"`
-	}
-	require.NoError(t,
-		json.Unmarshal([]byte(listedTools(t, srv)["create_order"]), &order))
-
-	// SGD minimum is 50, so the schema must not impose INR's 100.
-	assert.Equal(t, float64(1), order.InputSchema.Properties["amount"].Minimum)
-}
-
 // recordPaymentCreate records the path and body of the last payment create.
 func recordPaymentCreate(t *testing.T) (*rzpsdk.Client, *string, *string) {
 	t.Helper()

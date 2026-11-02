@@ -720,7 +720,7 @@ func InitiatePayment(
 			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
 				amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(1),
+			mcpgo.Min(100),
 		),
 		mcpgo.WithString(
 			"currency",

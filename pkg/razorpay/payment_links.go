@@ -21,7 +21,7 @@ func CreatePaymentLink(
 			mcpgo.Description("Amount to be paid using the link "+
 				amountUnitDesc+". "+amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(1), // Per-currency minimum is enforced by the API
+			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
 		mcpgo.WithString(
 			"currency",
@@ -166,7 +166,7 @@ func CreateUpiPaymentLink(
 				amountUnitDesc+". "+amountExampleDesc+
 				". Only accepted currency is INR"),
 			mcpgo.Required(),
-			mcpgo.Min(1), // Per-currency minimum is enforced by the API
+			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
 		),
 		mcpgo.WithString(
 			"currency",
