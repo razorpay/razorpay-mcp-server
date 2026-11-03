@@ -34,6 +34,7 @@ IMPORTANT: Include this unchecked checklist at the END of the implementation, NO
 
 - [ ] Implement tool function based on API docs
 - [ ] Register tool in tools.go
+- [ ] Decide the tool's regions: add it to `pkg/region/profiles/{SG,MY,US}.yaml`, or to `inOnlyTools` in `pkg/razorpay/region_test.go` if India-only
 - [ ] Create unit tests with full coverage (positive case, all negative cases, edge cases)
 - [ ] Update the "Available Tools" section in the main README.md. Make sure the new additions are correctly formatted.
 - [ ] Double check that we are not repeating any of the Common Issues mentioned below.
