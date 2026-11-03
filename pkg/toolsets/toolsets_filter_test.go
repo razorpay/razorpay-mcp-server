@@ -70,10 +70,14 @@ func TestToolsetGroup_AllowedToolCount(t *testing.T) {
 		assert.Equal(t, 0, tg.AllowedToolCount("payouts"))
 	})
 
-	t.Run("read-only mode excludes write tools", func(t *testing.T) {
-		tg := newFilterGroup(true)
-		assert.Equal(t, 1, tg.AllowedToolCount("payments"))
-	})
+	t.Run("read-only mode does not change the region count",
+		func(t *testing.T) {
+			tg := newFilterGroup(true)
+			tg.SetToolFilter(func(name string) bool {
+				return name == "capture_payment"
+			})
+			assert.Equal(t, 1, tg.AllowedToolCount("payments"))
+		})
 
 	t.Run("unknown toolset counts zero", func(t *testing.T) {
 		assert.Equal(t, 0, newFilterGroup(false).AllowedToolCount("nope"))

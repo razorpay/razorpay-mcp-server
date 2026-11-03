@@ -108,14 +108,20 @@ func (tg *ToolsetGroup) SetToolFilter(allow func(toolName string) bool) {
 	}
 }
 
-// AllowedToolCount counts tools the toolset would register after filtering.
+// AllowedToolCount counts tools the filter allows, whatever the read-only mode.
 func (tg *ToolsetGroup) AllowedToolCount(name string) int {
 	ts, ok := tg.Toolsets[name]
 	if !ok {
 		return 0
 	}
 	count := 0
-	ts.forEachRegistrable(func(mcpgo.Tool, bool) { count++ })
+	for _, tools := range [][]mcpgo.Tool{ts.readTools, ts.writeTools} {
+		for _, tool := range tools {
+			if ts.allows(tool) {
+				count++
+			}
+		}
+	}
 	return count
 }
 
@@ -168,7 +174,7 @@ func (tg *ToolsetGroup) HiddenTools(name string) []string {
 	if !ok {
 		return nil
 	}
-	var hidden []string
+	hidden := make([]string, 0, len(ts.readTools)+len(ts.writeTools))
 	for _, tools := range [][]mcpgo.Tool{ts.readTools, ts.writeTools} {
 		for _, tool := range tools {
 			if !ts.allows(tool) {
@@ -181,7 +187,11 @@ func (tg *ToolsetGroup) HiddenTools(name string) []string {
 
 // AllTools returns every tool in the group, ignoring enablement and filter.
 func (tg *ToolsetGroup) AllTools() []mcpgo.Tool {
-	var tools []mcpgo.Tool
+	n := 0
+	for _, ts := range tg.Toolsets {
+		n += len(ts.readTools) + len(ts.writeTools)
+	}
+	tools := make([]mcpgo.Tool, 0, n)
 	for _, ts := range tg.Toolsets {
 		tools = append(tools, ts.readTools...)
 		tools = append(tools, ts.writeTools...)

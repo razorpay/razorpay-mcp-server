@@ -7,6 +7,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
+	"github.com/razorpay/razorpay-mcp-server/pkg/region"
 )
 
 // Server defines the minimal MCP server interface needed by the application
@@ -65,6 +66,8 @@ func (s *Mark3labsImpl) AddTools(tools ...Tool) {
 	// Convert our Tool to mcp's ServerTool
 	var mcpTools []server.ServerTool
 	for _, tool := range tools {
+		// Tools registered without a region profile (e.g. by importers) show India.
+		tool.ApplyProfile(region.India())
 		mcpTools = append(mcpTools, tool.toMCPServerTool())
 	}
 	s.McpServer.AddTools(mcpTools...)

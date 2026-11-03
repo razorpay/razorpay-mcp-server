@@ -238,7 +238,7 @@ type mark3labsToolImpl struct {
 	handler     ToolHandler
 	parameters  []ToolParameter
 	isReadOnly  bool
-	localized   bool
+	profiled    bool
 }
 
 // NewTool creates a new tool with the given
@@ -451,7 +451,6 @@ func (t *mark3labsToolImpl) GetName() string {
 
 // Localize rewrites every tool and parameter description, nested ones included.
 func (t *mark3labsToolImpl) Localize(fn func(string) string) {
-	t.localized = true
 	t.description = fn(t.description)
 	for _, p := range t.parameters {
 		localizeSchema(p.Schema, fn)
@@ -460,6 +459,10 @@ func (t *mark3labsToolImpl) Localize(fn func(string) string) {
 
 // ApplyProfile localizes for p and defaults the handler's ctx profile to p.
 func (t *mark3labsToolImpl) ApplyProfile(p region.Profile) {
+	if t.profiled {
+		return
+	}
+	t.profiled = true
 	t.Localize(p.Localize)
 	next := t.handler
 	t.handler = func(ctx context.Context, r CallToolRequest) (*ToolResult, error) {
@@ -488,11 +491,6 @@ func localizeSchema(schema map[string]interface{}, fn func(string) string) {
 
 // toMCPServerTool converts our Tool to mcp's ServerTool
 func (t *mark3labsToolImpl) toMCPServerTool() server.ServerTool {
-	// Tools registered without a region profile (e.g. by importers) show India.
-	if !t.localized {
-		t.Localize(region.India().Localize)
-	}
-
 	// Create the mcp tool with appropriate options
 	var toolOpts []mcp.ToolOption
 

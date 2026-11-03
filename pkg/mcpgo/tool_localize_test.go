@@ -95,4 +95,25 @@ func TestMark3labsToolImpl_ApplyProfile(t *testing.T) {
 		ctx := region.WithProfile(context.Background(), us)
 		assert.Equal(t, "US", call(t, tool, ctx))
 	})
+
+	t.Run("the first profile applied wins", func(t *testing.T) {
+		tool := NewTool("t", "Charge in {{currency}}", nil, countryHandler)
+		tool.ApplyProfile(sg)
+		tool.ApplyProfile(us)
+		assert.Equal(t, "Charge in SGD", tool.description)
+		assert.Equal(t, "SG", call(t, tool, context.Background()))
+	})
+}
+
+func TestToolConversionHasNoSideEffects(t *testing.T) {
+	tool := NewTool("t", "Charge in {{currency}}", nil, noopHandler)
+	_ = tool.toMCPServerTool()
+	assert.Equal(t, "Charge in {{currency}}", tool.description)
+}
+
+func TestAddToolsShowsIndiaForToolsWithoutAProfile(t *testing.T) {
+	srv := NewMcpServer("test", "1.0")
+	tool := NewTool("t", "Charge in {{currency}}", nil, noopHandler)
+	srv.AddTools(tool)
+	assert.Equal(t, "Charge in INR", tool.description)
 }

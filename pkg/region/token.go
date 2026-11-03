@@ -15,7 +15,7 @@ var (
 	}
 )
 
-// FromToken reads the country_code claim of an OAuth JWT like the edge does.
+// FromToken reads country_code without verifying the JWT; pass verified ones.
 func FromToken(token string) string {
 	parts := strings.SplitN(token, ".", 3)
 	if len(parts) != 3 {

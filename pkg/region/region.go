@@ -208,8 +208,8 @@ func Load(overridePath string) (map[string]Profile, error) {
 var keyCountry = regexp.MustCompile(
 	`^rzp_(?:test|live)_([a-zA-Z]{2})_(?:(?:partner|oauth)_)?\w{14}`)
 
-// KeyCountry returns the country segment of an API key, or "" if it has none.
-func KeyCountry(keyID string) string {
+// keyCountryOf returns the country segment of an API key, or "" if none.
+func keyCountryOf(keyID string) string {
 	if m := keyCountry.FindStringSubmatch(keyID); m != nil {
 		return strings.ToUpper(m[1])
 	}
@@ -219,7 +219,7 @@ func KeyCountry(keyID string) string {
 // Resolve picks the explicit region, else the key's country, else IN.
 func Resolve(explicit, keyID string) (string, error) {
 	explicit = strings.ToUpper(explicit)
-	fromKey := KeyCountry(keyID)
+	fromKey := keyCountryOf(keyID)
 
 	switch {
 	case explicit != "" && fromKey != "" && explicit != fromKey:

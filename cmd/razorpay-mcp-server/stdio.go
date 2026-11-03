@@ -47,7 +47,6 @@ var stdioCmd = &cobra.Command{
 			viper.GetString("secret"),
 			viper.GetString("razorpay_region"),
 			viper.GetString("razorpay_region_config"),
-			os.Stderr,
 		)
 		if err != nil {
 			stdlog.Fatalf("failed to load region profile: %v", err)
@@ -72,7 +71,6 @@ var stdioCmd = &cobra.Command{
 // buildStdioDeps resolves the region and builds a client for its API host.
 func buildStdioDeps(
 	key, secret, regionCode, regionConfigPath string,
-	notice io.Writer,
 ) (*rzpsdk.Client, region.Profile, error) {
 	profiles, err := region.Load(regionConfigPath)
 	if err != nil {
@@ -85,11 +83,6 @@ func buildStdioDeps(
 	profile, err := region.Get(profiles, code)
 	if err != nil {
 		return nil, region.Profile{}, err
-	}
-	// MY (Curlec) keys carry no country, so they would silently run as IN.
-	if regionCode == "" && region.KeyCountry(key) == "" {
-		_, _ = fmt.Fprintf(notice, "region defaulted to %s (API key has no "+
-			"country segment); use --region MY for Curlec accounts\n", code)
 	}
 
 	client := rzpsdk.NewClient(key, secret)
@@ -132,11 +125,7 @@ func runStdioServer(
 		errC <- stdioSrv.Listen(ctx, in, out)
 	}()
 
-	_, _ = fmt.Fprintf(
-		os.Stderr,
-		"Razorpay MCP Server running on stdio (region %s)\n",
-		profile.CountryCode,
-	)
+	_, _ = fmt.Fprintln(os.Stderr, stdioBanner(profile.CountryCode))
 
 	// Wait for shutdown signal
 	select {
@@ -150,4 +139,13 @@ func runStdioServer(
 		}
 		return nil
 	}
+}
+
+// stdioBanner names the region; country-less MY (Curlec) keys default to IN.
+func stdioBanner(code string) string {
+	if code == region.DefaultRegion {
+		return "Razorpay MCP Server running on stdio (region IN; " +
+			"Curlec (MY) accounts: use --region MY)"
+	}
+	return fmt.Sprintf("Razorpay MCP Server running on stdio (region %s)", code)
 }
