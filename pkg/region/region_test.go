@@ -51,13 +51,13 @@ func TestLoad(t *testing.T) {
 		path := writeOverride(t, `
 SG:
   country_code: SG
-  api_base_url: https://api-sg.stage.razorpay.in
+  api_base_url: https://api.razorpay.com
   tools: ["fetch_payment"]
 `)
 		profiles, err := Load(path)
 		require.NoError(t, err)
 
-		assert.Equal(t, "https://api-sg.stage.razorpay.in",
+		assert.Equal(t, "https://api.razorpay.com",
 			profiles["SG"].APIBaseURL)
 		assert.Equal(t, []string{"fetch_payment"}, profiles["SG"].Tools)
 		assert.Equal(t, "https://api.razorpay.com", profiles["IN"].APIBaseURL)
@@ -81,14 +81,14 @@ US:
 		require.NoError(t, err)
 		profiles, err := Load(writeOverride(t, `
 SG:
-  api_base_url: https://api-sg.stage.razorpay.in
+  api_base_url: https://api.razorpay.com
 `))
 		require.NoError(t, err)
 
 		sg, err := Get(profiles, "SG")
 		require.NoError(t, err)
 		assert.Equal(t, "SG", sg.CountryCode)
-		assert.Equal(t, "https://api-sg.stage.razorpay.in", sg.APIBaseURL)
+		assert.Equal(t, "https://api.razorpay.com", sg.APIBaseURL)
 		assert.Equal(t, builtin["SG"].Tools, sg.Tools)
 	})
 

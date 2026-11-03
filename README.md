@@ -473,11 +473,11 @@ keys carry no country). A `--region-config` file must also be mounted into the
 container, for example `-v /path/regions.yaml:/regions.yaml -e RAZORPAY_REGION_CONFIG=/regions.yaml`.
 
 A `--region-config` entry only needs the fields it changes; the rest are kept
-from the built-in profile:
+from the built-in profile. For example, to serve only payment reads in SG:
 
 ```yaml
 SG:
-  api_base_url: https://api-sg.stage.razorpay.in
+  tools: ["fetch_payment", "fetch_all_payments"]
 ```
 
 ## Debugging the Server
