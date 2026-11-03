@@ -179,6 +179,9 @@ func ApplyRegionProfile(
 	p region.Profile,
 	enabledToolsets []string,
 ) error {
+	if err := p.Validate(); err != nil {
+		return fmt.Errorf("invalid region profile: %w", err)
+	}
 	for _, tool := range tg.AllTools() {
 		tool.ApplyProfile(p)
 	}

@@ -117,6 +117,23 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 			`toolset "payouts" has no tools available in region SG`)
 	})
 
+	t.Run("invalid profile is rejected", func(t *testing.T) {
+		cases := map[string]region.Profile{
+			"zero value": {},
+			"no country": {Tools: []string{"*"},
+				APIBaseURL: "https://api.razorpay.com"},
+		}
+		for name, p := range cases {
+			_, err := NewRzpMcpServerForRegion(obs, client, p, nil, false)
+			assert.ErrorContains(t, err, "country_code must be set", name)
+
+			tg, err := NewToolSets(obs, client, nil, false)
+			require.NoError(t, err)
+			assert.ErrorContains(t, ApplyRegionProfile(tg, p, nil),
+				"country_code must be set", name)
+		}
+	})
+
 	t.Run("profile naming an unknown tool fails", func(t *testing.T) {
 		bad := region.Profile{
 			CountryCode: "SG",

@@ -54,19 +54,27 @@ func (p Profile) Currency() string {
 	return c.DefaultCurrency
 }
 
+// replacers caches one placeholder replacer per country code.
+var replacers sync.Map
+
 // Localize fills region placeholders with the country's facts from i18nify.
 func (p Profile) Localize(text string) string {
 	if !strings.Contains(text, "{{") {
 		return text
 	}
+	if r, ok := replacers.Load(p.CountryCode); ok {
+		return r.(*strings.Replacer).Replace(text)
+	}
 	c, _ := p.country()
 	info, _ := currency.GetCurrencyInformation(c.DefaultCurrency)
-	return strings.NewReplacer(
+	r := strings.NewReplacer(
 		"{{currency}}", c.DefaultCurrency,
 		"{{minor_unit}}", info.MinorUnit,
 		"{{symbol}}", info.Symbol,
 		"{{dial_code}}", c.DialCode,
-	).Replace(text)
+	)
+	replacers.Store(p.CountryCode, r)
+	return r.Replace(text)
 }
 
 // AllowsAll reports whether every registered tool is enabled.
@@ -79,31 +87,40 @@ func (p Profile) AllowsTool(name string) bool {
 	return p.AllowsAll() || slices.Contains(p.Tools, name)
 }
 
-func (p Profile) validate(code string) error {
-	if p.CountryCode != code {
-		return fmt.Errorf("region %s: country_code %q does not match region %q",
-			code, p.CountryCode, code)
+// Validate reports whether the profile can serve a region.
+func (p Profile) Validate() error {
+	if p.CountryCode == "" {
+		return fmt.Errorf("country_code must be set")
 	}
 	if err := validateBaseURL(p.APIBaseURL); err != nil {
-		return fmt.Errorf("region %s: %w", code, err)
+		return err
 	}
 	if len(p.Tools) == 0 {
-		return fmt.Errorf("region %s: tools must not be empty", code)
+		return fmt.Errorf("tools must not be empty")
 	}
 	cur := p.Currency()
 	if cur == "" {
-		return fmt.Errorf("region %s: no default currency for country %q",
-			code, p.CountryCode)
+		return fmt.Errorf("no default currency for country %q", p.CountryCode)
 	}
 	info, err := currency.GetCurrencyInformation(cur)
 	if err != nil {
-		return fmt.Errorf("region %s: currency %q not found in i18nify",
-			code, cur)
+		return fmt.Errorf("currency %q not found in i18nify: %w", cur, err)
 	}
-	// Amount descriptions assume 100 minor units per major unit.
 	if info.MinorUnit != "2" {
-		return fmt.Errorf("region %s: currency %q has %s decimal places; "+
-			"only 2 are supported", code, cur, info.MinorUnit)
+		return fmt.Errorf("currency %q has %s decimal places; amount "+
+			"descriptions in pkg/razorpay/descriptions.go assume 2",
+			cur, info.MinorUnit)
+	}
+	return nil
+}
+
+func (p Profile) validate(code string) error {
+	if p.CountryCode != "" && p.CountryCode != code {
+		return fmt.Errorf("region %s: country_code %q does not match region %q",
+			code, p.CountryCode, code)
+	}
+	if err := p.Validate(); err != nil {
+		return fmt.Errorf("region %s: %w", code, err)
 	}
 	return nil
 }
@@ -113,7 +130,10 @@ var apiDomains = []string{"razorpay.com", "razorpay.in", "curlec.com"}
 
 func validateBaseURL(raw string) error {
 	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "https" || u.Host == "" {
+	if err != nil {
+		return fmt.Errorf("invalid api_base_url: %w", err)
+	}
+	if u.Scheme != "https" || u.Host == "" {
 		return fmt.Errorf("api_base_url must use https")
 	}
 	if u.User != nil || u.Port() != "" || u.Path != "" || u.RawQuery != "" ||
@@ -135,7 +155,7 @@ func readBuiltin(name string) (Profile, error) {
 	var p Profile
 	data, err := builtin.ReadFile(path.Join("profiles", name))
 	if err != nil {
-		return p, err
+		return p, fmt.Errorf("built-in profile %s: %w", name, err)
 	}
 	if err := yaml.Unmarshal(data, &p); err != nil {
 		return p, fmt.Errorf("built-in profile %s: %w", name, err)
@@ -143,13 +163,13 @@ func readBuiltin(name string) (Profile, error) {
 	return p, nil
 }
 
-// Load returns built-in profiles, with regions in overridePath replacing them.
+// Load returns built-in profiles merged with overrides; Get validates them.
 func Load(overridePath string) (map[string]Profile, error) {
 	profiles := map[string]Profile{}
 
 	entries, err := builtin.ReadDir("profiles")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("built-in profiles: %w", err)
 	}
 	for _, e := range entries {
 		p, err := readBuiltin(e.Name())
@@ -159,24 +179,27 @@ func Load(overridePath string) (map[string]Profile, error) {
 		profiles[strings.TrimSuffix(e.Name(), ".yaml")] = p
 	}
 
-	if overridePath != "" {
-		data, err := os.ReadFile(overridePath)
-		if err != nil {
-			return nil, fmt.Errorf("region config %s: %w", overridePath, err)
-		}
-		var overrides map[string]Profile
-		if err := yaml.Unmarshal(data, &overrides); err != nil {
-			return nil, fmt.Errorf("region config %s: %w", overridePath, err)
-		}
-		for code, p := range overrides {
-			profiles[strings.ToUpper(code)] = p
-		}
+	if overridePath == "" {
+		return profiles, nil
 	}
-
-	for code, p := range profiles {
-		if err := p.validate(code); err != nil {
-			return nil, err
+	data, err := os.ReadFile(overridePath)
+	if err != nil {
+		return nil, fmt.Errorf("region config %s: %w", overridePath, err)
+	}
+	var overrides map[string]yaml.Node
+	if err := yaml.Unmarshal(data, &overrides); err != nil {
+		return nil, fmt.Errorf("region config %s: %w", overridePath, err)
+	}
+	for code, node := range overrides {
+		code = strings.ToUpper(code)
+		// Fields the override leaves out keep their built-in values.
+		p := profiles[code]
+		p.Tools = slices.Clone(p.Tools)
+		if err := node.Decode(&p); err != nil {
+			return nil, fmt.Errorf("region config %s: region %s: %w",
+				overridePath, code, err)
 		}
+		profiles[code] = p
 	}
 	return profiles, nil
 }
@@ -218,24 +241,20 @@ func Get(profiles map[string]Profile, code string) (Profile, error) {
 	}
 	code = strings.ToUpper(code)
 	if p, ok := profiles[code]; ok {
-		return p, nil
+		return p, p.validate(code)
 	}
 	available := slices.Sorted(maps.Keys(profiles))
 	return Profile{}, fmt.Errorf("no region profile for %q; available: %s",
 		code, strings.Join(available, ", "))
 }
 
-var india = sync.OnceValue(func() Profile {
-	p, err := readBuiltin(DefaultRegion + ".yaml")
-	if err != nil {
-		panic(err) // embedded at build time; covered by tests
-	}
-	return p
-})
-
-// India returns the built-in IN profile.
+// India returns the built-in IN profile; profiles/IN.yaml documents it.
 func India() Profile {
-	return india()
+	return Profile{
+		CountryCode: DefaultRegion,
+		APIBaseURL:  "https://api.razorpay.com",
+		Tools:       []string{allTools},
+	}
 }
 
 type contextKey struct{}

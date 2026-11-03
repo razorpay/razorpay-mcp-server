@@ -39,6 +39,9 @@ func NewRzpMcpServerForRegion(
 	if client == nil {
 		return nil, fmt.Errorf("razorpay client is required")
 	}
+	if err := profile.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid region profile: %w", err)
+	}
 
 	// Set up default MCP options with Razorpay-specific hooks
 	defaultOpts := []mcpgo.ServerOption{

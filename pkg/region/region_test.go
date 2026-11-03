@@ -76,6 +76,35 @@ US:
 		assert.Equal(t, "https://api-us.curlec.com", profiles["US"].APIBaseURL)
 	})
 
+	t.Run("override merges into the built-in profile", func(t *testing.T) {
+		builtin, err := Load("")
+		require.NoError(t, err)
+		profiles, err := Load(writeOverride(t, `
+SG:
+  api_base_url: https://api-sg.stage.razorpay.in
+`))
+		require.NoError(t, err)
+
+		sg, err := Get(profiles, "SG")
+		require.NoError(t, err)
+		assert.Equal(t, "SG", sg.CountryCode)
+		assert.Equal(t, "https://api-sg.stage.razorpay.in", sg.APIBaseURL)
+		assert.Equal(t, builtin["SG"].Tools, sg.Tools)
+	})
+
+	t.Run("a bad region in the override does not block others",
+		func(t *testing.T) {
+			profiles, err := Load(writeOverride(t, `
+XX:
+  api_base_url: https://api-xx.razorpay.com
+`))
+			require.NoError(t, err)
+			_, err = Get(profiles, "SG")
+			require.NoError(t, err)
+			_, err = Get(profiles, "XX")
+			assert.ErrorContains(t, err, `region XX: country_code must be set`)
+		})
+
 	t.Run("missing override file errors", func(t *testing.T) {
 		_, err := Load(filepath.Join(t.TempDir(), "missing.yaml"))
 		assert.ErrorContains(t, err, "region config")
@@ -83,16 +112,19 @@ US:
 
 	invalid := []struct {
 		name    string
+		region  string
 		content string
 		errMsg  string
 	}{
 		{
 			name:    "bad yaml",
+			region:  "SG",
 			content: "SG: [",
 			errMsg:  "region config",
 		},
 		{
-			name: "non-https base url",
+			name:   "non-https base url",
+			region: "SG",
 			content: `
 SG:
   country_code: SG
@@ -102,7 +134,17 @@ SG:
 			errMsg: "api_base_url must use https",
 		},
 		{
-			name: "empty tools",
+			name:   "unparseable base url",
+			region: "SG",
+			content: `
+SG:
+  api_base_url: "https://%zz"
+`,
+			errMsg: "invalid api_base_url",
+		},
+		{
+			name:   "empty tools",
+			region: "SG",
 			content: `
 SG:
   country_code: SG
@@ -112,7 +154,8 @@ SG:
 			errMsg: "tools must not be empty",
 		},
 		{
-			name: "country code does not match key",
+			name:   "country code does not match key",
+			region: "SG",
 			content: `
 SG:
   country_code: MY
@@ -122,7 +165,8 @@ SG:
 			errMsg: `country_code "MY" does not match region "SG"`,
 		},
 		{
-			name: "base url outside razorpay and curlec domains",
+			name:   "base url outside razorpay and curlec domains",
+			region: "SG",
 			content: `
 SG:
   country_code: SG
@@ -132,7 +176,8 @@ SG:
 			errMsg: "api_base_url host must be under razorpay.com",
 		},
 		{
-			name: "base url with a path",
+			name:   "base url with a path",
+			region: "SG",
 			content: `
 SG:
   country_code: SG
@@ -142,7 +187,8 @@ SG:
 			errMsg: "api_base_url must be scheme and host only",
 		},
 		{
-			name: "base url with a trailing slash",
+			name:   "base url with a trailing slash",
+			region: "SG",
 			content: `
 SG:
   country_code: SG
@@ -152,7 +198,8 @@ SG:
 			errMsg: "api_base_url must be scheme and host only",
 		},
 		{
-			name: "base url with userinfo",
+			name:   "base url with userinfo",
+			region: "SG",
 			content: `
 SG:
   country_code: SG
@@ -162,7 +209,8 @@ SG:
 			errMsg: "api_base_url must be scheme and host only",
 		},
 		{
-			name: "base url with a query",
+			name:   "base url with a query",
+			region: "SG",
 			content: `
 SG:
   country_code: SG
@@ -172,7 +220,8 @@ SG:
 			errMsg: "api_base_url must be scheme and host only",
 		},
 		{
-			name: "base url with a port",
+			name:   "base url with a port",
+			region: "SG",
 			content: `
 SG:
   country_code: SG
@@ -182,17 +231,20 @@ SG:
 			errMsg: "api_base_url must be scheme and host only",
 		},
 		{
-			name: "currency without two decimal places",
+			name:   "currency without two decimal places",
+			region: "JP",
 			content: `
 JP:
   country_code: JP
   api_base_url: https://api.razorpay.com
   tools: ["*"]
 `,
-			errMsg: `currency "JPY" has 0 decimal places; only 2 are supported`,
+			errMsg: `currency "JPY" has 0 decimal places; amount descriptions ` +
+				`in pkg/razorpay/descriptions.go assume 2`,
 		},
 		{
-			name: "country unknown to i18nify",
+			name:   "country unknown to i18nify",
+			region: "XX",
 			content: `
 XX:
   country_code: XX
@@ -204,7 +256,10 @@ XX:
 	}
 	for _, tc := range invalid {
 		t.Run("rejects override with "+tc.name, func(t *testing.T) {
-			_, err := Load(writeOverride(t, tc.content))
+			profiles, err := Load(writeOverride(t, tc.content))
+			if err == nil {
+				_, err = Get(profiles, tc.region)
+			}
 			assert.ErrorContains(t, err, tc.errMsg)
 		})
 	}
@@ -230,6 +285,33 @@ func TestGet(t *testing.T) {
 		_, err := Get(profiles, "XX")
 		assert.EqualError(t, err,
 			`no region profile for "XX"; available: IN, MY, SG, US`)
+	})
+}
+
+func TestProfileValidate(t *testing.T) {
+	cases := []struct {
+		name    string
+		profile Profile
+		errMsg  string
+	}{
+		{"zero value", Profile{}, "country_code must be set"},
+		{"no country", Profile{Tools: []string{"*"},
+			APIBaseURL: "https://api.razorpay.com"}, "country_code must be set"},
+		{"no tools", Profile{CountryCode: "SG",
+			APIBaseURL: "https://api-sg.razorpay.com"}, "tools must not be empty"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.ErrorContains(t, tc.profile.Validate(), tc.errMsg)
+		})
+	}
+
+	t.Run("built-in profiles are valid", func(t *testing.T) {
+		profiles, err := Load("")
+		require.NoError(t, err)
+		for code, p := range profiles {
+			assert.NoError(t, p.Validate(), code)
+		}
 	})
 }
 
@@ -304,12 +386,15 @@ func TestUnknownCountryPrintsNothingToStdout(t *testing.T) {
 	orig := os.Stdout
 	os.Stdout = w
 
-	_, loadErr := Load(writeOverride(t, `
+	profiles, loadErr := Load(writeOverride(t, `
 XX:
   country_code: XX
   api_base_url: https://api-xx.razorpay.com
   tools: ["*"]
 `))
+	if loadErr == nil {
+		_, loadErr = Get(profiles, "XX")
+	}
 	_ = Profile{}.Currency()
 
 	os.Stdout = orig
