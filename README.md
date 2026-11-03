@@ -454,9 +454,30 @@ your MCP client, each with that region's keys:
                 "RAZORPAY_KEY_ID": "your_singapore_key_id",
                 "RAZORPAY_KEY_SECRET": "your_singapore_key_secret"
             }
+        },
+        "razorpay-my": {
+            "command": "docker",
+            "args": ["run", "--rm", "-i", "-e", "RAZORPAY_KEY_ID", "-e", "RAZORPAY_KEY_SECRET", "-e", "RAZORPAY_REGION", "razorpay/mcp"],
+            "env": {
+                "RAZORPAY_KEY_ID": "your_malaysia_key_id",
+                "RAZORPAY_KEY_SECRET": "your_malaysia_key_secret",
+                "RAZORPAY_REGION": "MY"
+            }
         }
     }
 }
+```
+
+With Docker, pass the region as `-e RAZORPAY_REGION` (needed for Malaysia, whose
+keys carry no country). A `--region-config` file must also be mounted into the
+container, for example `-v /path/regions.yaml:/regions.yaml -e RAZORPAY_REGION_CONFIG=/regions.yaml`.
+
+A `--region-config` entry only needs the fields it changes; the rest are kept
+from the built-in profile:
+
+```yaml
+SG:
+  api_base_url: https://api-sg.stage.razorpay.in
 ```
 
 ## Debugging the Server

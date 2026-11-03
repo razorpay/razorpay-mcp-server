@@ -134,6 +134,16 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 		}
 	})
 
+	t.Run("read-only does not fail a toolset the region allows",
+		func(t *testing.T) {
+			p := region.Profile{CountryCode: "SG",
+				APIBaseURL: "https://api-sg.razorpay.com",
+				Tools:      []string{"create_refund", "fetch_payment"}}
+			_, err := NewRzpMcpServerForRegion(
+				obs, client, p, []string{"refunds"}, true)
+			assert.NoError(t, err)
+		})
+
 	t.Run("profile naming an unknown tool fails", func(t *testing.T) {
 		bad := region.Profile{
 			CountryCode: "SG",
@@ -357,4 +367,45 @@ func TestRegionToolsetLosesIndiaOnlyTools(t *testing.T) {
 			logHiddenRegionTools(nil, tg, sg, []string{"payment_links"})
 		})
 	})
+}
+
+// inOnlyTools: tools no SG/MY/US profile serves; new tools must pick a side.
+var inOnlyTools = []string{
+	"close_qr_code",
+	"create_instant_settlement",
+	"create_qr_code",
+	"detect_stack",
+	"fetch_all_instant_settlements",
+	"fetch_all_payouts",
+	"fetch_all_qr_codes",
+	"fetch_instant_settlement_with_id",
+	"fetch_payments_for_qr_code",
+	"fetch_payout_with_id",
+	"fetch_qr_code",
+	"fetch_qr_codes_by_customer_id",
+	"fetch_qr_codes_by_payment_id",
+	"integrate_razorpay_checkout",
+	"payment_link_upi_create",
+}
+
+func TestEveryToolHasARegionDecision(t *testing.T) {
+	tg, err := NewToolSets(CreateTestObservability(),
+		rzpsdk.NewClient("key", "secret"), nil, false)
+	require.NoError(t, err)
+
+	served := map[string]bool{}
+	for _, code := range []string{"SG", "MY", "US"} {
+		for _, name := range builtinProfile(t, code).Tools {
+			served[name] = true
+		}
+	}
+	var unserved []string
+	for _, tool := range tg.AllTools() {
+		if !served[tool.GetName()] {
+			unserved = append(unserved, tool.GetName())
+		}
+	}
+	sort.Strings(unserved)
+	assert.Equal(t, inOnlyTools, unserved,
+		"new tool: add it to pkg/region/profiles/{SG,MY,US}.yaml or inOnlyTools")
 }

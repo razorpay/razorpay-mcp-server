@@ -224,6 +224,11 @@ newResource := toolsets.NewToolset("resource_name", "Description").
 toolsetGroup.AddToolset(newResource)
 ```
 
+Then decide where the tool is served. India serves every tool. For each non-India region,
+add the tool name to `pkg/region/profiles/{SG,MY,US}.yaml` if that region's API supports it;
+otherwise add it to `inOnlyTools` in `pkg/razorpay/region_test.go`. `TestEveryToolHasARegionDecision`
+fails until one of the two is done.
+
 ### Step 5: Write Unit Tests
 
 Create or append to `pkg/razorpay/{resource_type}_test.go`.
@@ -424,6 +429,7 @@ Include this at the end of every implementation:
 
 - [ ] Tool function implemented in `pkg/razorpay/{resource}.go`
 - [ ] Tool registered in `pkg/razorpay/tools.go`
+- [ ] Region decision made: tool in `pkg/region/profiles/{SG,MY,US}.yaml` or in `inOnlyTools`
 - [ ] Unit tests in `pkg/razorpay/{resource}_test.go` (success + all negative cases)
 - [ ] README.md Available Tools table updated
 - [ ] Linter passes (`golangci-lint run`)
