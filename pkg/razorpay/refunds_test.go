@@ -99,6 +99,25 @@ func Test_CreateRefund(t *testing.T) {
 			},
 		},
 		{
+			Name: "refund with idempotency key",
+			Request: map[string]interface{}{
+				"payment_id":      "pay_29QQoUBi66xm2f",
+				"amount":          float64(500100),
+				"idempotency_key": "6f1c1c0e-5b0e-4c43-a0a0-2d6a8f7a9b11",
+			},
+			MockHttpClient: func() (*http.Client, *httptest.Server) {
+				return mock.NewHTTPClient(
+					mock.Endpoint{
+						Path:     fmt.Sprintf(createRefundPathFmt, "pay_29QQoUBi66xm2f"),
+						Method:   "POST",
+						Response: successfulRefundResp,
+					},
+				)
+			},
+			ExpectError:    false,
+			ExpectedResult: successfulRefundResp,
+		},
+		{
 			Name: "refund API server error",
 			Request: map[string]interface{}{
 				"payment_id": "pay_29QQoUBi66xm2f",

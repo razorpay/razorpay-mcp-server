@@ -182,6 +182,8 @@ STEP-BY-STEP DISCOVERY PROCESS
          const orderData = JSON.parse(localStorage.getItem('pendingOrder'));
          orderData.paymentMethod = 'razorpay';
          orderData.paymentId = paymentResponse.paymentId;
+         // Django/form-based checkouts: also set a hidden input named
+         // razorpay_payment_id to paymentResponse.paymentId before submitting the form
          localStorage.removeItem('pendingOrder');
        },
        (error) => {

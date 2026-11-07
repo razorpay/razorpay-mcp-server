@@ -44,6 +44,13 @@ func CreateRefund(
 			mcpgo.Description("A unique identifier provided by you for "+
 				"your internal reference."),
 		),
+		mcpgo.WithString(
+			"idempotency_key",
+			mcpgo.Description("Unique key (e.g. a UUID) sent as the "+
+				"X-Refund-Idempotency header. Reuse the same key when "+
+				"retrying a refund request so that a timeout retry does "+
+				"not create a duplicate refund."),
+		),
 	}
 
 	handler := func(
@@ -58,21 +65,28 @@ func CreateRefund(
 
 		payload := make(map[string]interface{})
 		data := make(map[string]interface{})
+		headers := make(map[string]interface{})
 
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "payment_id").
 			ValidateAndAddRequiredFloat(payload, "amount").
 			ValidateAndAddOptionalString(data, "speed").
 			ValidateAndAddOptionalString(data, "receipt").
-			ValidateAndAddOptionalMap(data, "notes")
+			ValidateAndAddOptionalMap(data, "notes").
+			ValidateAndAddOptionalString(headers, "idempotency_key")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
 			return result, err
 		}
 
+		var extraHeaders map[string]string
+		if key, ok := headers["idempotency_key"].(string); ok && key != "" {
+			extraHeaders = map[string]string{"X-Refund-Idempotency": key}
+		}
+
 		refund, err := client.Payment.Refund(
 			payload["payment_id"].(string),
-			int(payload["amount"].(float64)), data, nil)
+			int(payload["amount"].(float64)), data, extraHeaders)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("creating refund failed", err)), nil
