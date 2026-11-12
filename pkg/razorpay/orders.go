@@ -21,7 +21,8 @@ func CreateOrder(
 			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
 				amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+			// INR-shaped floor so India is unchanged; rejects SGD amounts below 1.00.
+			mcpgo.Min(100),
 		),
 		mcpgo.WithString(
 			"currency",
@@ -51,6 +52,7 @@ func CreateOrder(
 			"first_payment_min_amount",
 			mcpgo.Description("Minimum amount for the first partial "+
 				"payment (only if partial_payment is true), "+amountUnitDesc),
+			// INR-shaped floor so India is unchanged; rejects SGD amounts below 1.00.
 			mcpgo.Min(100),
 		),
 		mcpgo.WithArray(

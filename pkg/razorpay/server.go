@@ -19,12 +19,13 @@ func NewRzpMcpServer(
 	readOnly bool,
 	mcpOpts ...mcpgo.ServerOption,
 ) (mcpgo.Server, error) {
-	return NewRzpMcpServerForRegion(
+	return NewRzpMcpServerForRegion(context.Background(),
 		obs, client, region.India(), enabledToolsets, readOnly, mcpOpts...)
 }
 
 // NewRzpMcpServerForRegion creates the server with tools built for profile.
 func NewRzpMcpServerForRegion(
+	ctx context.Context,
 	obs *observability.Observability,
 	client *rzpsdk.Client,
 	profile region.Profile,
@@ -58,7 +59,7 @@ func NewRzpMcpServerForRegion(
 
 	// Register Razorpay tools
 	toolsets, err := NewToolSets(obs, client, enabledToolsets, readOnly,
-		WithRegionProfile(profile))
+		WithContext(ctx), WithRegionProfile(profile))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create toolsets: %w", err)
 	}

@@ -6,7 +6,8 @@ require (
 	github.com/go-test/deep v1.1.1
 	github.com/gorilla/mux v1.8.1
 	github.com/mark3labs/mcp-go v0.43.2
-	github.com/razorpay/i18nify/packages/i18nify-go v1.2.12
+	github.com/razorpay/i18nify/i18nify-data/go/country/metadata v1.0.6
+	github.com/razorpay/i18nify/i18nify-data/go/currency v1.0.5
 	github.com/razorpay/razorpay-go v1.4.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
@@ -27,8 +28,6 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/razorpay/i18nify/i18nify-data/go/country/metadata v1.0.6 // indirect
-	github.com/razorpay/i18nify/i18nify-data/go/currency v1.0.5 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect

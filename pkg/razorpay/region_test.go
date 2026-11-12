@@ -61,7 +61,7 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 	client := rzpsdk.NewClient("key", "secret")
 
 	t.Run("IN registers every tool", func(t *testing.T) {
-		srv, err := NewRzpMcpServerForRegion(
+		srv, err := NewRzpMcpServerForRegion(t.Context(),
 			obs, client, region.India(), nil, false)
 		require.NoError(t, err)
 		assert.Len(t, listedTools(t, srv), 45)
@@ -70,7 +70,7 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 	for _, code := range []string{"SG", "MY", "US"} {
 		t.Run(code+" registers exactly its profile tools", func(t *testing.T) {
 			p := builtinProfile(t, code)
-			srv, err := NewRzpMcpServerForRegion(obs, client, p, nil, false)
+			srv, err := NewRzpMcpServerForRegion(t.Context(), obs, client, p, nil, false)
 			require.NoError(t, err)
 
 			want := append([]string{}, p.Tools...)
@@ -80,7 +80,7 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 
 		t.Run(code+" tool list never mentions paise, rupee or INR",
 			func(t *testing.T) {
-				srv, err := NewRzpMcpServerForRegion(
+				srv, err := NewRzpMcpServerForRegion(t.Context(),
 					obs, client, builtinProfile(t, code), nil, false)
 				require.NoError(t, err)
 
@@ -94,10 +94,10 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 
 	t.Run("no placeholder is left for IN, SG or the default server",
 		func(t *testing.T) {
-			in, err := NewRzpMcpServerForRegion(
+			in, err := NewRzpMcpServerForRegion(t.Context(),
 				obs, client, region.India(), nil, false)
 			require.NoError(t, err)
-			sg, err := NewRzpMcpServerForRegion(
+			sg, err := NewRzpMcpServerForRegion(t.Context(),
 				obs, client, sgProfile(t), nil, false)
 			require.NoError(t, err)
 			def, err := NewRzpMcpServer(obs, client, nil, false)
@@ -111,7 +111,7 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 		})
 
 	t.Run("requesting a toolset empty in the region fails", func(t *testing.T) {
-		_, err := NewRzpMcpServerForRegion(
+		_, err := NewRzpMcpServerForRegion(t.Context(),
 			obs, client, sgProfile(t), []string{"payouts"}, false)
 		assert.ErrorContains(t, err,
 			`toolset "payouts" has no tools available in region SG`)
@@ -124,7 +124,7 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 				APIBaseURL: "https://api.razorpay.com"},
 		}
 		for name, p := range cases {
-			_, err := NewRzpMcpServerForRegion(obs, client, p, nil, false)
+			_, err := NewRzpMcpServerForRegion(t.Context(), obs, client, p, nil, false)
 			assert.ErrorContains(t, err, "country_code must be set", name)
 
 			tg, err := NewToolSets(obs, client, nil, false)
@@ -139,7 +139,7 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 			p := region.Profile{CountryCode: "SG",
 				APIBaseURL: "https://api-sg.razorpay.com",
 				Tools:      []string{"create_refund", "fetch_payment"}}
-			_, err := NewRzpMcpServerForRegion(
+			_, err := NewRzpMcpServerForRegion(t.Context(),
 				obs, client, p, []string{"refunds"}, true)
 			assert.NoError(t, err)
 		})
@@ -150,7 +150,7 @@ func TestNewRzpMcpServerForRegion(t *testing.T) {
 			APIBaseURL:  "https://api-sg.razorpay.com",
 			Tools:       []string{"fetch_payment", "fetch_paymnt"},
 		}
-		_, err := NewRzpMcpServerForRegion(obs, client, bad, nil, false)
+		_, err := NewRzpMcpServerForRegion(t.Context(), obs, client, bad, nil, false)
 		assert.ErrorContains(t, err, `region SG: unknown tool "fetch_paymnt"`)
 	})
 }
@@ -276,7 +276,7 @@ func TestRegionContactExample(t *testing.T) {
 	dial := map[string]string{"IN": "+91", "SG": "+65", "MY": "+60", "US": "+1"}
 	for code, want := range dial {
 		t.Run(code+" shows only its own dial code", func(t *testing.T) {
-			srv, err := NewRzpMcpServerForRegion(CreateTestObservability(),
+			srv, err := NewRzpMcpServerForRegion(t.Context(), CreateTestObservability(),
 				rzpsdk.NewClient("key", "secret"), builtinProfile(t, code), nil, false)
 			require.NoError(t, err)
 
@@ -302,7 +302,7 @@ func TestRegionContactExample(t *testing.T) {
 }
 
 func TestIndiaToolTextHasNoPaise(t *testing.T) {
-	srv, err := NewRzpMcpServerForRegion(CreateTestObservability(),
+	srv, err := NewRzpMcpServerForRegion(t.Context(), CreateTestObservability(),
 		rzpsdk.NewClient("key", "secret"), region.India(), nil, false)
 	require.NoError(t, err)
 
@@ -351,7 +351,7 @@ func TestRegionToolsetLosesIndiaOnlyTools(t *testing.T) {
 
 	t.Run("requested toolset serves only the region's tools",
 		func(t *testing.T) {
-			srv, err := NewRzpMcpServerForRegion(CreateTestObservability(),
+			srv, err := NewRzpMcpServerForRegion(t.Context(), CreateTestObservability(),
 				client, sg, []string{"payment_links"}, false)
 			require.NoError(t, err)
 			tools := listedTools(t, srv)
@@ -364,7 +364,7 @@ func TestRegionToolsetLosesIndiaOnlyTools(t *testing.T) {
 		require.NoError(t, err)
 		tg.SetToolFilter(sg.AllowsTool)
 		assert.NotPanics(t, func() {
-			logHiddenRegionTools(nil, tg, sg, []string{"payment_links"})
+			logHiddenRegionTools(t.Context(), nil, tg, sg, []string{"payment_links"})
 		})
 	})
 }

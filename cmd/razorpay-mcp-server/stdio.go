@@ -107,7 +107,7 @@ func runStdioServer(
 	defer stop()
 
 	profile := region.FromContext(ctx)
-	srv, err := razorpay.NewRzpMcpServerForRegion(
+	srv, err := razorpay.NewRzpMcpServerForRegion(ctx,
 		obs, client, profile, enabledToolsets, readOnly)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)

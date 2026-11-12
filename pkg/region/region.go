@@ -16,8 +16,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/razorpay/i18nify/packages/i18nify-go/modules/country_metadata"
-	"github.com/razorpay/i18nify/packages/i18nify-go/modules/currency"
+	countrydata "github.com/razorpay/i18nify/i18nify-data/go/country/metadata"
+	currencydata "github.com/razorpay/i18nify/i18nify-data/go/currency"
 )
 
 // DefaultRegion is used when no region is configured.
@@ -35,23 +35,27 @@ type Profile struct {
 	Tools       []string `yaml:"tools"`
 }
 
-// country uses GetCountriesByCodes: GetMetadataInformation prints to stdout.
-func (p Profile) country() (country_metadata.CountryInfo, bool) {
-	if p.CountryCode == "" {
-		return country_metadata.CountryInfo{}, false
+// country returns the region's i18nify metadata, or nil if unknown.
+func (p Profile) country() *countrydata.CountryMetadata {
+	d, err := countrydata.GetCountryMetadataData()
+	if err != nil {
+		return nil
 	}
-	countries, err := country_metadata.GetCountriesByCodes(
-		[]string{p.CountryCode})
-	if err != nil || len(countries) == 0 {
-		return country_metadata.CountryInfo{}, false
+	return d.GetMetadataInformation()[p.CountryCode]
+}
+
+// currencyInfo returns i18nify's facts for an ISO currency code, or nil.
+func currencyInfo(code string) *currencydata.CurrencyInfo {
+	d, err := currencydata.GetCurrencyData()
+	if err != nil {
+		return nil
 	}
-	return countries[0], true
+	return d.GetCurrencyInformation()[code]
 }
 
 // Currency returns the region's default currency from i18nify, or "".
 func (p Profile) Currency() string {
-	c, _ := p.country()
-	return c.DefaultCurrency
+	return p.country().GetDefaultCurrency()
 }
 
 // replacers caches one placeholder replacer per country code.
@@ -65,13 +69,13 @@ func (p Profile) Localize(text string) string {
 	if r, ok := replacers.Load(p.CountryCode); ok {
 		return r.(*strings.Replacer).Replace(text)
 	}
-	c, _ := p.country()
-	info, _ := currency.GetCurrencyInformation(c.DefaultCurrency)
+	c := p.country()
+	info := currencyInfo(c.GetDefaultCurrency())
 	r := strings.NewReplacer(
-		"{{currency}}", c.DefaultCurrency,
-		"{{minor_unit}}", info.MinorUnit,
-		"{{symbol}}", info.Symbol,
-		"{{dial_code}}", c.DialCode,
+		"{{currency}}", c.GetDefaultCurrency(),
+		"{{minor_unit}}", info.GetMinorUnit(),
+		"{{symbol}}", info.GetSymbol(),
+		"{{dial_code}}", c.GetDialCode(),
 	)
 	replacers.Store(p.CountryCode, r)
 	return r.Replace(text)
@@ -102,14 +106,14 @@ func (p Profile) Validate() error {
 	if cur == "" {
 		return fmt.Errorf("no default currency for country %q", p.CountryCode)
 	}
-	info, err := currency.GetCurrencyInformation(cur)
-	if err != nil {
-		return fmt.Errorf("currency %q not found in i18nify: %w", cur, err)
+	info := currencyInfo(cur)
+	if info == nil {
+		return fmt.Errorf("currency %q not found in i18nify", cur)
 	}
-	if info.MinorUnit != "2" {
+	if info.GetMinorUnit() != "2" {
 		return fmt.Errorf("currency %q has %s decimal places; amount "+
 			"descriptions in pkg/razorpay/descriptions.go assume 2",
-			cur, info.MinorUnit)
+			cur, info.GetMinorUnit())
 	}
 	return nil
 }

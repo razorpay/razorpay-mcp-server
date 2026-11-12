@@ -13,11 +13,19 @@ import (
 )
 
 type toolsetConfig struct {
+	ctx     context.Context
 	profile region.Profile
 }
 
 // ToolsetOption customises NewToolSets.
 type ToolsetOption func(*toolsetConfig)
+
+// WithContext sets the context used for logging while tools are built.
+func WithContext(ctx context.Context) ToolsetOption {
+	return func(c *toolsetConfig) {
+		c.ctx = ctx
+	}
+}
 
 // WithRegionProfile sets the region the tools are built for (default India).
 func WithRegionProfile(p region.Profile) ToolsetOption {
@@ -33,7 +41,7 @@ func NewToolSets(
 	readOnly bool,
 	opts ...ToolsetOption,
 ) (*toolsets.ToolsetGroup, error) {
-	cfg := toolsetConfig{profile: region.India()}
+	cfg := toolsetConfig{ctx: context.Background(), profile: region.India()}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -163,7 +171,8 @@ func NewToolSets(
 		toolsetGroup, cfg.profile, enabledToolsets); err != nil {
 		return nil, err
 	}
-	logHiddenRegionTools(obs, toolsetGroup, cfg.profile, enabledToolsets)
+	logHiddenRegionTools(
+		cfg.ctx, obs, toolsetGroup, cfg.profile, enabledToolsets)
 
 	// Enable the requested features
 	if err := toolsetGroup.EnableToolsets(enabledToolsets); err != nil {
@@ -202,6 +211,7 @@ func ApplyRegionProfile(
 
 // logHiddenRegionTools logs tools a requested toolset loses to the region.
 func logHiddenRegionTools(
+	ctx context.Context,
 	obs *observability.Observability,
 	tg *toolsets.ToolsetGroup,
 	p region.Profile,
@@ -212,7 +222,7 @@ func logHiddenRegionTools(
 	}
 	for _, name := range enabledToolsets {
 		if hidden := tg.HiddenTools(name); len(hidden) > 0 {
-			obs.Logger.Infof(context.Background(),
+			obs.Logger.Infof(ctx,
 				"tools not available in region", "region", p.CountryCode,
 				"toolset", name, "tools", hidden)
 		}

@@ -46,8 +46,6 @@ github.com/razorpay/i18nify/i18nify-data/go/country/metadata v1.0.6 h1:HOJ68S+j+
 github.com/razorpay/i18nify/i18nify-data/go/country/metadata v1.0.6/go.mod h1:8/bUffLHRUapN6J4R61kcaOZKr8yjKb0YXrlpCumy0g=
 github.com/razorpay/i18nify/i18nify-data/go/currency v1.0.5 h1:WdbG4qmKFqr42SOm/jJNp9j/UJt/q0A5eiaweetmibM=
 github.com/razorpay/i18nify/i18nify-data/go/currency v1.0.5/go.mod h1:hVdGzMUMfaZS0AwsHBaHENYxqYWYrfpRnYW7mJeRDB8=
-github.com/razorpay/i18nify/packages/i18nify-go v1.2.12 h1:yCxq1qFNtr6cI3mFW1PaVlCjkQKU+t1ppyFmqfJFAyc=
-github.com/razorpay/i18nify/packages/i18nify-go v1.2.12/go.mod h1:IxaP6tKWc2iUiyPXSEsVnN3e6Dt1FCy4/CNqv3oSG70=
 github.com/razorpay/razorpay-go v1.4.0 h1:Vodv1hdatNQdjoIahfPCYVsnUNQD51fZqyTmbLjJUjw=
 github.com/razorpay/razorpay-go v1.4.0/go.mod h1:VcljkUylUJAUEvFfGVv/d5ht1to1dUgF4H1+3nv7i+Q=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=

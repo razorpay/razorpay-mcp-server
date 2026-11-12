@@ -720,6 +720,7 @@ func InitiatePayment(
 			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
 				amountExampleDesc),
 			mcpgo.Required(),
+			// INR-shaped floor so India is unchanged; rejects SGD amounts below 1.00.
 			mcpgo.Min(100),
 		),
 		mcpgo.WithString(

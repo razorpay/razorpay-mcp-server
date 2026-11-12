@@ -26,7 +26,8 @@ func CreateRefund(
 			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
 				amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+			// INR-shaped floor so India is unchanged; rejects SGD amounts below 1.00.
+			mcpgo.Min(100),
 		),
 		mcpgo.WithString(
 			"speed",
