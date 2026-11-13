@@ -14,6 +14,7 @@ type Toolset struct {
 	readOnly    bool
 	writeTools  []mcpgo.Tool
 	readTools   []mcpgo.Tool
+	allow       func(toolName string) bool
 }
 
 // ToolsetGroup manages multiple toolsets
@@ -21,6 +22,7 @@ type ToolsetGroup struct {
 	Toolsets     map[string]*Toolset
 	everythingOn bool
 	readOnly     bool
+	allow        func(toolName string) bool
 }
 
 // NewToolset creates a new toolset with the given name and description
@@ -61,16 +63,32 @@ func (t *Toolset) RegisterTools(s mcpgo.Server) {
 	if !t.Enabled {
 		return
 	}
-	for _, tool := range t.readTools {
-		tool.SetReadOnly(true)
+	t.forEachRegistrable(func(tool mcpgo.Tool, readOnly bool) {
+		tool.SetReadOnly(readOnly)
 		s.AddTools(tool)
-	}
-	if !t.readOnly {
-		for _, tool := range t.writeTools {
-			tool.SetReadOnly(false)
-			s.AddTools(tool)
+	})
+}
+
+// forEachRegistrable visits each tool RegisterTools would add, enabled or not.
+func (t *Toolset) forEachRegistrable(fn func(tool mcpgo.Tool, readOnly bool)) {
+	for _, tool := range t.readTools {
+		if t.allows(tool) {
+			fn(tool, true)
 		}
 	}
+	if t.readOnly {
+		return
+	}
+	for _, tool := range t.writeTools {
+		if t.allows(tool) {
+			fn(tool, false)
+		}
+	}
+}
+
+// allows reports whether the tool passes the filter.
+func (t *Toolset) allows(tool mcpgo.Tool) bool {
+	return t.allow == nil || t.allow(tool.GetName())
 }
 
 // AddToolset adds a toolset to the group
@@ -78,7 +96,33 @@ func (tg *ToolsetGroup) AddToolset(ts *Toolset) {
 	if tg.readOnly {
 		ts.readOnly = true
 	}
+	ts.allow = tg.allow
 	tg.Toolsets[ts.Name] = ts
+}
+
+// SetToolFilter registers only the tools for which allow returns true.
+func (tg *ToolsetGroup) SetToolFilter(allow func(toolName string) bool) {
+	tg.allow = allow
+	for _, ts := range tg.Toolsets {
+		ts.allow = allow
+	}
+}
+
+// AllowedToolCount counts tools the filter allows, whatever the read-only mode.
+func (tg *ToolsetGroup) AllowedToolCount(name string) int {
+	ts, ok := tg.Toolsets[name]
+	if !ok {
+		return 0
+	}
+	count := 0
+	for _, tools := range [][]mcpgo.Tool{ts.readTools, ts.writeTools} {
+		for _, tool := range tools {
+			if ts.allows(tool) {
+				count++
+			}
+		}
+	}
+	return count
 }
 
 // EnableToolset enables a specific toolset
@@ -122,4 +166,35 @@ func (tg *ToolsetGroup) RegisterTools(s mcpgo.Server) {
 	for _, toolset := range tg.Toolsets {
 		toolset.RegisterTools(s)
 	}
+}
+
+// HiddenTools lists tools in the toolset that the filter removes.
+func (tg *ToolsetGroup) HiddenTools(name string) []string {
+	ts, ok := tg.Toolsets[name]
+	if !ok {
+		return nil
+	}
+	hidden := make([]string, 0, len(ts.readTools)+len(ts.writeTools))
+	for _, tools := range [][]mcpgo.Tool{ts.readTools, ts.writeTools} {
+		for _, tool := range tools {
+			if !ts.allows(tool) {
+				hidden = append(hidden, tool.GetName())
+			}
+		}
+	}
+	return hidden
+}
+
+// AllTools returns every tool in the group, ignoring enablement and filter.
+func (tg *ToolsetGroup) AllTools() []mcpgo.Tool {
+	n := 0
+	for _, ts := range tg.Toolsets {
+		n += len(ts.readTools) + len(ts.writeTools)
+	}
+	tools := make([]mcpgo.Tool, 0, n)
+	for _, ts := range tg.Toolsets {
+		tools = append(tools, ts.readTools...)
+		tools = append(tools, ts.writeTools...)
+	}
+	return tools
 }

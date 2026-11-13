@@ -221,10 +221,10 @@ func CreateInstantSettlement(
 	parameters := []mcpgo.ToolParameter{
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("The amount you want to get settled instantly in paise (smallest "+ //nolint:lll
-				"currency sub-unit). For INR: 100 paise = ₹1. Example: for ₹295, use 29500"), //nolint:lll
+			mcpgo.Description("The amount you want to get settled instantly "+
+				amountUnitDesc+". "+amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(200), // Minimum amount is 200 (₹2)
+			mcpgo.Min(200), // Instant settlements are India-only; minimum ₹2
 		),
 		mcpgo.WithBoolean(
 			"settle_full_balance",

@@ -1,0 +1,411 @@
+package razorpay
+
+import (
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"sort"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	rzpsdk "github.com/razorpay/razorpay-go"
+
+	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
+	"github.com/razorpay/razorpay-mcp-server/pkg/region"
+	"github.com/razorpay/razorpay-mcp-server/pkg/toolsets"
+)
+
+func builtinProfile(t *testing.T, code string) region.Profile {
+	t.Helper()
+	profiles, err := region.Load("")
+	require.NoError(t, err)
+	p, ok := profiles[code]
+	require.True(t, ok, "no built-in profile %s", code)
+	return p
+}
+
+func sgProfile(t *testing.T) region.Profile {
+	return builtinProfile(t, "SG")
+}
+
+// listedTools returns the tools/list payload per tool name, as JSON text.
+func listedTools(t *testing.T, srv mcpgo.Server) map[string]string {
+	t.Helper()
+	impl, ok := srv.(*mcpgo.Mark3labsImpl)
+	require.True(t, ok)
+
+	out := map[string]string{}
+	for name, st := range impl.McpServer.ListTools() {
+		data, err := json.Marshal(st.Tool)
+		require.NoError(t, err)
+		out[name] = string(data)
+	}
+	return out
+}
+
+func toolNames(tools map[string]string) []string {
+	names := make([]string, 0, len(tools))
+	for name := range tools {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func TestNewRzpMcpServerForRegion(t *testing.T) {
+	obs := CreateTestObservability()
+	client := rzpsdk.NewClient("key", "secret")
+
+	t.Run("IN registers every tool", func(t *testing.T) {
+		srv, err := NewRzpMcpServerForRegion(t.Context(),
+			obs, client, region.India(), nil, false)
+		require.NoError(t, err)
+		assert.Len(t, listedTools(t, srv), 45)
+	})
+
+	for _, code := range []string{"SG", "MY", "US"} {
+		t.Run(code+" registers exactly its profile tools", func(t *testing.T) {
+			p := builtinProfile(t, code)
+			srv, err := NewRzpMcpServerForRegion(t.Context(), obs, client, p, nil, false)
+			require.NoError(t, err)
+
+			want := append([]string{}, p.Tools...)
+			sort.Strings(want)
+			assert.Equal(t, want, toolNames(listedTools(t, srv)))
+		})
+
+		t.Run(code+" tool list never mentions paise, rupee or INR",
+			func(t *testing.T) {
+				srv, err := NewRzpMcpServerForRegion(t.Context(),
+					obs, client, builtinProfile(t, code), nil, false)
+				require.NoError(t, err)
+
+				for name, tool := range listedTools(t, srv) {
+					for _, banned := range []string{"paise", "₹", "INR"} {
+						assert.NotContains(t, tool, banned, "tool %s", name)
+					}
+				}
+			})
+	}
+
+	t.Run("no placeholder is left for IN, SG or the default server",
+		func(t *testing.T) {
+			in, err := NewRzpMcpServerForRegion(t.Context(),
+				obs, client, region.India(), nil, false)
+			require.NoError(t, err)
+			sg, err := NewRzpMcpServerForRegion(t.Context(),
+				obs, client, sgProfile(t), nil, false)
+			require.NoError(t, err)
+			def, err := NewRzpMcpServer(obs, client, nil, false)
+			require.NoError(t, err)
+
+			for _, srv := range []mcpgo.Server{in, sg, def} {
+				for name, tool := range listedTools(t, srv) {
+					assert.NotContains(t, tool, "{{", "tool %s", name)
+				}
+			}
+		})
+
+	t.Run("requesting a toolset empty in the region fails", func(t *testing.T) {
+		_, err := NewRzpMcpServerForRegion(t.Context(),
+			obs, client, sgProfile(t), []string{"payouts"}, false)
+		assert.ErrorContains(t, err,
+			`toolset "payouts" has no tools available in region SG`)
+	})
+
+	t.Run("invalid profile is rejected", func(t *testing.T) {
+		cases := map[string]region.Profile{
+			"zero value": {},
+			"no country": {Tools: []string{"*"},
+				APIBaseURL: "https://api.razorpay.com"},
+		}
+		for name, p := range cases {
+			_, err := NewRzpMcpServerForRegion(t.Context(), obs, client, p, nil, false)
+			assert.ErrorContains(t, err, "country_code must be set", name)
+
+			tg, err := NewToolSets(obs, client, nil, false)
+			require.NoError(t, err)
+			assert.ErrorContains(t, ApplyRegionProfile(tg, p, nil),
+				"country_code must be set", name)
+		}
+	})
+
+	t.Run("read-only does not fail a toolset the region allows",
+		func(t *testing.T) {
+			p := region.Profile{CountryCode: "SG",
+				APIBaseURL: "https://api-sg.razorpay.com",
+				Tools:      []string{"create_refund", "fetch_payment"}}
+			_, err := NewRzpMcpServerForRegion(t.Context(),
+				obs, client, p, []string{"refunds"}, true)
+			assert.NoError(t, err)
+		})
+
+	t.Run("profile naming an unknown tool fails", func(t *testing.T) {
+		bad := region.Profile{
+			CountryCode: "SG",
+			APIBaseURL:  "https://api-sg.razorpay.com",
+			Tools:       []string{"fetch_payment", "fetch_paymnt"},
+		}
+		_, err := NewRzpMcpServerForRegion(t.Context(), obs, client, bad, nil, false)
+		assert.ErrorContains(t, err, `region SG: unknown tool "fetch_paymnt"`)
+	})
+}
+
+// recordPaymentCreate records the path and body of the last payment create.
+func recordPaymentCreate(t *testing.T) (*rzpsdk.Client, *string, *string) {
+	t.Helper()
+	var gotPath, gotBody string
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			gotPath, gotBody = r.URL.Path, string(body)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"razorpay_payment_id": "pay_123"}`))
+		}))
+	t.Cleanup(server.Close)
+
+	client := rzpsdk.NewClient("key", "secret")
+	client.Request.BaseURL = server.URL
+	return client, &gotPath, &gotBody
+}
+
+func callInitiatePayment(
+	t *testing.T,
+	ctx context.Context,
+	client *rzpsdk.Client,
+	args map[string]interface{},
+) {
+	t.Helper()
+	tool := InitiatePayment(CreateTestObservability(), client)
+	_, err := tool.GetHandler()(ctx, createMCPRequest(args))
+	require.NoError(t, err)
+}
+
+func TestInitiatePayment_DefaultCurrency(t *testing.T) {
+	args := map[string]interface{}{"amount": 5000, "order_id": "order_123"}
+
+	t.Run("no profile in context defaults to INR", func(t *testing.T) {
+		client, _, body := recordPaymentCreate(t)
+		callInitiatePayment(t, context.Background(), client, args)
+		assert.Contains(t, *body, `"currency":"INR"`)
+	})
+
+	t.Run("SG profile defaults to SGD", func(t *testing.T) {
+		client, _, body := recordPaymentCreate(t)
+		ctx := region.WithProfile(context.Background(), sgProfile(t))
+		callInitiatePayment(t, ctx, client, args)
+		assert.Contains(t, *body, `"currency":"SGD"`)
+	})
+
+	t.Run("explicit currency wins over the region default", func(t *testing.T) {
+		client, _, body := recordPaymentCreate(t)
+		ctx := region.WithProfile(context.Background(), sgProfile(t))
+		callInitiatePayment(t, ctx, client, map[string]interface{}{
+			"amount": 5000, "order_id": "order_123", "currency": "USD",
+		})
+		assert.Contains(t, *body, `"currency":"USD"`)
+	})
+}
+
+// regionTool returns the named tool from toolsets built for profile p.
+func regionTool(
+	t *testing.T, client *rzpsdk.Client, p region.Profile, name string,
+) mcpgo.Tool {
+	t.Helper()
+	tg, err := NewToolSets(CreateTestObservability(), client, nil, false,
+		WithRegionProfile(p))
+	require.NoError(t, err)
+	for _, tool := range tg.AllTools() {
+		if tool.GetName() == name {
+			return tool
+		}
+	}
+	t.Fatalf("tool %s not found", name)
+	return nil
+}
+
+func TestInitiatePayment_CurrencyMatchesBuildProfile(t *testing.T) {
+	args := map[string]interface{}{"amount": 5000, "order_id": "order_123"}
+
+	t.Run("SG toolsets default to SGD without a profile in ctx",
+		func(t *testing.T) {
+			client, _, body := recordPaymentCreate(t)
+			tool := regionTool(t, client, sgProfile(t), "initiate_payment")
+			_, err := tool.GetHandler()(
+				context.Background(), createMCPRequest(args))
+			require.NoError(t, err)
+			assert.Contains(t, *body, `"currency":"SGD"`)
+		})
+
+	t.Run("a profile in ctx still overrides per request", func(t *testing.T) {
+		client, _, body := recordPaymentCreate(t)
+		tool := regionTool(t, client, sgProfile(t), "initiate_payment")
+		ctx := region.WithProfile(context.Background(),
+			builtinProfile(t, "US"))
+		_, err := tool.GetHandler()(ctx, createMCPRequest(args))
+		require.NoError(t, err)
+		assert.Contains(t, *body, `"currency":"USD"`)
+	})
+}
+
+func TestInitiatePayment_RecurringSwitchUnchanged(t *testing.T) {
+	recurring := map[string]interface{}{
+		"amount": 5000, "order_id": "order_123",
+		"token": "token_123", "recurring": true,
+	}
+
+	t.Run("INR recurring uses the JSON API", func(t *testing.T) {
+		client, path, _ := recordPaymentCreate(t)
+		callInitiatePayment(t, context.Background(), client, recurring)
+		assert.Equal(t, "/v1/payments/create/json", *path)
+	})
+
+	t.Run("SGD recurring uses the recurring API", func(t *testing.T) {
+		client, path, _ := recordPaymentCreate(t)
+		ctx := region.WithProfile(context.Background(), sgProfile(t))
+		callInitiatePayment(t, ctx, client, recurring)
+		assert.Equal(t, "/v1/payments/create/recurring", *path)
+	})
+}
+
+func TestRegionContactExample(t *testing.T) {
+	dial := map[string]string{"IN": "+91", "SG": "+65", "MY": "+60", "US": "+1"}
+	for code, want := range dial {
+		t.Run(code+" shows only its own dial code", func(t *testing.T) {
+			srv, err := NewRzpMcpServerForRegion(t.Context(), CreateTestObservability(),
+				rzpsdk.NewClient("key", "secret"), builtinProfile(t, code), nil, false)
+			require.NoError(t, err)
+
+			var tool struct {
+				InputSchema struct {
+					Properties map[string]struct {
+						Description string `json:"description"`
+					} `json:"properties"`
+				} `json:"inputSchema"`
+			}
+			require.NoError(t, json.Unmarshal(
+				[]byte(listedTools(t, srv)["fetch_tokens"]), &tool))
+			desc := tool.InputSchema.Properties["contact"].Description
+
+			assert.Contains(t, desc, want)
+			for other, d := range dial {
+				if other != code {
+					assert.NotContains(t, desc, d)
+				}
+			}
+		})
+	}
+}
+
+func TestIndiaToolTextHasNoPaise(t *testing.T) {
+	srv, err := NewRzpMcpServerForRegion(t.Context(), CreateTestObservability(),
+		rzpsdk.NewClient("key", "secret"), region.India(), nil, false)
+	require.NoError(t, err)
+
+	for name, tool := range listedTools(t, srv) {
+		assert.NotContains(t, tool, "paise", "tool %s", name)
+	}
+}
+
+// Mirrors razorpay-remote-mcp-server, which does not call NewToolSets.
+func TestToolsRegisteredWithoutNewToolSetsShowIndiaText(t *testing.T) {
+	obs := CreateTestObservability()
+	client := rzpsdk.NewClient("key", "secret")
+	srv := mcpgo.NewMcpServer("remote-like", "1.0.0")
+	srv.AddTools(CreateOrder(obs, client), FetchSavedPaymentMethods(obs, client))
+
+	for name, tool := range listedTools(t, srv) {
+		assert.NotContains(t, tool, "{{", "tool %s", name)
+	}
+	assert.Contains(t, listedTools(t, srv)["create_order"],
+		"smallest unit of INR")
+}
+
+// Mirrors razorpay-remote-mcp-server, which builds its own toolset group.
+func TestApplyRegionProfileOnOwnToolsetGroup(t *testing.T) {
+	obs := CreateTestObservability()
+	client := rzpsdk.NewClient("key", "secret")
+	tg := toolsets.NewToolsetGroup(false)
+	tg.AddToolset(toolsets.NewToolset("orders", "Orders").
+		AddWriteTools(CreateOrder(obs, client)))
+	tg.AddToolset(toolsets.NewToolset("payouts", "Payouts").
+		AddReadTools(FetchAllPayouts(obs, client)))
+
+	require.NoError(t, ApplyRegionProfile(tg, sgProfile(t), nil))
+	require.NoError(t, tg.EnableToolsets(nil))
+	srv := mcpgo.NewMcpServer("own-group", "1.0.0")
+	tg.RegisterTools(srv)
+
+	tools := listedTools(t, srv)
+	assert.Equal(t, []string{"create_order"}, toolNames(tools))
+	assert.Contains(t, tools["create_order"], "smallest unit of SGD")
+}
+
+func TestRegionToolsetLosesIndiaOnlyTools(t *testing.T) {
+	client := rzpsdk.NewClient("key", "secret")
+	sg := sgProfile(t)
+
+	t.Run("requested toolset serves only the region's tools",
+		func(t *testing.T) {
+			srv, err := NewRzpMcpServerForRegion(t.Context(), CreateTestObservability(),
+				client, sg, []string{"payment_links"}, false)
+			require.NoError(t, err)
+			tools := listedTools(t, srv)
+			assert.Contains(t, tools, "create_payment_link")
+			assert.NotContains(t, tools, "create_upi_payment_link")
+		})
+
+	t.Run("hidden tool logging tolerates a missing logger", func(t *testing.T) {
+		tg, err := NewToolSets(nil, client, nil, false)
+		require.NoError(t, err)
+		tg.SetToolFilter(sg.AllowsTool)
+		assert.NotPanics(t, func() {
+			logHiddenRegionTools(t.Context(), nil, tg, sg, []string{"payment_links"})
+		})
+	})
+}
+
+// inOnlyTools: tools no SG/MY/US profile serves; new tools must pick a side.
+var inOnlyTools = []string{
+	"close_qr_code",
+	"create_instant_settlement",
+	"create_qr_code",
+	"detect_stack",
+	"fetch_all_instant_settlements",
+	"fetch_all_payouts",
+	"fetch_all_qr_codes",
+	"fetch_instant_settlement_with_id",
+	"fetch_payments_for_qr_code",
+	"fetch_payout_with_id",
+	"fetch_qr_code",
+	"fetch_qr_codes_by_customer_id",
+	"fetch_qr_codes_by_payment_id",
+	"integrate_razorpay_checkout",
+	"payment_link_upi_create",
+}
+
+func TestEveryToolHasARegionDecision(t *testing.T) {
+	tg, err := NewToolSets(CreateTestObservability(),
+		rzpsdk.NewClient("key", "secret"), nil, false)
+	require.NoError(t, err)
+
+	served := map[string]bool{}
+	for _, code := range []string{"SG", "MY", "US"} {
+		for _, name := range builtinProfile(t, code).Tools {
+			served[name] = true
+		}
+	}
+	var unserved []string
+	for _, tool := range tg.AllTools() {
+		if !served[tool.GetName()] {
+			unserved = append(unserved, tool.GetName())
+		}
+	}
+	sort.Strings(unserved)
+	assert.Equal(t, inOnlyTools, unserved,
+		"new tool: add it to pkg/region/profiles/{SG,MY,US}.yaml or inOnlyTools")
+}

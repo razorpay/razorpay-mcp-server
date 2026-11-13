@@ -23,10 +23,11 @@ func CreateRefund(
 		),
 		mcpgo.WithNumber(
 			"amount",
-			mcpgo.Description("Payment amount in paise (smallest currency unit). "+
-				"For INR: 100 paise = ₹1. Example: for ₹295, use 29500"),
+			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
+				amountExampleDesc),
 			mcpgo.Required(),
-			mcpgo.Min(100), // Minimum amount is 100 (1.00 in currency)
+			// INR-shaped floor so India is unchanged; rejects SGD amounts below 1.00.
+			mcpgo.Min(100),
 		),
 		mcpgo.WithString(
 			"speed",
@@ -98,8 +99,7 @@ func CreateRefund(
 	return mcpgo.NewTool(
 		"create_refund",
 		"Use this tool to create a normal refund for a payment. "+
-			"Amount should be in paise (smallest currency unit). "+
-			"For INR: 100 paise = ₹1. Example: for ₹295, use 29500",
+			"Amount should be "+amountUnitDesc+". "+amountExampleDesc,
 		parameters,
 		handler,
 	)

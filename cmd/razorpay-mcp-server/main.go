@@ -38,8 +38,10 @@ func init() {
 	rootCmd.PersistentFlags().StringP("key", "k", "", "your razorpay api key")
 	rootCmd.PersistentFlags().StringP("secret", "s", "", "your razorpay api secret")
 	rootCmd.PersistentFlags().StringP("log-file", "l", "", "path to the log file")
-	rootCmd.PersistentFlags().StringSliceP("toolsets", "t", []string{}, "comma-separated list of toolsets to enable")
+	rootCmd.PersistentFlags().StringSliceP("toolsets", "t", []string{}, "comma-separated list of toolsets to enable (within the tools the region allows)")
 	rootCmd.PersistentFlags().Bool("read-only", false, "run server in read-only mode")
+	rootCmd.PersistentFlags().String("region", "", "region profile to run with: IN, SG, MY or US (default: from the API key, else IN); decides which tools are available")
+	rootCmd.PersistentFlags().String("region-config", "", "path to a YAML file overriding region profiles (host and tools per region)")
 
 	// bind flags to viper
 	_ = viper.BindPFlag("key", rootCmd.PersistentFlags().Lookup("key"))
@@ -47,6 +49,7 @@ func init() {
 	_ = viper.BindPFlag("log_file", rootCmd.PersistentFlags().Lookup("log-file"))
 	_ = viper.BindPFlag("toolsets", rootCmd.PersistentFlags().Lookup("toolsets"))
 	_ = viper.BindPFlag("read_only", rootCmd.PersistentFlags().Lookup("read-only"))
+	bindRegionConfig()
 
 	// Set environment variable mappings
 	_ = viper.BindEnv("key", "RAZORPAY_KEY_ID")        // Maps RAZORPAY_KEY_ID to key
@@ -83,4 +86,13 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+// bindRegionConfig uses razorpay_ keys so a bare REGION env is ignored.
+func bindRegionConfig() {
+	flags := rootCmd.PersistentFlags()
+	_ = viper.BindPFlag("razorpay_region", flags.Lookup("region"))
+	_ = viper.BindPFlag("razorpay_region_config", flags.Lookup("region-config"))
+	_ = viper.BindEnv("razorpay_region", "RAZORPAY_REGION")
+	_ = viper.BindEnv("razorpay_region_config", "RAZORPAY_REGION_CONFIG")
 }
