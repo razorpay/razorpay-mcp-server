@@ -22,7 +22,6 @@ func backendCode(out IntegrateCheckoutOutput) string {
 
 // TestOrderAmountComesFromTheServer guards ISS-3655598 for every framework.
 //
-//
 // The generated order endpoint is unauthenticated. If it takes the price from
 // the request body, a shopper pays 1 paise for any cart and still receives a
 // genuine signature, because the signature covers the order id and the payment
@@ -94,7 +93,8 @@ func TestOrderAmountComesFromTheServer(t *testing.T) {
 			assert.True(t, containsAny(code, failClosedMarkers),
 				"the price lookup must fail closed until implemented")
 
-			// Django binds through the session instead of the receipt, so it
+			// Django binds through the session 
+			// instead of the receipt, so it
 			// compares against its own pending record rather than the order.
 			if name == "django" {
 				assert.Contains(t, code, "razorpay_pending",
