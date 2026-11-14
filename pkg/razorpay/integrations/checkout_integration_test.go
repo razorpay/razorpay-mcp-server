@@ -293,6 +293,42 @@ func Test_IntegrateRazorpayCheckout(t *testing.T) {
 					result.AIInstructions,
 					"if order.payment_method == 'razorpay':\n      order.payment_status",
 				)
+
+				views := findFileCode(
+					t, result.Files, "razorpay_payments/views.py",
+				)
+
+				// The price must come from the server. Taking it from the
+				// request body lets a shopper pay 1 paise for any cart.
+				assert.NotContains(t, views, "data.get('amount'",
+					"create_order must not read the amount from the body")
+				assert.Contains(t, views, "def get_order_amount_paise(request):",
+					"views.py must expose a server-side price lookup")
+				assert.Contains(t, views, "raise NotImplementedError",
+					"the price lookup must fail closed until implemented")
+
+				// A signature proves which order was paid, not how much.
+				assert.Contains(t, views, "client.payment.fetch(razorpay_payment_id)",
+					"verify_payment must fetch what was actually paid")
+				assert.Contains(t, views,
+					"int(payment['amount']) != int(pending['amount'])",
+					"verify_payment must compare the amount paid")
+
+				// The verified payment must bind to the order it paid for.
+				assert.Contains(t, views, "razorpay_pending",
+					"create_order must record the expected amount")
+				assert.Contains(t, views,
+					"request.session.pop('razorpay_pending', None)",
+					"the pending record must be single use")
+				assert.Contains(t, views, "'amount': int(payment['amount'])",
+					"the verified record must carry the amount")
+
+				// The checkout view must compare that amount with the order.
+				assert.Contains(t, result.AIInstructions,
+					"verified['amount'] == expected_paise",
+					"instructions must require an amount check")
+				assert.Contains(t, result.AIInstructions, "STEP 6a",
+					"instructions must tell the agent to implement the lookup")
 			},
 		},
 		{
@@ -1075,4 +1111,16 @@ func findSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// findFileCode returns the generated code for path, failing if it is absent.
+func findFileCode(t *testing.T, files []FileAction, path string) string {
+	t.Helper()
+	for _, file := range files {
+		if file.Path == path {
+			return file.Code
+		}
+	}
+	t.Fatalf("generated files do not include %s", path)
+	return ""
 }
