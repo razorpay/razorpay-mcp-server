@@ -251,9 +251,24 @@ func NewTool(
 	return &mark3labsToolImpl{
 		name:        name,
 		description: description,
-		handler:     handler,
-		parameters:  parameters,
+		// Wrap once here so both the registered server tool and GetHandler
+		// enforce the declared schema. The MCP transport does not.
+		handler:    withSchemaValidation(parameters, handler),
+		parameters: parameters,
 	}
+}
+
+// WithInteger adds an integer parameter. Use it for money, which is always a
+// whole number of the smallest currency unit, and for counts.
+func WithInteger(name string, opts ...PropertyOption) ToolParameter {
+	param := ToolParameter{
+		Name:   name,
+		Schema: map[string]interface{}{"type": "integer"},
+	}
+	for _, opt := range opts {
+		opt(param.Schema)
+	}
+	return param
 }
 
 // addNumberPropertyOptions adds number-specific options to the property options

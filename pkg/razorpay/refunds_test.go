@@ -99,6 +99,28 @@ func Test_CreateRefund(t *testing.T) {
 			},
 		},
 		{
+			Name: "fractional amount is rejected before any API call",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+				// Money is in the smallest currency unit. A fraction used to
+				// be truncated silently to 100.
+				"amount": 100.75,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "amount must be a whole number, got 100.75",
+		},
+		{
+			Name: "negative amount is rejected before any API call",
+			Request: map[string]interface{}{
+				"payment_id": "pay_29QQoUBi66xm2f",
+				"amount":     float64(-500),
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "amount must be at least 100, got -500",
+		},
+		{
 			Name: "refund with idempotency key",
 			Request: map[string]interface{}{
 				"payment_id":      "pay_29QQoUBi66xm2f",

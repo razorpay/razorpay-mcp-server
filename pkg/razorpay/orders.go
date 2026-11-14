@@ -16,7 +16,7 @@ func CreateOrder(
 	client *rzpsdk.Client,
 ) mcpgo.Tool {
 	parameters := []mcpgo.ToolParameter{
-		mcpgo.WithNumber(
+		mcpgo.WithInteger(
 			"amount",
 			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
 				amountExampleDesc),
@@ -48,7 +48,7 @@ func CreateOrder(
 			mcpgo.Description("Whether the customer can make partial payments"),
 			mcpgo.DefaultValue(false),
 		),
-		mcpgo.WithNumber(
+		mcpgo.WithInteger(
 			"first_payment_min_amount",
 			mcpgo.Description("Minimum amount for the first partial "+
 				"payment (only if partial_payment is true), "+amountUnitDesc),
@@ -123,7 +123,7 @@ func CreateOrder(
 		payload := make(map[string]interface{})
 
 		validator := NewValidator(&r).
-			ValidateAndAddRequiredFloat(payload, "amount").
+			ValidateAndAddRequiredInt(payload, "amount").
 			ValidateAndAddRequiredString(payload, "currency").
 			ValidateAndAddOptionalString(payload, "receipt").
 			ValidateAndAddOptionalMap(payload, "notes").
@@ -135,7 +135,7 @@ func CreateOrder(
 
 		// Add first_payment_min_amount only if partial_payment is true
 		if payload["partial_payment"] == true {
-			validator.ValidateAndAddOptionalFloat(payload, "first_payment_min_amount")
+			validator.ValidateAndAddOptionalInt(payload, "first_payment_min_amount")
 		}
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {

@@ -21,7 +21,7 @@ func CreateRefund(
 				"needs to be refunded. ID should have a pay_ prefix."),
 			mcpgo.Required(),
 		),
-		mcpgo.WithNumber(
+		mcpgo.WithInteger(
 			"amount",
 			mcpgo.Description("Payment amount "+amountUnitDesc+". "+
 				amountExampleDesc),
@@ -70,7 +70,7 @@ func CreateRefund(
 
 		validator := NewValidator(&r).
 			ValidateAndAddRequiredString(payload, "payment_id").
-			ValidateAndAddRequiredFloat(payload, "amount").
+			ValidateAndAddRequiredInt(payload, "amount").
 			ValidateAndAddOptionalString(data, "speed").
 			ValidateAndAddOptionalString(data, "receipt").
 			ValidateAndAddOptionalMap(data, "notes").
@@ -87,7 +87,7 @@ func CreateRefund(
 
 		refund, err := client.Payment.Refund(
 			payload["payment_id"].(string),
-			int(payload["amount"].(float64)), data, extraHeaders)
+			int(payload["amount"].(int64)), data, extraHeaders)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("creating refund failed", err)), nil

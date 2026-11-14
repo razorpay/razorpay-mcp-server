@@ -47,8 +47,10 @@ func NewRzpMcpServerForRegion(
 	// Set up default MCP options with Razorpay-specific hooks
 	defaultOpts := []mcpgo.ServerOption{
 		mcpgo.WithLogging(),
-		mcpgo.WithResourceCapabilities(true, true),
+		// Resource capabilities are not advertised: this server registers no
+		// resources, and advertising them makes resources/list answer null.
 		mcpgo.WithToolCapabilities(true),
+		mcpgo.WithRecovery(),
 		mcpgo.WithHooks(mcpgo.SetupHooks(obs)),
 	}
 	// Merge with user-provided options

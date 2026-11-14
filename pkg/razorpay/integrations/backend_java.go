@@ -83,7 +83,10 @@ public class RazorpayController {
             sha256Hmac.init(new SecretKeySpec(keySecret.getBytes(), "HmacSHA256"));
             String expectedSignature = bytesToHex(sha256Hmac.doFinal(data.getBytes()));
 
-            if (expectedSignature.equals(signature)) {
+            if (java.security.MessageDigest.isEqual(
+                    expectedSignature.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    signature == null ? new byte[0]
+                        : signature.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
                 response.put("success", true);
                 response.put("paymentId", paymentId);
                 response.put("orderId", orderId);
@@ -237,7 +240,10 @@ public class RazorpayController {
             sha256Hmac.init(new SecretKeySpec(keySecret.getBytes(), "HmacSHA256"));
             String expectedSignature = bytesToHex(sha256Hmac.doFinal(data.getBytes()));
 
-            if (expectedSignature.equals(signature)) {
+            if (java.security.MessageDigest.isEqual(
+                    expectedSignature.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    signature == null ? new byte[0]
+                        : signature.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
                 response.put("success", true);
                 response.put("paymentId", paymentId);
                 response.put("orderId", orderId);

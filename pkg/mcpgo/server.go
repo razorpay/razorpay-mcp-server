@@ -102,6 +102,15 @@ func WithResourceCapabilities(read, list bool) ServerOption {
 	}
 }
 
+// WithRecovery returns a server option that recovers from a panic inside a
+// tool handler. Without it a single panic ends the whole server process and
+// drops the session.
+func WithRecovery() ServerOption {
+	return func(s OptionSetter) error {
+		return s.SetOption(server.WithRecovery())
+	}
+}
+
 // WithToolCapabilities returns a server option that enables tool capabilities
 func WithToolCapabilities(enabled bool) ServerOption {
 	return func(s OptionSetter) error {

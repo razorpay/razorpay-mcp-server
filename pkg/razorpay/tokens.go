@@ -156,6 +156,7 @@ func RevokeToken(
 				"Customer ID for which the token should be revoked. "+
 					"Must start with 'cust_' followed by alphanumeric characters. "+
 					"Example: 'cust_xxx'"),
+			mcpgo.Pattern("^cust_[A-Za-z0-9]+$"),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
@@ -164,6 +165,7 @@ func RevokeToken(
 				"Token ID of the saved payment method to be revoked. "+
 					"Must start with 'token_' followed by alphanumeric characters. "+
 					"Example: 'token_xxx'"),
+			mcpgo.Pattern("^token_[A-Za-z0-9]+$"),
 			mcpgo.Required(),
 		),
 	}
