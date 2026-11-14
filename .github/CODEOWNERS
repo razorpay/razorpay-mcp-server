@@ -1,29 +1,29 @@
 # Default owners for everything in the repository
-* @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+* @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
 
 # Core Razorpay MCP server implementation
-/pkg/razorpay/ @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/pkg/razorpay/ @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
 
 # Razorpay checkout integrations
 /pkg/razorpay/integrations/ @shridhar52war @vaibhavchopra-wq @jating06 @razorpay/payments-ai-devs
 
 # MCP protocol implementation
-/pkg/mcpgo/ @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/pkg/mcpgo/ @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
 
 # Main application entry point
-/cmd/ @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/cmd/ @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
 
 # GitHub workflows and templates
-/.github/ @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/.github/ @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
 
 # Docker configuration
-/Dockerfile @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/Dockerfile @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
 
 # Build and dependency files
-/go.mod @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
-/go.sum @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
-/Makefile @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/go.mod @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/go.sum @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/Makefile @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
 
 # Documentation
-/*.md @RZP7464 @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
+/*.md @himanshu-rzp @jating06 @paraskathuria-dev @nikhil-rzp @ankitchoudhary2209 @razorpay/payments-ai-devs
 
