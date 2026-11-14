@@ -22,6 +22,7 @@ func backendCode(out IntegrateCheckoutOutput) string {
 
 // TestOrderAmountComesFromTheServer guards ISS-3655598 for every framework.
 //
+//
 // The generated order endpoint is unauthenticated. If it takes the price from
 // the request body, a shopper pays 1 paise for any cart and still receives a
 // genuine signature, because the signature covers the order id and the payment
