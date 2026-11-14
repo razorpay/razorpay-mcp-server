@@ -1811,6 +1811,22 @@ func Test_extractPaymentID(t *testing.T) {
 			payment:  map[string]interface{}{},
 			expected: "",
 		},
+		{
+			name: "numeric payment ID",
+			payment: map[string]interface{}{
+				"razorpay_payment_id": float64(12345),
+				"status":              "created",
+			},
+			expected: "",
+		},
+		{
+			name: "payment ID of an unexpected shape",
+			payment: map[string]interface{}{
+				"razorpay_payment_id": map[string]interface{}{"id": "pay_x"},
+				"status":              "created",
+			},
+			expected: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1938,6 +1954,41 @@ func Test_buildInitiatePaymentResponse(t *testing.T) {
 				},
 			},
 			expectedMsg:    "Payment initiated. Available actions: [unknown_action]",
+			expectedOtpURL: "",
+		},
+		{
+			// The action arrives without the url the OTP flow needs. The
+			// action itself is still reported; otpUrl stays empty and
+			// processPaymentResult skips the OTP request.
+			name: "otp_generate action missing its url",
+			payment: map[string]interface{}{
+				"id":     "pay_MT48CvBhIC98MQ",
+				"status": "created",
+			},
+			paymentID: "pay_MT48CvBhIC98MQ",
+			actions: []map[string]interface{}{
+				{"action": "otp_generate"},
+			},
+			expectedMsg: "Payment initiated. OTP authentication is available. " +
+				"Use the 'submit_otp' tool to submit OTP received by the customer " +
+				"for authentication.",
+			expectedOtpURL: "",
+		},
+		{
+			// A non-string action value is skipped rather than asserted.
+			name: "action value is not a string",
+			payment: map[string]interface{}{
+				"id":     "pay_MT48CvBhIC98MQ",
+				"status": "created",
+			},
+			paymentID: "pay_MT48CvBhIC98MQ",
+			actions: []map[string]interface{}{
+				{
+					"action": float64(42),
+					"url":    "https://api.razorpay.com/v1/payments/x/otp_generate",
+				},
+			},
+			expectedMsg:    "Payment initiated. Available actions: []",
 			expectedOtpURL: "",
 		},
 	}
