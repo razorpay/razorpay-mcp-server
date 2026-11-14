@@ -66,7 +66,13 @@ router.post('/verify', (req, res) => {
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    if (crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(razorpay_signature))) {
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const receivedBuf = Buffer.from(razorpay_signature || '', 'utf8');
+    const isValidSignature =
+      expectedBuf.length === receivedBuf.length &&
+      crypto.timingSafeEqual(expectedBuf, receivedBuf);
+
+    if (isValidSignature) {
       res.json({
         success: true,
         message: 'Payment verified successfully',
@@ -407,9 +413,13 @@ export async function POST(request: NextRequest) {
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(expectedSignature),
-      Buffer.from(razorpay_signature)
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const receivedBuf = Buffer.from(razorpay_signature || '', 'utf8');
+    const isValid =
+      expectedBuf.length === receivedBuf.length &&
+      crypto.timingSafeEqual(
+      expectedBuf,
+      receivedBuf
     );
 
     if (isValid) {
@@ -622,7 +632,13 @@ async function razorpayRoutes(fastify, options) {
         .update(razorpay_order_id + '|' + razorpay_payment_id)
         .digest('hex');
 
-      if (crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(razorpay_signature))) {
+      const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+      const receivedBuf = Buffer.from(razorpay_signature || '', 'utf8');
+      const isValidSignature =
+        expectedBuf.length === receivedBuf.length &&
+        crypto.timingSafeEqual(expectedBuf, receivedBuf);
+
+      if (isValidSignature) {
         return { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id };
       }
       return reply.status(400).send({ success: false, error: 'Invalid signature' });
@@ -739,7 +755,13 @@ router.post('/verify', async (ctx) => {
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    if (crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(razorpay_signature))) {
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const receivedBuf = Buffer.from(razorpay_signature || '', 'utf8');
+    const isValidSignature =
+      expectedBuf.length === receivedBuf.length &&
+      crypto.timingSafeEqual(expectedBuf, receivedBuf);
+
+    if (isValidSignature) {
       ctx.body = { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id };
     } else {
       ctx.status = 400;
@@ -859,7 +881,13 @@ export default defineEventHandler(async (event) => {
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    if (crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(razorpay_signature))) {
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const receivedBuf = Buffer.from(razorpay_signature || '', 'utf8');
+    const isValidSignature =
+      expectedBuf.length === receivedBuf.length &&
+      crypto.timingSafeEqual(expectedBuf, receivedBuf);
+
+    if (isValidSignature) {
       return { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id };
     }
     throw createError({ statusCode: 400, message: 'Invalid signature' });

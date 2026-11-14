@@ -186,6 +186,7 @@ func Test_CreateQRCode(t *testing.T) {
 				"type":  "invalid_type",
 				"usage": "single_use",
 			},
+			// The declared pattern is now enforced locally.
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
@@ -196,7 +197,7 @@ func Test_CreateQRCode(t *testing.T) {
 				)
 			},
 			ExpectError:    true,
-			ExpectedErrMsg: "creating QR code failed: The type field is invalid",
+			ExpectedErrMsg: "type has an invalid format, expected ^upi_qr$",
 		},
 	}
 
@@ -330,23 +331,11 @@ func Test_FetchAllQRCodes(t *testing.T) {
 			Request: map[string]interface{}{
 				"count": float64(-1),
 			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:   qrCodesPath,
-						Method: "GET",
-						Response: map[string]interface{}{
-							"error": map[string]interface{}{
-								"code":        "BAD_REQUEST_ERROR",
-								"description": "The count value should be greater than or equal to 1",
-							},
-						},
-					},
-				)
-			},
-			ExpectError: true,
-			ExpectedErrMsg: "fetching QR codes failed: " +
-				"The count value should be greater than or equal to 1",
+			// The declared minimum is now enforced, so the call is rejected
+			// before it reaches the API.
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "count must be at least 1, got -1",
 		},
 		{
 			Name: "validator error - invalid count parameter type",
@@ -360,7 +349,9 @@ func Test_FetchAllQRCodes(t *testing.T) {
 		{
 			Name: "API error response",
 			Request: map[string]interface{}{
-				"count": float64(1000),
+				// Within the declared maximum, so the call reaches the API
+				// and exercises the error path.
+				"count": float64(10),
 			},
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(

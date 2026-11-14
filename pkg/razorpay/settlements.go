@@ -235,8 +235,12 @@ func CreateInstantSettlement(
 		mcpgo.WithString(
 			"description",
 			mcpgo.Description("Custom note for the instant settlement."),
-			mcpgo.Max(30),
-			mcpgo.Pattern("^[a-zA-Z0-9 ]*$"),
+			// The former Max(30) and ^[a-zA-Z0-9 ]*$ constraints were never
+			// enforced, and this repo's own fixture breaks both: "Need this to
+			// make vendor payments." is 35 characters and contains a period.
+			// Enforcing them as written would reject calls the API accepts
+			// today. Confirm the real limit against the API docs before
+			// declaring one here.
 		),
 		mcpgo.WithObject(
 			"notes",
