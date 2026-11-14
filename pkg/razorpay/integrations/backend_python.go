@@ -14,21 +14,51 @@ from django.conf import settings
 
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
+
+def get_order_amount_paise(request):
+    """Return (amount_in_paise, currency) for the cart this request belongs to.
+
+    The price MUST come from the server. Read it from the cart or order record
+    the project already has. Never read it from the request body: a shopper who
+    chooses the amount can pay 1 paise for any cart and still receive a valid
+    Razorpay signature, because the signature covers the order id and the
+    payment id, not the price.
+
+    Replace the body of this function with a lookup against the existing model,
+    for example:
+
+        cart = Cart.objects.get(user=request.user)
+        return int(cart.total * 100), 'INR'
+    """
+    raise NotImplementedError(
+        'get_order_amount_paise must read the amount from the server-side '
+        'cart or order record. See STEP 6a.'
+    )
+
+
 @csrf_exempt
 @require_POST
 def create_order(request):
     try:
-        data = json.loads(request.body)
-        amount = data.get('amount', 0)
+        # The request body is not trusted for the price. See the docstring.
+        amount_paise, currency = get_order_amount_paise(request)
 
-        if amount <= 0:
+        if amount_paise <= 0:
             return JsonResponse({'success': False, 'error': 'Invalid amount'}, status=400)
 
         order = client.order.create({
-            'amount': int(amount * 100),  # Convert to paise
-            'currency': data.get('currency', 'INR'),
-            'receipt': data.get('receipt', f'receipt_{int(time.time())}'),
+            'amount': amount_paise,
+            'currency': currency,
+            'receipt': f'receipt_{int(time.time())}',
         })
+
+        # Remember what the server asked for, so that verify_payment can check
+        # what was actually paid against it.
+        request.session['razorpay_pending'] = {
+            'order_id': order['id'],
+            'amount': order['amount'],
+            'currency': order['currency'],
+        }
 
         return JsonResponse({
             'success': True,
@@ -52,6 +82,12 @@ def verify_payment(request):
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return JsonResponse({'success': False, 'error': 'Missing payment details'}, status=400)
 
+        # Only an order this session created can be checked, because only then
+        # is the expected amount known.
+        pending = request.session.get('razorpay_pending')
+        if not pending or pending['order_id'] != razorpay_order_id:
+            return JsonResponse({'success': False, 'error': 'Unknown order'}, status=400)
+
         # Use Razorpay SDK to verify signature
         client.utility.verify_payment_signature({
             'razorpay_order_id': razorpay_order_id,
@@ -59,10 +95,29 @@ def verify_payment(request):
             'razorpay_signature': razorpay_signature,
         })
 
-        # Remember the verified payment so the checkout view can trust it
+        # A valid signature proves the payment belongs to that order. It does
+        # not prove how much was paid, so ask Razorpay what was actually paid
+        # and compare it with what the server asked for.
+        payment = client.payment.fetch(razorpay_payment_id)
+
+        if (payment['order_id'] != razorpay_order_id
+                or int(payment['amount']) != int(pending['amount'])
+                or payment['currency'] != pending['currency']
+                or payment['status'] not in ('authorized', 'captured')):
+            return JsonResponse({'success': False, 'error': 'Payment does not match the order'}, status=400)
+
+        # Single use: the pending record cannot be replayed against a second
+        # order.
+        request.session.pop('razorpay_pending', None)
+
+        # Remember the verified payment so the checkout view can trust it. The
+        # amount travels with it so the checkout view can compare it with the
+        # order total.
         request.session['razorpay_verified'] = {
             'order_id': razorpay_order_id,
             'payment_id': razorpay_payment_id,
+            'amount': int(payment['amount']),
+            'currency': payment['currency'],
         }
 
         return JsonResponse({
@@ -207,20 +262,42 @@ Create .env in project root with the ACTUAL keys provided:
 **STEP 5: UPDATE main urls.py**
 Add: path('api/razorpay/', include('razorpay_payments.urls'))
 
+**STEP 6a: IMPLEMENT get_order_amount_paise IN razorpay_payments/views.py (REQUIRED)**
+The provided views.py ships this function as a stub that raises NotImplementedError.
+You MUST replace its body with a lookup against the project's existing cart or order
+model. Read the project's models first, then return the total in the smallest currency
+unit together with the currency, for example:
+  def get_order_amount_paise(request):
+      cart = Cart.objects.get(user=request.user)
+      return int(cart.total * 100), 'INR'
+NEVER take the amount from the request body. The Razorpay signature covers the order id
+and the payment id, not the price, so a shopper who chooses the amount can pay 1 paise
+for any cart and still produce a signature that verifies.
+Leave the stub raising if you genuinely cannot find the cart total. A broken order
+endpoint is recoverable. An endpoint that lets a shopper set the price is not.
+
 **STEP 6: UPDATE orders/views.py (SERVER-SIDE VERIFICATION REQUIRED)**
 NEVER mark an order paid based on client-controlled input such as payment_method.
-verify_payment (already provided) stores the signature-verified payment in
-request.session['razorpay_verified']. Find the checkout view, add before order.save():
+verify_payment (already provided) checks the signature, then asks Razorpay what was
+actually paid and compares it with what the server asked for. It stores the result in
+request.session['razorpay_verified'], including the amount.
+Find the checkout view, add before order.save():
   order.payment_method = request.POST.get('payment_method', 'cod')
   if order.payment_method == 'razorpay':
       verified = request.session.pop('razorpay_verified', None)
       posted_payment_id = request.POST.get('razorpay_payment_id')
-      if verified and verified['payment_id'] == posted_payment_id:
+      expected_paise = int(order.total_amount * 100)  # use THIS order's server-side total
+      if (verified
+              and verified['payment_id'] == posted_payment_id
+              and verified['amount'] == expected_paise):
           order.payment_status = 'paid'
           # Persist ids (add fields to the Order model if missing) for reconciliation/refunds
           order.razorpay_order_id = verified['order_id']
           order.razorpay_payment_id = verified['payment_id']
       # otherwise leave payment_status as-is (pending); never default to 'paid'
+Replace order.total_amount with whatever field holds this order's total. The amount
+comparison is what stops a payment made for a cheap order being applied to an expensive
+one. Without it, a shopper can pay once for a 1 rupee order and reuse that payment id.
 The checkout form MUST include a hidden input named razorpay_payment_id, set from
 the paymentId returned to the onSuccess callback BEFORE the form is submitted.
 
@@ -282,6 +359,8 @@ CRITICAL RULES:
 ❌ NEVER reference elements without checking they exist - READ the template first!
 ❌ NEVER use {% static %} without {% load static %} at the top of the template
 ❌ NEVER mark an order paid without verifying the Razorpay signature server-side
+❌ NEVER read the payment amount from the request body - get it from the cart/order on the server
+❌ NEVER mark an order paid without checking that the amount paid equals THIS order's total
 ❌ NEVER break the existing COD payment flow - both options must work
 ❌ NEVER delete or revert existing files - you are ADDING integration, not replacing
 ❌ NEVER create Django order BEFORE Razorpay payment - payment must happen FIRST
@@ -298,6 +377,8 @@ FINAL CHECKLIST - ALL MUST BE YES:
 ✅ Did you create static/js/razorpay.js?
 ✅ Did you MODIFY templates/orders/checkout.html (not create a new template)?
 ✅ Did you add payment method radio buttons to the EXISTING checkout form?
+✅ Did you implement get_order_amount_paise against the real cart/order model?
+✅ Does the checkout view compare verified['amount'] with this order's total before marking it paid?
 ✅ Does the existing COD flow still work?
 
 If ANY answer is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(frontend),
