@@ -93,7 +93,7 @@ func TestOrderAmountComesFromTheServer(t *testing.T) {
 			assert.True(t, containsAny(code, failClosedMarkers),
 				"the price lookup must fail closed until implemented")
 
-			// Django binds through the session 
+			// Django binds through the session
 			// instead of the receipt, so it
 			// compares against its own pending record rather than the order.
 			if name == "django" {
