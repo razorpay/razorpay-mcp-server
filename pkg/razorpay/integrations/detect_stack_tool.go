@@ -19,7 +19,8 @@ func DetectStack(
 		mcpgo.WithArray(
 			"files",
 			mcpgo.Description("List of file paths in the project"),
-			mcpgo.Required(),
+			// Not required: the handler accepts an empty call and answers
+			// "unknown". Declaring it required contradicted that behaviour.
 			mcpgo.Items(map[string]interface{}{"type": "string"}),
 		),
 		mcpgo.WithObject(

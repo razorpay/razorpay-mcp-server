@@ -338,7 +338,16 @@ pub async fn verify_payment(req: web::Json<VerifyRequest>) -> Result<HttpRespons
     mac.update(data.as_bytes());
     let expected = hex::encode(mac.finalize().into_bytes());
 
-    if expected == req.razorpay_signature {
+    let expected_bytes = expected.as_bytes();
+    let received_bytes = req.razorpay_signature.as_bytes();
+    let signature_valid = expected_bytes.len() == received_bytes.len()
+        && expected_bytes
+            .iter()
+            .zip(received_bytes.iter())
+            .fold(0u8, |acc, (a, b)| acc | (a ^ b))
+            == 0;
+
+    if signature_valid {
         Ok(HttpResponse::Ok().json(serde_json::json!({
             "success": true,
             "paymentId": req.razorpay_payment_id,
@@ -475,7 +484,11 @@ public class RazorpayController : ControllerBase
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
         var expectedSignature = BitConverter.ToString(hash).Replace("-", "").ToLower();
 
-        if (expectedSignature == request.RazorpaySignature)
+        var expectedBytes = Encoding.UTF8.GetBytes(expectedSignature);
+        var receivedBytes = Encoding.UTF8.GetBytes(request.RazorpaySignature ?? string.Empty);
+
+        if (expectedBytes.Length == receivedBytes.Length &&
+            CryptographicOperations.FixedTimeEquals(expectedBytes, receivedBytes))
             return Ok(new { success = true, paymentId = request.RazorpayPaymentId, orderId = request.RazorpayOrderId });
 
         return BadRequest(new { success = false, error = "Invalid signature" });

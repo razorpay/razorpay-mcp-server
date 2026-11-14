@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -54,7 +55,7 @@ var stdioCmd = &cobra.Command{
 		ctx = region.WithProfile(ctx, profile)
 
 		// Get toolsets to enable from config
-		enabledToolsets := viper.GetStringSlice("toolsets")
+		enabledToolsets := normalizeToolsets(viper.GetStringSlice("toolsets"))
 
 		// Get read-only mode from config
 		readOnly := viper.GetBool("read_only")
@@ -148,4 +149,29 @@ func stdioBanner(code string) string {
 			"Curlec (MY) accounts: use --region MY)"
 	}
 	return fmt.Sprintf("Razorpay MCP Server running on stdio (region %s)", code)
+}
+
+// normalizeToolsets splits comma-separated values that arrive as a single
+// element. Viper does not split an environment variable on commas, so
+// TOOLSETS=payments,orders reaches this code as one string. It also treats
+// the documented "all" value as "enable every toolset", which the toolset
+// group expresses as an empty list.
+func normalizeToolsets(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		for _, part := range strings.Split(value, ",") {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			if strings.EqualFold(part, "all") {
+				return nil
+			}
+			out = append(out, part)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
