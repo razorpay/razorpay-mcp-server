@@ -142,6 +142,28 @@ func wrongType(name string) string {
 	return "invalid parameter type: " + name
 }
 
+// checkIntegerType reports why value is not a usable integer, or "".
+func checkIntegerType(name string, value interface{}) string {
+	number, ok := toNumber(value)
+	if !ok {
+		return wrongType(name)
+	}
+	if math.IsNaN(number) || math.IsInf(number, 0) {
+		return fmt.Sprintf("%s must be a finite integer", name)
+	}
+	if number != math.Trunc(number) {
+		return fmt.Sprintf(
+			"%s must be a whole number, got %v. Amounts are in the "+
+				"smallest currency unit, so they cannot have a fraction",
+			name, number,
+		)
+	}
+	if math.Abs(number) > float64(1<<53) {
+		return fmt.Sprintf("%s is too large to represent exactly", name)
+	}
+	return ""
+}
+
 func checkType(name, declaredType string, value interface{}) string {
 	switch declaredType {
 	case "number":
@@ -149,23 +171,7 @@ func checkType(name, declaredType string, value interface{}) string {
 			return wrongType(name)
 		}
 	case "integer":
-		number, ok := toNumber(value)
-		if !ok {
-			return wrongType(name)
-		}
-		if math.IsNaN(number) || math.IsInf(number, 0) {
-			return fmt.Sprintf("%s must be a finite integer", name)
-		}
-		if number != math.Trunc(number) {
-			return fmt.Sprintf(
-				"%s must be a whole number, got %v. Amounts are in the "+
-					"smallest currency unit, so they cannot have a fraction",
-				name, number,
-			)
-		}
-		if math.Abs(number) > float64(1<<53) {
-			return fmt.Sprintf("%s is too large to represent exactly", name)
-		}
+		return checkIntegerType(name, value)
 	case "string":
 		if !isKind(value, reflect.String) {
 			return wrongType(name)
