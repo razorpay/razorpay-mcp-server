@@ -47,7 +47,7 @@ func CreateQRCode(
 			),
 			mcpgo.DefaultValue(false),
 		),
-		mcpgo.WithNumber(
+		mcpgo.WithInteger(
 			"payment_amount",
 			mcpgo.Description(
 				"The specific amount allowed for transaction in smallest "+
@@ -65,7 +65,7 @@ func CreateQRCode(
 				"The unique identifier of the customer to link with the QR Code",
 			),
 		),
-		mcpgo.WithNumber(
+		mcpgo.WithInteger(
 			"close_by",
 			mcpgo.Description(
 				"Unix timestamp at which QR Code should be automatically "+
@@ -98,10 +98,10 @@ func CreateQRCode(
 			ValidateAndAddRequiredString(qrData, "usage").
 			ValidateAndAddOptionalString(qrData, "name").
 			ValidateAndAddOptionalBool(qrData, "fixed_amount").
-			ValidateAndAddOptionalFloat(qrData, "payment_amount").
+			ValidateAndAddOptionalInt(qrData, "payment_amount").
 			ValidateAndAddOptionalString(qrData, "description").
 			ValidateAndAddOptionalString(qrData, "customer_id").
-			ValidateAndAddOptionalFloat(qrData, "close_by").
+			ValidateAndAddOptionalInt(qrData, "close_by").
 			ValidateAndAddOptionalMap(qrData, "notes")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {

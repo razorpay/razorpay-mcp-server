@@ -368,7 +368,9 @@ def verify_payment():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Never enable the Werkzeug debugger on a reachable host: it exposes an
+    # interactive Python console.
+    app.run(debug=False)
 `
 
 	return IntegrateCheckoutOutput{

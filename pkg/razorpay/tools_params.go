@@ -3,6 +3,8 @@ package razorpay
 import (
 	"encoding/json"
 	"errors"
+	"math"
+	"net/url"
 	"strings"
 	"time"
 
@@ -260,10 +262,11 @@ func (v *Validator) ValidateAndAddExpand(
 		return v
 	}
 
+	// Every value must survive. Assigning in a loop kept only the last one,
+	// so a caller asking to expand payments and transfers got transfers
+	// alone while the result claimed both.
 	if len(*expand) > 0 {
-		for _, val := range *expand {
-			params["expand[]"] = val
-		}
+		params["expand[]"] = append([]string(nil), *expand...)
 	}
 	return v
 }
@@ -340,6 +343,11 @@ func (v *Validator) validateTokenMaxAmount(
 		case float64:
 			if amt <= 0 {
 				return v.addError(errors.New("token.max_amount must be greater than 0"))
+			}
+			if amt != math.Trunc(amt) {
+				return v.addError(errors.New(
+					"token.max_amount must be a whole number: it is in the " +
+						"smallest currency unit, so it cannot have a fraction"))
 			}
 		case int:
 			if amt <= 0 {
@@ -475,4 +483,34 @@ func formatErrorMessage(prefix string, err error) string {
 	}
 
 	return prefix + ": " + errMsg
+}
+
+// ValidateAndAddOptionalCallbackURL validates an optional redirect URL and
+// adds it to params. A paying customer's browser follows this URL after
+// payment, so only an absolute https URL is accepted. A relative value, a
+// javascript: or data: value, or a plain http: value is rejected.
+func (v *Validator) ValidateAndAddOptionalCallbackURL(
+	params map[string]interface{},
+	name string,
+) *Validator {
+	value, err := extractValueGeneric[string](v.request, name, false)
+	if err != nil {
+		return v.addError(err)
+	}
+
+	if value == nil || *value == "" {
+		return v
+	}
+
+	parsed, parseErr := url.Parse(*value)
+	if parseErr != nil ||
+		!strings.EqualFold(parsed.Scheme, "https") ||
+		parsed.Host == "" {
+		return v.addError(errors.New(
+			name + " must be an absolute https URL, " +
+				"for example https://example.com/payment-complete"))
+	}
+
+	params[name] = *value
+	return v
 }

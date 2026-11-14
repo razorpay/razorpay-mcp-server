@@ -44,6 +44,30 @@ func Test_CreatePaymentLink(t *testing.T) {
 
 	tests := []RazorpayToolTestCase{
 		{
+			Name: "non-https callback_url is rejected",
+			Request: map[string]interface{}{
+				"amount":   float64(50000),
+				"currency": "INR",
+				// A paying customer's browser follows this URL. An attacker
+				// controlled destination is a phishing hand-off.
+				"callback_url": "http://evil.example.com/pay-again",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "callback_url must be an absolute https URL",
+		},
+		{
+			Name: "javascript callback_url is rejected",
+			Request: map[string]interface{}{
+				"amount":       float64(50000),
+				"currency":     "INR",
+				"callback_url": "javascript:alert(1)",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "callback_url must be an absolute https URL",
+		},
+		{
 			Name: "successful payment link creation",
 			Request: map[string]interface{}{
 				"amount":      float64(50000),

@@ -120,7 +120,7 @@ func CreatePaymentLink(
 			ValidateAndAddOptionalBoolToPath(notify, "notify_email", "email").
 			ValidateAndAddOptionalBool(plCreateReq, "reminder_enable").
 			ValidateAndAddOptionalMap(plCreateReq, "notes").
-			ValidateAndAddOptionalString(plCreateReq, "callback_url").
+			ValidateAndAddOptionalCallbackURL(plCreateReq, "callback_url").
 			ValidateAndAddOptionalString(plCreateReq, "callback_method")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {
@@ -259,7 +259,7 @@ func CreateUpiPaymentLink(
 			ValidateAndAddOptionalBoolToPath(notify, "notify_email", "email").
 			ValidateAndAddOptionalBool(upiPlCreateReq, "reminder_enable").
 			ValidateAndAddOptionalMap(upiPlCreateReq, "notes").
-			ValidateAndAddOptionalString(upiPlCreateReq, "callback_url").
+			ValidateAndAddOptionalCallbackURL(upiPlCreateReq, "callback_url").
 			ValidateAndAddOptionalString(upiPlCreateReq, "callback_method")
 
 		if result, err := validator.HandleErrorsIfAny(); result != nil {

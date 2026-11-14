@@ -333,14 +333,6 @@ func Test_CreateInstantSettlement(t *testing.T) {
 		"created_at": float64(1596771429),
 	}
 
-	// Error response for insufficient amount
-	insufficientAmountResp := map[string]interface{}{
-		"error": map[string]interface{}{
-			"code":        "BAD_REQUEST_ERROR",
-			"description": "Minimum amount that can be settled is ₹ 1.",
-		},
-	}
-
 	tests := []RazorpayToolTestCase{
 		{
 			Name: "successful settlement creation with all parameters",
@@ -387,18 +379,11 @@ func Test_CreateInstantSettlement(t *testing.T) {
 			Request: map[string]interface{}{
 				"amount": float64(10), // Less than minimum
 			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:     createInstantSettlementPath,
-						Method:   "POST",
-						Response: insufficientAmountResp,
-					},
-				)
-			},
-			ExpectError: true,
-			ExpectedErrMsg: "creating instant settlement failed: Minimum amount that " +
-				"can be settled is ₹ 1.",
+			// The declared minimum is now enforced, so the call is rejected
+			// before it reaches the API.
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "amount must be at least 200, got 10",
 		},
 		{
 			Name:           "missing amount parameter",
