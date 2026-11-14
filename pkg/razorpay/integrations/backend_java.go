@@ -37,17 +37,12 @@ public class RazorpayController {
         try {
             RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
 
-            double amount = ((Number) request.get("amount")).doubleValue();
-            if (amount <= 0) {
-                response.put("success", false);
-                response.put("error", "Invalid amount");
-                return ResponseEntity.badRequest().body(response);
-            }
+            OrderAmount orderAmount = getOrderAmount();
 
             JSONObject orderRequest = new JSONObject();
-            orderRequest.put("amount", (int) (amount * 100));
-            orderRequest.put("currency", request.getOrDefault("currency", "INR"));
-            orderRequest.put("receipt", request.getOrDefault("receipt", "receipt_" + System.currentTimeMillis()));
+            orderRequest.put("amount", orderAmount.amountInSubunits);
+            orderRequest.put("currency", orderAmount.currency);
+            orderRequest.put("receipt", orderAmount.reference);
 
             Order order = razorpay.orders.create(orderRequest);
 
@@ -87,9 +82,31 @@ public class RazorpayController {
                     expectedSignature.getBytes(java.nio.charset.StandardCharsets.UTF_8),
                     signature == null ? new byte[0]
                         : signature.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
+
+                Payment payment = razorpay.payments.fetch(paymentId);
+                String paymentStatus = (String) payment.get("status");
+                if (!orderId.equals(payment.get("order_id"))
+                        || !("authorized".equals(paymentStatus) || "captured".equals(paymentStatus))) {
+                    response.put("success", false);
+                    response.put("error", "Payment does not match the order");
+                    return ResponseEntity.badRequest().body(response);
+                }
+
+                Order fetchedOrder = razorpay.orders.fetch(orderId);
+                if (((Number) payment.get("amount")).longValue() != ((Number) fetchedOrder.get("amount")).longValue()
+                        || !String.valueOf(payment.get("currency")).equals(String.valueOf(fetchedOrder.get("currency")))) {
+                    response.put("success", false);
+                    response.put("error", "Payment does not match the order");
+                    return ResponseEntity.badRequest().body(response);
+                }
+
                 response.put("success", true);
                 response.put("paymentId", paymentId);
                 response.put("orderId", orderId);
+                response.put("reference", fetchedOrder.get("receipt"));
+                response.put("amount", ((Number) payment.get("amount")).longValue());
+                response.put("currency", fetchedOrder.get("currency"));
                 return ResponseEntity.ok(response);
             }
             response.put("success", false);
@@ -100,6 +117,30 @@ public class RazorpayController {
             response.put("error", "Verification failed");
             return ResponseEntity.internalServerError().body(response);
         }
+    }
+
+    // What the server decided this cart costs.
+    public static class OrderAmount {
+        public final long amountInSubunits;
+        public final String currency;
+        public final String reference;
+
+        public OrderAmount(long amountInSubunits, String currency, String reference) {
+            this.amountInSubunits = amountInSubunits;
+            this.currency = currency;
+            this.reference = reference;
+        }
+    }
+
+    // The price MUST come from the server: read it from the cart or order
+    // record this project already has. Never read it from the request body.
+    // The Razorpay signature covers the order id and the payment id, not the
+    // price, so a shopper who chooses the amount can pay 1 paise for any cart
+    // and still produce a signature that verifies. Replace this body with a
+    // real lookup against the existing model.
+    private OrderAmount getOrderAmount() {
+        throw new UnsupportedOperationException(
+            "getOrderAmount must read the amount from the server-side cart or order record; see the integration instructions");
     }
 
     private String bytesToHex(byte[] bytes) {
@@ -137,6 +178,9 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 **STEP 2: CREATE CONTROLLER**
 - Create RazorpayController.java with the provided code
 - Includes order creation and payment verification endpoints
+- You MUST implement getOrderAmount() so it returns the amount, currency, and reference from your server-side cart or order record
+- You MUST mark an order paid only when the verify response reference matches that order and the amount equals that order's server-side total
+- NEVER take the amount from the HTTP request body
 
 **STEP 3: CONFIGURE APPLICATION**
 - Add razorpay.key.id and razorpay.key.secret to application.properties
@@ -148,12 +192,15 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in source code
 ❌ DO NOT skip payment verification
+❌ DO NOT take the amount, currency, or receipt from the HTTP request body
 
 FINAL CHECKLIST:
 ✅ Did you add razorpay-java to pom.xml?
 ✅ Did you create RazorpayController.java?
 ✅ Did you add config to application.properties?
-✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
+✅ Did you implement getOrderAmount() against your real cart or order model?
+✅ Did you wire up the frontend payment flow?
+✅ Do you mark an order paid only when the verify response reference and amount match that order's server-side record?` + getFrontendWiringInstructions(frontend),
 	}
 }
 
@@ -194,17 +241,12 @@ public class RazorpayController {
         try {
             RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
 
-            double amount = ((Number) request.get("amount")).doubleValue();
-            if (amount <= 0) {
-                response.put("success", false);
-                response.put("error", "Invalid amount");
-                return ResponseEntity.badRequest().body(response);
-            }
+            OrderAmount orderAmount = getOrderAmount();
 
             JSONObject orderRequest = new JSONObject();
-            orderRequest.put("amount", (int) (amount * 100));
-            orderRequest.put("currency", request.getOrDefault("currency", "INR"));
-            orderRequest.put("receipt", request.getOrDefault("receipt", "receipt_" + System.currentTimeMillis()));
+            orderRequest.put("amount", orderAmount.amountInSubunits);
+            orderRequest.put("currency", orderAmount.currency);
+            orderRequest.put("receipt", orderAmount.reference);
 
             Order order = razorpay.orders.create(orderRequest);
 
@@ -244,9 +286,31 @@ public class RazorpayController {
                     expectedSignature.getBytes(java.nio.charset.StandardCharsets.UTF_8),
                     signature == null ? new byte[0]
                         : signature.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
+
+                Payment payment = razorpay.payments.fetch(paymentId);
+                String paymentStatus = (String) payment.get("status");
+                if (!orderId.equals(payment.get("order_id"))
+                        || !("authorized".equals(paymentStatus) || "captured".equals(paymentStatus))) {
+                    response.put("success", false);
+                    response.put("error", "Payment does not match the order");
+                    return ResponseEntity.badRequest().body(response);
+                }
+
+                Order fetchedOrder = razorpay.orders.fetch(orderId);
+                if (((Number) payment.get("amount")).longValue() != ((Number) fetchedOrder.get("amount")).longValue()
+                        || !String.valueOf(payment.get("currency")).equals(String.valueOf(fetchedOrder.get("currency")))) {
+                    response.put("success", false);
+                    response.put("error", "Payment does not match the order");
+                    return ResponseEntity.badRequest().body(response);
+                }
+
                 response.put("success", true);
                 response.put("paymentId", paymentId);
                 response.put("orderId", orderId);
+                response.put("reference", fetchedOrder.get("receipt"));
+                response.put("amount", ((Number) payment.get("amount")).longValue());
+                response.put("currency", fetchedOrder.get("currency"));
                 return ResponseEntity.ok(response);
             }
             response.put("success", false);
@@ -257,6 +321,30 @@ public class RazorpayController {
             response.put("error", "Verification failed: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
+    }
+
+    // What the server decided this cart costs.
+    public static class OrderAmount {
+        public final long amountInSubunits;
+        public final String currency;
+        public final String reference;
+
+        public OrderAmount(long amountInSubunits, String currency, String reference) {
+            this.amountInSubunits = amountInSubunits;
+            this.currency = currency;
+            this.reference = reference;
+        }
+    }
+
+    // The price MUST come from the server: read it from the cart or order
+    // record this project already has. Never read it from the request body.
+    // The Razorpay signature covers the order id and the payment id, not the
+    // price, so a shopper who chooses the amount can pay 1 paise for any cart
+    // and still produce a signature that verifies. Replace this body with a
+    // real lookup against the existing model.
+    private OrderAmount getOrderAmount() {
+        throw new UnsupportedOperationException(
+            "getOrderAmount must read the amount from the server-side cart or order record; see the integration instructions");
     }
 
     private String bytesToHex(byte[] bytes) {
@@ -308,6 +396,9 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - Create RazorpayController.java with the provided code in your controller package
 - Includes order creation and payment verification endpoints
 - Uses @RestController, @RequestMapping, @PostMapping
+- You MUST implement getOrderAmount() so it returns the amount, currency, and reference from your server-side cart or order record
+- You MUST mark an order paid only when the verify response reference matches that order and the amount equals that order's server-side total
+- NEVER take the amount from the HTTP request body
 
 **STEP 3: CONFIGURE APPLICATION**
 - Add razorpay.key.id and razorpay.key.secret to application.properties
@@ -323,13 +414,16 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in source code
 ❌ DO NOT skip payment verification
+❌ DO NOT take the amount, currency, or receipt from the HTTP request body
 
 FINAL CHECKLIST:
 ✅ Did you add razorpay-java to pom.xml?
 ✅ Did you create RazorpayController.java?
 ✅ Did you add config to application.properties?
 ✅ Did you set up environment variables?
-✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
+✅ Did you implement getOrderAmount() against your real cart or order model?
+✅ Did you wire up the frontend payment flow?
+✅ Do you mark an order paid only when the verify response reference and amount match that order's server-side record?` + getFrontendWiringInstructions(frontend),
 	}
 }
 

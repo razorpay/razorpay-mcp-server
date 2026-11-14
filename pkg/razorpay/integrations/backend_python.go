@@ -399,19 +399,43 @@ load_dotenv()
 app = Flask(__name__)
 client = razorpay.Client(auth=(os.environ['RAZORPAY_KEY_ID'], os.environ['RAZORPAY_KEY_SECRET']))
 
+def get_order_amount():
+    """Return (amount_in_subunits, currency, reference) for the current cart.
+
+    The price MUST come from the server. Read it from the cart or order record
+    this project already has. Never read it from the request body: the Razorpay
+    signature covers the order id and the payment id, not the price, so a
+    shopper who chooses the amount can pay 1 paise for any cart and still
+    produce a signature that verifies.
+
+    reference is this project's own cart or order id. It travels to Razorpay as
+    the receipt and comes back from /verify, which is how a payment is bound to
+    the record it paid for.
+
+    Replace the body with a real lookup, for example:
+
+        cart = Cart.query.filter_by(user_id=current_user.id).one()
+        return int(cart.total * 100), 'INR', str(cart.id)
+    """
+    raise NotImplementedError(
+        'get_order_amount must read the amount from the server-side cart or '
+        'order record. See the integration instructions.'
+    )
+
+
 @app.route('/api/razorpay/order', methods=['POST'])
 def create_order():
     try:
-        data = request.get_json()
-        amount = data.get('amount', 0)
+        # The request body is not trusted for the price. See the docstring.
+        amount_subunits, currency, reference = get_order_amount()
 
-        if amount <= 0:
+        if amount_subunits <= 0:
             return jsonify({'success': False, 'error': 'Invalid amount'}), 400
 
         order = client.order.create({
-            'amount': int(amount * 100),
-            'currency': data.get('currency', 'INR'),
-            'receipt': data.get('receipt', f'receipt_{int(time.time())}'),
+            'amount': amount_subunits,
+            'currency': currency,
+            'receipt': reference,
         })
 
         return jsonify({
@@ -442,7 +466,28 @@ def verify_payment():
             'razorpay_signature': razorpay_signature,
         })
 
-        return jsonify({'success': True, 'paymentId': razorpay_payment_id, 'orderId': razorpay_order_id})
+        # A valid signature proves which order was paid, not how much. Ask
+        # Razorpay what was actually paid and compare it with the order the
+        # server created.
+        payment = client.payment.fetch(razorpay_payment_id)
+        order = client.order.fetch(razorpay_order_id)
+
+        if (payment['order_id'] != razorpay_order_id
+                or payment['status'] not in ('authorized', 'captured')
+                or int(payment['amount']) != int(order['amount'])
+                or payment['currency'] != order['currency']):
+            return jsonify({'success': False, 'error': 'Payment does not match the order'}), 400
+
+        # reference is the receipt set by create_order. The caller must check
+        # it against the record it is about to mark paid.
+        return jsonify({
+            'success': True,
+            'paymentId': razorpay_payment_id,
+            'orderId': razorpay_order_id,
+            'reference': order.get('receipt'),
+            'amount': int(order['amount']),
+            'currency': order['currency'],
+        })
     except razorpay.errors.SignatureVerificationError:
         return jsonify({'success': False, 'error': 'Invalid signature'}), 400
     except Exception as e:
@@ -505,11 +550,34 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - Add script tag in template
 - Modify checkout to call initiateRazorpayPayment() before submitting
 
+**STEP 5: IMPLEMENT get_order_amount (REQUIRED)**
+The provided code ships get_order_amount as a stub that raises NotImplementedError.
+You MUST replace its body with a lookup against the project's existing cart or order
+model. Read the project's models first, then return the total in the smallest currency
+unit, the currency, and a reference that identifies the record being paid for:
+  def get_order_amount():
+      cart = Cart.query.filter_by(user_id=current_user.id).one()
+      return int(cart.total * 100), 'INR', str(cart.id)
+NEVER take the amount from the request body. The Razorpay signature covers the order id
+and the payment id, not the price, so a shopper who chooses the amount can pay 1 paise
+for any cart and still produce a signature that verifies.
+Leave the stub raising if you genuinely cannot find the cart total. A broken order
+endpoint is recoverable. An endpoint that lets a shopper set the price is not.
+
+**STEP 6: BIND THE PAYMENT TO THE RECORD IT PAID FOR**
+/verify now returns reference, amount and currency, read back from the order Razorpay
+holds. Mark a record paid only when BOTH of these hold:
+  - reference equals the id of the record you are about to mark paid
+  - amount equals that record's own server-side total
+Without the amount check, a payment made for a cheap order can be applied to an
+expensive one. Store the payment id and order id alongside the record for reconciliation.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ⛔ FORBIDDEN - DO NOT DO ANY OF THESE:
 ═══════════════════════════════════════════════════════════════════════════════
-❌ NEVER modify database models - the integration works without adding fields
-❌ NEVER run migrations - they cause conflicts and are not needed
+❌ NEVER read the payment amount from the request body - get it from the cart on the server
+❌ NEVER mark a record paid without checking reference AND amount from /verify
+❌ NEVER leave get_order_amount raising NotImplementedError if the cart total is findable
 ❌ DO NOT delete the .env file
 ❌ DO NOT use bare except: - catch specific exceptions
 
@@ -519,6 +587,8 @@ FINAL CHECKLIST:
 ✅ Did you run pip install razorpay python-dotenv?
 ✅ Did you add dependencies to requirements.txt?
 ✅ Did you create razorpay_routes.py?
+✅ Did you implement get_order_amount against the real cart/order model?
+✅ Does your checkout code check BOTH reference and amount from /verify?
 ✅ Did you register routes at TOP LEVEL in app.py (not inside any handler)?
 ✅ Did you create .env file with actual keys?
 
@@ -532,8 +602,7 @@ func getFastAPIIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput
 	routerCode := `import os
 import time
 import razorpay
-from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -542,25 +611,49 @@ load_dotenv()
 router = APIRouter(prefix="/api/razorpay")
 client = razorpay.Client(auth=(os.environ['RAZORPAY_KEY_ID'], os.environ['RAZORPAY_KEY_SECRET']))
 
-class OrderRequest(BaseModel):
-    amount: float
-    currency: str = "INR"
-    receipt: Optional[str] = None
-
 class VerifyRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
     razorpay_signature: str
 
+
+def get_order_amount(request: Request):
+    """Return (amount_in_subunits, currency, reference) for the current cart.
+
+    The price MUST come from the server. Read it from the cart or order record
+    this project already has. Never read it from the request body: the Razorpay
+    signature covers the order id and the payment id, not the price, so a
+    shopper who chooses the amount can pay 1 paise for any cart and still
+    produce a signature that verifies.
+
+    reference is this project's own cart or order id. It travels to Razorpay as
+    the receipt and comes back from /verify, which is how a payment is bound to
+    the record it paid for.
+
+    Replace the body with a real lookup, for example:
+
+        cart = await get_cart_for(request)
+        return int(cart.total * 100), 'INR', str(cart.id)
+    """
+    raise NotImplementedError(
+        'get_order_amount must read the amount from the server-side cart or '
+        'order record. See the integration instructions.'
+    )
+
+
 @router.post("/order")
-async def create_order(req: OrderRequest):
-    if req.amount <= 0:
-        raise HTTPException(status_code=400, detail="Invalid amount")
+async def create_order(request: Request):
     try:
+        # The request body is not trusted for the price. See the docstring.
+        amount_subunits, currency, reference = get_order_amount(request)
+
+        if amount_subunits <= 0:
+            raise HTTPException(status_code=400, detail="Invalid amount")
+
         order = client.order.create({
-            'amount': int(req.amount * 100),
-            'currency': req.currency,
-            'receipt': req.receipt or f'receipt_{int(time.time())}',
+            'amount': amount_subunits,
+            'currency': currency,
+            'receipt': reference,
         })
         return {
             'success': True,
@@ -569,6 +662,8 @@ async def create_order(req: OrderRequest):
             'currency': order['currency'],
             'keyId': os.environ['RAZORPAY_KEY_ID'],
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -581,7 +676,29 @@ async def verify_payment(req: VerifyRequest):
             'razorpay_payment_id': req.razorpay_payment_id,
             'razorpay_signature': req.razorpay_signature,
         })
-        return {'success': True, 'paymentId': req.razorpay_payment_id, 'orderId': req.razorpay_order_id}
+
+        # A valid signature proves which order was paid, not how much. Ask
+        # Razorpay what was actually paid and compare it with the order the
+        # server created.
+        payment = client.payment.fetch(req.razorpay_payment_id)
+        order = client.order.fetch(req.razorpay_order_id)
+
+        if (payment['order_id'] != req.razorpay_order_id
+                or payment['status'] not in ('authorized', 'captured')
+                or int(payment['amount']) != int(order['amount'])
+                or payment['currency'] != order['currency']):
+            raise HTTPException(status_code=400, detail="Payment does not match the order")
+
+        # reference is the receipt set by create_order. The caller must check
+        # it against the record it is about to mark paid.
+        return {
+            'success': True,
+            'paymentId': req.razorpay_payment_id,
+            'orderId': req.razorpay_order_id,
+            'reference': order.get('receipt'),
+            'amount': int(order['amount']),
+            'currency': order['currency'],
+        }
     except razorpay.errors.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid signature")
 `
@@ -638,11 +755,34 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - Ensure StaticFiles mount exists
 - Modify checkout to call initiateRazorpayPayment() before submitting
 
+**STEP 5: IMPLEMENT get_order_amount (REQUIRED)**
+The provided code ships get_order_amount as a stub that raises NotImplementedError.
+You MUST replace its body with a lookup against the project's existing cart or order
+model. Read the project's models first, then return the total in the smallest currency
+unit, the currency, and a reference that identifies the record being paid for:
+  def get_order_amount():
+      cart = Cart.query.filter_by(user_id=current_user.id).one()
+      return int(cart.total * 100), 'INR', str(cart.id)
+NEVER take the amount from the request body. The Razorpay signature covers the order id
+and the payment id, not the price, so a shopper who chooses the amount can pay 1 paise
+for any cart and still produce a signature that verifies.
+Leave the stub raising if you genuinely cannot find the cart total. A broken order
+endpoint is recoverable. An endpoint that lets a shopper set the price is not.
+
+**STEP 6: BIND THE PAYMENT TO THE RECORD IT PAID FOR**
+/verify now returns reference, amount and currency, read back from the order Razorpay
+holds. Mark a record paid only when BOTH of these hold:
+  - reference equals the id of the record you are about to mark paid
+  - amount equals that record's own server-side total
+Without the amount check, a payment made for a cheap order can be applied to an
+expensive one. Store the payment id and order id alongside the record for reconciliation.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ⛔ FORBIDDEN - DO NOT DO ANY OF THESE:
 ═══════════════════════════════════════════════════════════════════════════════
-❌ NEVER modify database models - the integration works without adding fields
-❌ NEVER run migrations - they cause conflicts and are not needed
+❌ NEVER read the payment amount from the request body - get it from the cart on the server
+❌ NEVER mark a record paid without checking reference AND amount from /verify
+❌ NEVER leave get_order_amount raising NotImplementedError if the cart total is findable
 ❌ DO NOT delete the .env file
 ❌ DO NOT use bare except: - catch specific exceptions
 
@@ -652,6 +792,8 @@ FINAL CHECKLIST:
 ✅ Did you run pip install razorpay python-dotenv?
 ✅ Did you add dependencies to requirements.txt?
 ✅ Did you create routers/razorpay.py?
+✅ Did you implement get_order_amount against the real cart/order model?
+✅ Does your checkout code check BOTH reference and amount from /verify?
 ✅ Did you include router at TOP LEVEL in main.py (not inside any handler)?
 ✅ Did you create .env file with actual keys?
 

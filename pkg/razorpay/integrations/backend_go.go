@@ -14,10 +14,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	razorpay "github.com/razorpay/razorpay-go"
@@ -37,27 +36,50 @@ type VerifyRequest struct {
 	Signature string ` + "`json:\"razorpay_signature\"`" + `
 }
 
+// OrderAmount is what the server decided this cart costs.
+type OrderAmount struct {
+	AmountInSubunits int64
+	Currency         string
+	Reference        string
+}
+
+// getOrderAmount returns what the server says this cart costs. The price MUST
+// come from the server: read it from the cart or order record this project
+// already has. Never read it from the request body. The Razorpay signature
+// covers the order id and the payment id, not the price, so a shopper who
+// chooses the amount can pay 1 paise for any cart and still produce a
+// signature that verifies. Replace the body with a real lookup.
+func getOrderAmount(c *gin.Context) (OrderAmount, error) {
+	return OrderAmount{}, errors.New("getOrderAmount must read the amount from the server-side cart or order record; see the integration instructions")
+}
+
+func toInt64(value interface{}) (int64, bool) {
+	number, ok := value.(float64)
+	if !ok {
+		return 0, false
+	}
+	return int64(number), true
+}
+
 func CreateOrder(c *gin.Context) {
 	var req OrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	if req.Amount <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid amount"})
+
+	// The request body fields are deliberately ignored. The server, not the
+	// shopper, decides what this cart costs.
+	amount, err := getOrderAmount(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
 		return
-	}
-	if req.Currency == "" {
-		req.Currency = "INR"
-	}
-	if req.Receipt == "" {
-		req.Receipt = fmt.Sprintf("receipt_%d", time.Now().Unix())
 	}
 
 	data := map[string]interface{}{
-		"amount":   int(req.Amount * 100),
-		"currency": req.Currency,
-		"receipt":  req.Receipt,
+		"amount":   amount.AmountInSubunits,
+		"currency": amount.Currency,
+		"receipt":  amount.Reference,
 	}
 	order, err := client.Order.Create(data, nil)
 	if err != nil {
@@ -87,7 +109,46 @@ func VerifyPayment(c *gin.Context) {
 	expected := hex.EncodeToString(h.Sum(nil))
 
 	if hmac.Equal([]byte(expected), []byte(req.Signature)) {
-		c.JSON(http.StatusOK, gin.H{"success": true, "paymentId": req.PaymentID, "orderId": req.OrderID})
+		// The signature proves only that Razorpay issued this payment for
+		// some order. Bind the payment to this order and check the amounts
+		// before trusting it.
+		payment, err := client.Payment.Fetch(req.PaymentID, nil, nil)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+			return
+		}
+		paymentOrderID, _ := payment["order_id"].(string)
+		if paymentOrderID != req.OrderID {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Payment does not match the order"})
+			return
+		}
+		paymentStatus, _ := payment["status"].(string)
+		if paymentStatus != "authorized" && paymentStatus != "captured" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Payment does not match the order"})
+			return
+		}
+		order, err := client.Order.Fetch(req.OrderID, nil, nil)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+			return
+		}
+		paymentAmount, okPaymentAmount := toInt64(payment["amount"])
+		orderAmount, okOrderAmount := toInt64(order["amount"])
+		paymentCurrency, _ := payment["currency"].(string)
+		orderCurrency, _ := order["currency"].(string)
+		if !okPaymentAmount || !okOrderAmount || paymentAmount != orderAmount || paymentCurrency != orderCurrency {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Payment does not match the order"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success":   true,
+			"paymentId": req.PaymentID,
+			"orderId":   req.OrderID,
+			"reference": order["receipt"],
+			"amount":    paymentAmount,
+			"currency":  paymentCurrency,
+		})
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid signature"})
 	}
@@ -118,6 +179,8 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 **STEP 2: CREATE HANDLERS**
 - Create handlers/razorpay.go with the provided code
 - This includes order creation and payment verification endpoints
+- You MUST implement getOrderAmount against the real cart or order model of this project, reading the amount from the server-side record. NEVER take the amount from the request body - a shopper who controls the amount can pay 1 paise for any cart.
+- You MUST mark an order as paid only when the verify response "reference" matches the order being marked AND "amount" equals that order's own server-side total. Never mark an order paid on signature success alone.
 
 **STEP 3: WIRE UP ROUTES**
 - Find main.go and add routes at the TOP LEVEL in main() where other routes are defined
@@ -132,12 +195,16 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in source code
 ❌ DO NOT skip payment verification - it is critical for security
+❌ DO NOT take the payment amount from the request body - the amount MUST come from the server-side cart or order record
+❌ DO NOT mark an order paid unless the verify response "reference" and "amount" match that order's own server-side record
 
 FINAL CHECKLIST:
 ✅ Did you run go get github.com/razorpay/razorpay-go?
 ✅ Did you create handlers/razorpay.go?
+✅ Did you implement getOrderAmount to read the amount from your server-side cart or order record?
 ✅ Did you add routes at TOP LEVEL in main.go (not inside another handler)?
 ✅ Did you create .env with credentials?
+✅ Do you mark an order paid only when the verify response "reference" and "amount" match that order?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
@@ -155,10 +222,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	razorpay "github.com/razorpay/razorpay-go"
@@ -178,18 +244,45 @@ type VerifyRequest struct {
 	Signature string ` + "`json:\"razorpay_signature\"`" + `
 }
 
+// OrderAmount is what the server decided this cart costs.
+type OrderAmount struct {
+	AmountInSubunits int64
+	Currency         string
+	Reference        string
+}
+
+// getOrderAmount returns what the server says this cart costs. The price MUST
+// come from the server: read it from the cart or order record this project
+// already has. Never read it from the request body. The Razorpay signature
+// covers the order id and the payment id, not the price, so a shopper who
+// chooses the amount can pay 1 paise for any cart and still produce a
+// signature that verifies. Replace the body with a real lookup.
+func getOrderAmount(c echo.Context) (OrderAmount, error) {
+	return OrderAmount{}, errors.New("getOrderAmount must read the amount from the server-side cart or order record; see the integration instructions")
+}
+
+func toInt64(value interface{}) (int64, bool) {
+	number, ok := value.(float64)
+	if !ok {
+		return 0, false
+	}
+	return int64(number), true
+}
+
 func CreateOrder(c echo.Context) error {
 	var req OrderRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{"success": false, "error": err.Error()})
 	}
-	if req.Amount <= 0 {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{"success": false, "error": "Invalid amount"})
-	}
-	if req.Currency == "" { req.Currency = "INR" }
-	if req.Receipt == "" { req.Receipt = fmt.Sprintf("receipt_%d", time.Now().Unix()) }
 
-	data := map[string]interface{}{"amount": int(req.Amount * 100), "currency": req.Currency, "receipt": req.Receipt}
+	// The request body fields are deliberately ignored. The server, not the
+	// shopper, decides what this cart costs.
+	amount, err := getOrderAmount(c)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{"success": false, "error": err.Error()})
+	}
+
+	data := map[string]interface{}{"amount": amount.AmountInSubunits, "currency": amount.Currency, "receipt": amount.Reference}
 	order, err := client.Order.Create(data, nil)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{"success": false, "error": err.Error()})
@@ -213,7 +306,37 @@ func VerifyPayment(c echo.Context) error {
 	expected := hex.EncodeToString(h.Sum(nil))
 
 	if hmac.Equal([]byte(expected), []byte(req.Signature)) {
-		return c.JSON(http.StatusOK, map[string]interface{}{"success": true, "paymentId": req.PaymentID, "orderId": req.OrderID})
+		// The signature proves only that Razorpay issued this payment for
+		// some order. Bind the payment to this order and check the amounts
+		// before trusting it.
+		payment, err := client.Payment.Fetch(req.PaymentID, nil, nil)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{"success": false, "error": err.Error()})
+		}
+		paymentOrderID, _ := payment["order_id"].(string)
+		if paymentOrderID != req.OrderID {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{"success": false, "error": "Payment does not match the order"})
+		}
+		paymentStatus, _ := payment["status"].(string)
+		if paymentStatus != "authorized" && paymentStatus != "captured" {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{"success": false, "error": "Payment does not match the order"})
+		}
+		order, err := client.Order.Fetch(req.OrderID, nil, nil)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{"success": false, "error": err.Error()})
+		}
+		paymentAmount, okPaymentAmount := toInt64(payment["amount"])
+		orderAmount, okOrderAmount := toInt64(order["amount"])
+		paymentCurrency, _ := payment["currency"].(string)
+		orderCurrency, _ := order["currency"].(string)
+		if !okPaymentAmount || !okOrderAmount || paymentAmount != orderAmount || paymentCurrency != orderCurrency {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{"success": false, "error": "Payment does not match the order"})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success": true, "paymentId": req.PaymentID, "orderId": req.OrderID,
+			"reference": order["receipt"], "amount": paymentAmount, "currency": paymentCurrency,
+		})
 	}
 	return c.JSON(http.StatusBadRequest, map[string]interface{}{"success": false, "error": "Invalid signature"})
 }
@@ -243,6 +366,8 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 **STEP 2: CREATE HANDLERS**
 - Create handlers/razorpay.go with the provided code
 - This includes order creation and payment verification endpoints
+- You MUST implement getOrderAmount against the real cart or order model of this project, reading the amount from the server-side record. NEVER take the amount from the request body - a shopper who controls the amount can pay 1 paise for any cart.
+- You MUST mark an order as paid only when the verify response "reference" matches the order being marked AND "amount" equals that order's own server-side total. Never mark an order paid on signature success alone.
 
 **STEP 3: WIRE UP ROUTES**
 - Find main.go and add routes at the TOP LEVEL in main() where other routes are defined
@@ -257,12 +382,16 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in source code
 ❌ DO NOT skip payment verification - it is critical for security
+❌ DO NOT take the payment amount from the request body - the amount MUST come from the server-side cart or order record
+❌ DO NOT mark an order paid unless the verify response "reference" and "amount" match that order's own server-side record
 
 FINAL CHECKLIST:
 ✅ Did you run go get github.com/razorpay/razorpay-go?
 ✅ Did you create handlers/razorpay.go?
+✅ Did you implement getOrderAmount to read the amount from your server-side cart or order record?
 ✅ Did you add routes at TOP LEVEL in main.go (not inside another handler)?
 ✅ Did you create .env with credentials?
+✅ Do you mark an order paid only when the verify response "reference" and "amount" match that order?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
@@ -276,9 +405,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"os"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	razorpay "github.com/razorpay/razorpay-go"
@@ -298,18 +426,45 @@ type VerifyRequest struct {
 	Signature string ` + "`json:\"razorpay_signature\"`" + `
 }
 
+// OrderAmount is what the server decided this cart costs.
+type OrderAmount struct {
+	AmountInSubunits int64
+	Currency         string
+	Reference        string
+}
+
+// getOrderAmount returns what the server says this cart costs. The price MUST
+// come from the server: read it from the cart or order record this project
+// already has. Never read it from the request body. The Razorpay signature
+// covers the order id and the payment id, not the price, so a shopper who
+// chooses the amount can pay 1 paise for any cart and still produce a
+// signature that verifies. Replace the body with a real lookup.
+func getOrderAmount(c *fiber.Ctx) (OrderAmount, error) {
+	return OrderAmount{}, errors.New("getOrderAmount must read the amount from the server-side cart or order record; see the integration instructions")
+}
+
+func toInt64(value interface{}) (int64, bool) {
+	number, ok := value.(float64)
+	if !ok {
+		return 0, false
+	}
+	return int64(number), true
+}
+
 func CreateOrder(c *fiber.Ctx) error {
 	var req OrderRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"success": false, "error": err.Error()})
 	}
-	if req.Amount <= 0 {
-		return c.Status(400).JSON(fiber.Map{"success": false, "error": "Invalid amount"})
-	}
-	if req.Currency == "" { req.Currency = "INR" }
-	if req.Receipt == "" { req.Receipt = fmt.Sprintf("receipt_%d", time.Now().Unix()) }
 
-	data := map[string]interface{}{"amount": int(req.Amount * 100), "currency": req.Currency, "receipt": req.Receipt}
+	// The request body fields are deliberately ignored. The server, not the
+	// shopper, decides what this cart costs.
+	amount, err := getOrderAmount(c)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
+	}
+
+	data := map[string]interface{}{"amount": amount.AmountInSubunits, "currency": amount.Currency, "receipt": amount.Reference}
 	order, err := client.Order.Create(data, nil)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
@@ -333,7 +488,37 @@ func VerifyPayment(c *fiber.Ctx) error {
 	expected := hex.EncodeToString(h.Sum(nil))
 
 	if hmac.Equal([]byte(expected), []byte(req.Signature)) {
-		return c.JSON(fiber.Map{"success": true, "paymentId": req.PaymentID, "orderId": req.OrderID})
+		// The signature proves only that Razorpay issued this payment for
+		// some order. Bind the payment to this order and check the amounts
+		// before trusting it.
+		payment, err := client.Payment.Fetch(req.PaymentID, nil, nil)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"success": false, "error": err.Error()})
+		}
+		paymentOrderID, _ := payment["order_id"].(string)
+		if paymentOrderID != req.OrderID {
+			return c.Status(400).JSON(fiber.Map{"success": false, "error": "Payment does not match the order"})
+		}
+		paymentStatus, _ := payment["status"].(string)
+		if paymentStatus != "authorized" && paymentStatus != "captured" {
+			return c.Status(400).JSON(fiber.Map{"success": false, "error": "Payment does not match the order"})
+		}
+		order, err := client.Order.Fetch(req.OrderID, nil, nil)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"success": false, "error": err.Error()})
+		}
+		paymentAmount, okPaymentAmount := toInt64(payment["amount"])
+		orderAmount, okOrderAmount := toInt64(order["amount"])
+		paymentCurrency, _ := payment["currency"].(string)
+		orderCurrency, _ := order["currency"].(string)
+		if !okPaymentAmount || !okOrderAmount || paymentAmount != orderAmount || paymentCurrency != orderCurrency {
+			return c.Status(400).JSON(fiber.Map{"success": false, "error": "Payment does not match the order"})
+		}
+
+		return c.JSON(fiber.Map{
+			"success": true, "paymentId": req.PaymentID, "orderId": req.OrderID,
+			"reference": order["receipt"], "amount": paymentAmount, "currency": paymentCurrency,
+		})
 	}
 	return c.Status(400).JSON(fiber.Map{"success": false, "error": "Invalid signature"})
 }
@@ -363,6 +548,8 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 **STEP 2: CREATE HANDLERS**
 - Create handlers/razorpay.go with the provided code
 - This includes order creation and payment verification endpoints
+- You MUST implement getOrderAmount against the real cart or order model of this project, reading the amount from the server-side record. NEVER take the amount from the request body - a shopper who controls the amount can pay 1 paise for any cart.
+- You MUST mark an order as paid only when the verify response "reference" matches the order being marked AND "amount" equals that order's own server-side total. Never mark an order paid on signature success alone.
 
 **STEP 3: WIRE UP ROUTES**
 - Find main.go and add routes at the TOP LEVEL in main() where other routes are defined
@@ -377,12 +564,16 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in source code
 ❌ DO NOT skip payment verification - it is critical for security
+❌ DO NOT take the payment amount from the request body - the amount MUST come from the server-side cart or order record
+❌ DO NOT mark an order paid unless the verify response "reference" and "amount" match that order's own server-side record
 
 FINAL CHECKLIST:
 ✅ Did you run go get github.com/razorpay/razorpay-go?
 ✅ Did you create handlers/razorpay.go?
+✅ Did you implement getOrderAmount to read the amount from your server-side cart or order record?
 ✅ Did you add routes at TOP LEVEL in main.go (not inside another handler)?
 ✅ Did you create .env with credentials?
+✅ Do you mark an order paid only when the verify response "reference" and "amount" match that order?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }

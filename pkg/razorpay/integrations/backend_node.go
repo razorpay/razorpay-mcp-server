@@ -24,19 +24,32 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+async function getOrderAmount(req) {
+  // Return { amountInSubunits, currency, reference } for the cart this
+  // request belongs to. The price MUST come from the server: read it from
+  // the cart or order record this project already has. Never read it from
+  // the request body. The Razorpay signature covers the order id and the
+  // payment id, not the price, so a shopper who chooses the amount can pay
+  // 1 paise for any cart and still produce a signature that verifies.
+  // Replace this body with a lookup, for example:
+  //   const cart = await Cart.findOne({ user: req.user.id });
+  //   return { amountInSubunits: Math.round(cart.total * 100), currency: 'INR', reference: String(cart.id) };
+  throw new Error('getOrderAmount must read the amount from the server-side cart or order record. See the integration instructions.');
+}
+
 // Create Razorpay Order
 router.post('/order', async (req, res) => {
   try {
-    const { amount, currency = 'INR', receipt } = req.body;
+    const { amountInSubunits, currency, reference } = await getOrderAmount(req);
 
-    if (!amount || amount <= 0) {
+    if (!amountInSubunits || amountInSubunits <= 0) {
       return res.status(400).json({ success: false, error: 'Invalid amount' });
     }
 
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100), // Convert to paise
+      amount: amountInSubunits,
       currency,
-      receipt: receipt || ` + "`receipt_${Date.now()}`" + `,
+      receipt: reference,
     });
 
     res.json({
@@ -53,7 +66,7 @@ router.post('/order', async (req, res) => {
 });
 
 // Verify Payment Signature
-router.post('/verify', (req, res) => {
+router.post('/verify', async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
@@ -73,11 +86,29 @@ router.post('/verify', (req, res) => {
       crypto.timingSafeEqual(expectedBuf, receivedBuf);
 
     if (isValidSignature) {
+      const payment = await razorpay.payments.fetch(razorpay_payment_id);
+      if (payment.order_id !== razorpay_order_id) {
+        return res.status(400).json({ success: false, error: 'Payment does not match the order' });
+      }
+      if (!['authorized', 'captured'].includes(payment.status)) {
+        return res.status(400).json({ success: false, error: 'Payment does not match the order' });
+      }
+      const order = await razorpay.orders.fetch(razorpay_order_id);
+      if (Number(payment.amount) !== Number(order.amount)) {
+        return res.status(400).json({ success: false, error: 'Payment does not match the order' });
+      }
+      if (payment.currency !== order.currency) {
+        return res.status(400).json({ success: false, error: 'Payment does not match the order' });
+      }
+
       res.json({
         success: true,
         message: 'Payment verified successfully',
         paymentId: razorpay_payment_id,
         orderId: razorpay_order_id,
+        reference: order.receipt,
+        amount: order.amount,
+        currency: order.currency,
       });
     } else {
       res.status(400).json({ success: false, error: 'Invalid payment signature' });
@@ -324,11 +355,20 @@ DO NOT ASSUME app.js or index.html - find the ACTUAL files used for checkout!
    -> On SUCCESS: create order with paymentMethod: 'razorpay', paymentId
    -> On FAILURE: show error, don't create order
 
+8) **SECURITY - SERVER-SIDE PRICE (MANDATORY - DO NOT SKIP):**
+   - routes/razorpay.js contains getOrderAmount(req) as a stub that throws on purpose.
+   - You MUST implement getOrderAmount(req) against this project's real cart/order model.
+     It must return { amountInSubunits, currency, reference } read from the server-side record.
+   - NEVER take the amount from the request body - the order route ignores it by design.
+   - When marking an order as paid, do it ONLY when the verify response's 'reference' matches
+     the order being marked AND its 'amount' equals that order's own server-side total.
+
 THE INTEGRATION IS **NOT COMPLETE** IF:
 - You modified a JS file that isn't loaded by the checkout HTML
 - The checkout still creates orders without calling initiateRazorpayPayment()
 - The razorpay.js script isn't in the checkout HTML
 - You tell the user to "wire up the payment" as a next step
+- getOrderAmount(req) is still the throwing stub (you did not implement it against the real cart/order model)
 
 DO NOT give "Next Steps" - complete EVERYTHING including discovering the correct files.
 
@@ -342,12 +382,15 @@ FINAL REMINDER - READ THIS BEFORE FINISHING:
 ✅ Is app.use('/api/razorpay', ...) at the TOP LEVEL (not inside any route handler)?
 ✅ Did you include the closing } brace for ALL functions?
 ✅ Did you use NORMAL quotes (not escaped \')?
+✅ Did you implement getOrderAmount(req) against the real cart/order model?
+✅ Did you mark orders paid only when the verify response reference and amount match that order?
 
 ❌ DO NOT give "Next Steps" - the integration must be COMPLETE
 ❌ DO NOT escape quotes/backticks in JavaScript (\' is WRONG, ' is CORRECT)
 ❌ DO NOT tell user to "wire up payment" - YOU must do it
 ❌ DO NOT finish without modifying the checkout function
 ❌ DO NOT just ANALYZE and report "Found issue" - USE Edit TO FIX IT
+❌ DO NOT take the payment amount from the request body - getOrderAmount(req) reads it from the server-side cart or order record
 
 If ANY checkbox above is NO, GO BACK AND FIX IT NOW.
 If you said "Found the issue" but didn't edit the file, GO BACK AND EDIT IT NOW.`,
@@ -369,18 +412,31 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
 
+async function getOrderAmount(request: NextRequest): Promise<{ amountInSubunits: number; currency: string; reference: string }> {
+  // Return { amountInSubunits, currency, reference } for the cart this
+  // request belongs to. The price MUST come from the server: read it from
+  // the cart or order record this project already has. Never read it from
+  // the request body. The Razorpay signature covers the order id and the
+  // payment id, not the price, so a shopper who chooses the amount can pay
+  // 1 paise for any cart and still produce a signature that verifies.
+  // Replace this body with a lookup, for example:
+  //   const cart = await Cart.findOne({ user: request.user.id });
+  //   return { amountInSubunits: Math.round(cart.total * 100), currency: 'INR', reference: String(cart.id) };
+  throw new Error('getOrderAmount must read the amount from the server-side cart or order record. See the integration instructions.');
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { amount, currency = 'INR', receipt } = await request.json();
+    const { amountInSubunits, currency, reference } = await getOrderAmount(request);
 
-    if (!amount || amount <= 0) {
+    if (!amountInSubunits || amountInSubunits <= 0) {
       return NextResponse.json({ success: false, error: 'Invalid amount' }, { status: 400 });
     }
 
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100),
+      amount: amountInSubunits,
       currency,
-      receipt: receipt || ` + "`receipt_${Date.now()}`" + `,
+      receipt: reference,
     });
 
     return NextResponse.json({
@@ -398,7 +454,13 @@ export async function POST(request: NextRequest) {
 `
 
 	verifyRouteCode := `import { NextRequest, NextResponse } from 'next/server';
+import Razorpay from 'razorpay';
 import crypto from 'crypto';
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -423,11 +485,29 @@ export async function POST(request: NextRequest) {
     );
 
     if (isValid) {
+      const payment = await razorpay.payments.fetch(razorpay_payment_id);
+      if (payment.order_id !== razorpay_order_id) {
+        return NextResponse.json({ success: false, error: 'Payment does not match the order' }, { status: 400 });
+      }
+      if (!['authorized', 'captured'].includes(payment.status)) {
+        return NextResponse.json({ success: false, error: 'Payment does not match the order' }, { status: 400 });
+      }
+      const order = await razorpay.orders.fetch(razorpay_order_id);
+      if (Number(payment.amount) !== Number(order.amount)) {
+        return NextResponse.json({ success: false, error: 'Payment does not match the order' }, { status: 400 });
+      }
+      if (payment.currency !== order.currency) {
+        return NextResponse.json({ success: false, error: 'Payment does not match the order' }, { status: 400 });
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Payment verified',
         paymentId: razorpay_payment_id,
         orderId: razorpay_order_id,
+        reference: order.receipt,
+        amount: order.amount,
+        currency: order.currency,
       });
     } else {
       return NextResponse.json({ success: false, error: 'Invalid signature' }, { status: 400 });
@@ -569,6 +649,13 @@ STEPS:
 3) Create the RazorpayCheckout component
 4) Add env vars to .env.local
 5) WIRE UP the component in your checkout page - import and use <RazorpayCheckout />
+6) SECURITY - SERVER-SIDE PRICE (MANDATORY): app/api/razorpay/order/route.ts contains
+   getOrderAmount(request) as a stub that throws. You MUST implement it against this
+   project's real cart/order model so it returns { amountInSubunits, currency, reference }
+   from the server-side record. NEVER take the amount from the request body - the API
+   route ignores the posted amount by design. Mark an order as paid ONLY when the verify
+   response's 'reference' matches the order being marked AND its 'amount' equals that
+   order's own server-side total.
 
 ═══════════════════════════════════════════════════════════════════════════════
 FINAL REMINDER:
@@ -577,9 +664,12 @@ FINAL REMINDER:
 ✅ Did you CREATE the RazorpayCheckout component?
 ✅ Did you ADD the component to the checkout page?
 ✅ Did you ADD env vars to .env.local?
+✅ Did you implement getOrderAmount(request) against the real cart/order model?
+✅ Did you mark orders paid only when the verify response reference and amount match that order?
 
 ❌ DO NOT give "Next Steps" - integration must be COMPLETE
-❌ DO NOT tell user to "add the component" - YOU must do it`,
+❌ DO NOT tell user to "add the component" - YOU must do it
+❌ DO NOT take the payment amount from the request body - getOrderAmount(request) reads it server-side`,
 	}
 }
 
@@ -598,19 +688,32 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+async function getOrderAmount(request) {
+  // Return { amountInSubunits, currency, reference } for the cart this
+  // request belongs to. The price MUST come from the server: read it from
+  // the cart or order record this project already has. Never read it from
+  // the request body. The Razorpay signature covers the order id and the
+  // payment id, not the price, so a shopper who chooses the amount can pay
+  // 1 paise for any cart and still produce a signature that verifies.
+  // Replace this body with a lookup, for example:
+  //   const cart = await Cart.findOne({ user: request.user.id });
+  //   return { amountInSubunits: Math.round(cart.total * 100), currency: 'INR', reference: String(cart.id) };
+  throw new Error('getOrderAmount must read the amount from the server-side cart or order record. See the integration instructions.');
+}
+
 async function razorpayRoutes(fastify, options) {
   fastify.post('/api/razorpay/order', async (request, reply) => {
     try {
-      const { amount, currency = 'INR', receipt } = request.body;
+      const { amountInSubunits, currency, reference } = await getOrderAmount(request);
 
-      if (!amount || amount <= 0) {
+      if (!amountInSubunits || amountInSubunits <= 0) {
         return reply.status(400).send({ success: false, error: 'Invalid amount' });
       }
 
       const order = await razorpay.orders.create({
-        amount: Math.round(amount * 100),
+        amount: amountInSubunits,
         currency,
-        receipt: receipt || ` + "`receipt_${Date.now()}`" + `,
+        receipt: reference,
       });
 
       return { success: true, orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID };
@@ -639,7 +742,21 @@ async function razorpayRoutes(fastify, options) {
         crypto.timingSafeEqual(expectedBuf, receivedBuf);
 
       if (isValidSignature) {
-        return { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id };
+        const payment = await razorpay.payments.fetch(razorpay_payment_id);
+        if (payment.order_id !== razorpay_order_id) {
+          return reply.status(400).send({ success: false, error: 'Payment does not match the order' });
+        }
+        if (!['authorized', 'captured'].includes(payment.status)) {
+          return reply.status(400).send({ success: false, error: 'Payment does not match the order' });
+        }
+        const order = await razorpay.orders.fetch(razorpay_order_id);
+        if (Number(payment.amount) !== Number(order.amount)) {
+          return reply.status(400).send({ success: false, error: 'Payment does not match the order' });
+        }
+        if (payment.currency !== order.currency) {
+          return reply.status(400).send({ success: false, error: 'Payment does not match the order' });
+        }
+        return { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id, reference: order.receipt, amount: order.amount, currency: order.currency };
       }
       return reply.status(400).send({ success: false, error: 'Invalid signature' });
     } catch (error) {
@@ -688,17 +805,28 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 **STEP 4: SET UP ENVIRONMENT**
 - Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
 
+**STEP 5: SECURITY - SERVER-SIDE PRICE (MANDATORY)**
+- routes/razorpay.js contains getOrderAmount(request) as a stub that throws on purpose.
+- You MUST implement getOrderAmount(request) against this project's real cart/order model.
+  It must return { amountInSubunits, currency, reference } read from the server-side record.
+- NEVER take the amount from the request body - the order route ignores it by design.
+- Mark an order as paid ONLY when the verify response's 'reference' matches the order being
+  marked AND its 'amount' equals that order's own server-side total.
+
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in route files
 ❌ DO NOT assume the main file is app.js - find the actual entry point
 ❌ DO NOT skip payment verification
 ❌ DO NOT place fastify.register() inside a route handler - it must be top-level
+❌ DO NOT take the payment amount from the request body - getOrderAmount(request) reads it server-side
 
 FINAL CHECKLIST:
 ✅ Did you run npm install razorpay dotenv?
 ✅ Did you create routes/razorpay.js?
 ✅ Did you register routes at TOP LEVEL in the main server file (not inside any handler)?
 ✅ Did you create .env with credentials?
+✅ Did you implement getOrderAmount(request) against the real cart/order model?
+✅ Did you mark orders paid only when the verify response reference and amount match that order?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
@@ -717,20 +845,33 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+async function getOrderAmount(ctx) {
+  // Return { amountInSubunits, currency, reference } for the cart this
+  // request belongs to. The price MUST come from the server: read it from
+  // the cart or order record this project already has. Never read it from
+  // the request body. The Razorpay signature covers the order id and the
+  // payment id, not the price, so a shopper who chooses the amount can pay
+  // 1 paise for any cart and still produce a signature that verifies.
+  // Replace this body with a lookup, for example:
+  //   const cart = await Cart.findOne({ user: ctx.user.id });
+  //   return { amountInSubunits: Math.round(cart.total * 100), currency: 'INR', reference: String(cart.id) };
+  throw new Error('getOrderAmount must read the amount from the server-side cart or order record. See the integration instructions.');
+}
+
 router.post('/order', async (ctx) => {
   try {
-    const { amount, currency = 'INR', receipt } = ctx.request.body;
+    const { amountInSubunits, currency, reference } = await getOrderAmount(ctx);
 
-    if (!amount || amount <= 0) {
+    if (!amountInSubunits || amountInSubunits <= 0) {
       ctx.status = 400;
       ctx.body = { success: false, error: 'Invalid amount' };
       return;
     }
 
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100),
+      amount: amountInSubunits,
       currency,
-      receipt: receipt || ` + "`receipt_${Date.now()}`" + `,
+      receipt: reference,
     });
 
     ctx.body = { success: true, orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID };
@@ -762,7 +903,29 @@ router.post('/verify', async (ctx) => {
       crypto.timingSafeEqual(expectedBuf, receivedBuf);
 
     if (isValidSignature) {
-      ctx.body = { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id };
+      const payment = await razorpay.payments.fetch(razorpay_payment_id);
+      if (payment.order_id !== razorpay_order_id) {
+        ctx.status = 400;
+        ctx.body = { success: false, error: 'Payment does not match the order' };
+        return;
+      }
+      if (!['authorized', 'captured'].includes(payment.status)) {
+        ctx.status = 400;
+        ctx.body = { success: false, error: 'Payment does not match the order' };
+        return;
+      }
+      const order = await razorpay.orders.fetch(razorpay_order_id);
+      if (Number(payment.amount) !== Number(order.amount)) {
+        ctx.status = 400;
+        ctx.body = { success: false, error: 'Payment does not match the order' };
+        return;
+      }
+      if (payment.currency !== order.currency) {
+        ctx.status = 400;
+        ctx.body = { success: false, error: 'Payment does not match the order' };
+        return;
+      }
+      ctx.body = { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id, reference: order.receipt, amount: order.amount, currency: order.currency };
     } else {
       ctx.status = 400;
       ctx.body = { success: false, error: 'Invalid signature' };
@@ -818,12 +981,21 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 **STEP 4: SET UP ENVIRONMENT**
 - Create .env file with RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
 
+**STEP 5: SECURITY - SERVER-SIDE PRICE (MANDATORY)**
+- routes/razorpay.js contains getOrderAmount(ctx) as a stub that throws on purpose.
+- You MUST implement getOrderAmount(ctx) against this project's real cart/order model.
+  It must return { amountInSubunits, currency, reference } read from the server-side record.
+- NEVER take the amount from the request body - the order route ignores it by design.
+- Mark an order as paid ONLY when the verify response's 'reference' matches the order being
+  marked AND its 'amount' equals that order's own server-side total.
+
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in route files
 ❌ DO NOT assume the main file is app.js - find the actual entry point
 ❌ DO NOT forget koa-bodyparser - Koa needs it to parse request bodies
 ❌ DO NOT skip payment verification
 ❌ DO NOT place app.use(router) inside a route handler - it must be top-level
+❌ DO NOT take the payment amount from the request body - getOrderAmount(ctx) reads it server-side
 
 FINAL CHECKLIST:
 ✅ Did you run npm install razorpay @koa/router koa-bodyparser dotenv?
@@ -831,6 +1003,8 @@ FINAL CHECKLIST:
 ✅ Did you register the router at TOP LEVEL in the main server file (not inside any handler)?
 ✅ Did you add koa-bodyparser middleware?
 ✅ Did you create .env with credentials?
+✅ Did you implement getOrderAmount(ctx) against the real cart/order model?
+✅ Did you mark orders paid only when the verify response reference and amount match that order?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
@@ -845,18 +1019,31 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+async function getOrderAmount(event): Promise<{ amountInSubunits: number; currency: string; reference: string }> {
+  // Return { amountInSubunits, currency, reference } for the cart this
+  // request belongs to. The price MUST come from the server: read it from
+  // the cart or order record this project already has. Never read it from
+  // the request body. The Razorpay signature covers the order id and the
+  // payment id, not the price, so a shopper who chooses the amount can pay
+  // 1 paise for any cart and still produce a signature that verifies.
+  // Replace this body with a lookup, for example:
+  //   const cart = await Cart.findOne({ user: event.context.user.id });
+  //   return { amountInSubunits: Math.round(cart.total * 100), currency: 'INR', reference: String(cart.id) };
+  throw new Error('getOrderAmount must read the amount from the server-side cart or order record. See the integration instructions.');
+}
+
 export default defineEventHandler(async (event) => {
   try {
-    const { amount, currency = 'INR', receipt } = await readBody(event);
+    const { amountInSubunits, currency, reference } = await getOrderAmount(event);
 
-    if (!amount || amount <= 0) {
+    if (!amountInSubunits || amountInSubunits <= 0) {
       throw createError({ statusCode: 400, message: 'Invalid amount' });
     }
 
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100),
+      amount: amountInSubunits,
       currency,
-      receipt: receipt || ` + "`receipt_${Date.now()}`" + `,
+      receipt: reference,
     });
 
     return { success: true, orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID };
@@ -866,7 +1053,13 @@ export default defineEventHandler(async (event) => {
 });
 `
 
-	verifyAPICode := `import crypto from 'crypto';
+	verifyAPICode := `import Razorpay from 'razorpay';
+import crypto from 'crypto';
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 export default defineEventHandler(async (event) => {
   try {
@@ -888,10 +1081,27 @@ export default defineEventHandler(async (event) => {
       crypto.timingSafeEqual(expectedBuf, receivedBuf);
 
     if (isValidSignature) {
-      return { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id };
+      const payment = await razorpay.payments.fetch(razorpay_payment_id);
+      if (payment.order_id !== razorpay_order_id) {
+        throw createError({ statusCode: 400, message: 'Payment does not match the order' });
+      }
+      if (!['authorized', 'captured'].includes(payment.status)) {
+        throw createError({ statusCode: 400, message: 'Payment does not match the order' });
+      }
+      const order = await razorpay.orders.fetch(razorpay_order_id);
+      if (Number(payment.amount) !== Number(order.amount)) {
+        throw createError({ statusCode: 400, message: 'Payment does not match the order' });
+      }
+      if (payment.currency !== order.currency) {
+        throw createError({ statusCode: 400, message: 'Payment does not match the order' });
+      }
+      return { success: true, paymentId: razorpay_payment_id, orderId: razorpay_order_id, reference: order.receipt, amount: order.amount, currency: order.currency };
     }
     throw createError({ statusCode: 400, message: 'Invalid signature' });
-  } catch (error) {
+  } catch (error: any) {
+    if (error && error.statusCode) {
+      throw error;
+    }
     throw createError({ statusCode: 500, message: 'Verification failed' });
   }
 });
@@ -966,6 +1176,8 @@ export default defineEventHandler(async (event) => {
 3) Create the composable in composables/
 4) Add env vars to .env
 5) Use the composable in your checkout page: const { pay, loading, ready } = useRazorpay()
-6) DO NOT give "Next Steps" - complete the integration.`,
+6) SECURITY (MANDATORY): implement getOrderAmount(event) in server/api/razorpay/order.post.ts against the real cart/order model. It must return { amountInSubunits, currency, reference } from the server-side record. NEVER take the amount from the request body.
+7) SECURITY (MANDATORY): mark an order paid ONLY when the verify response's 'reference' matches the order being marked AND 'amount' equals that order's own server-side total.
+8) DO NOT give "Next Steps" - complete the integration.`,
 	}
 }
