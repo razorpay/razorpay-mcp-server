@@ -27,16 +27,21 @@ class RazorpayController extends Controller
     public function createOrder(Request $request)
     {
         try {
-            $amount = $request->input('amount', 0);
+            // The amount, currency and receipt come from the server, never
+            // from the request body. See getOrderAmount.
+            [$amount, $currency, $reference] = $this->getOrderAmount($request);
 
             if ($amount <= 0) {
                 return response()->json(['success' => false, 'error' => 'Invalid amount'], 400);
             }
 
+            // The receipt binds the Razorpay order to the merchant's own
+            // cart or order record, so the verified payment can be matched
+            // to it later.
             $order = $this->razorpay->order->create([
-                'amount' => (int)($amount * 100),
-                'currency' => $request->input('currency', 'INR'),
-                'receipt' => $request->input('receipt', 'receipt_' . time()),
+                'amount' => $amount,
+                'currency' => $currency,
+                'receipt' => $reference,
             ]);
 
             return response()->json([
@@ -65,10 +70,28 @@ class RazorpayController extends Controller
             $expectedSignature = hash_hmac('sha256', $orderId . '|' . $paymentId, env('RAZORPAY_KEY_SECRET'));
 
             if (hash_equals($expectedSignature, $signature)) {
+                // A valid signature proves which payment belongs to which
+                // order. It does not prove how much was paid, so ask Razorpay
+                // what was actually paid and compare it with the order.
+                $payment = $this->razorpay->payment->fetch($paymentId);
+                $order = $this->razorpay->order->fetch($orderId);
+
+                if ($payment->order_id !== $orderId
+                    || !in_array($payment->status, ['authorized', 'captured'], true)
+                    || (int) $payment->amount !== (int) $order->amount
+                    || $payment->currency !== $order->currency) {
+                    return response()->json(['success' => false, 'error' => 'Payment does not match the order'], 400);
+                }
+
+                // The receipt is the reference to the merchant's own cart or
+                // order record. The caller binds the payment to that record.
                 return response()->json([
                     'success' => true,
                     'paymentId' => $paymentId,
                     'orderId' => $orderId,
+                    'reference' => $order->receipt,
+                    'amount' => (int) $order->amount,
+                    'currency' => $order->currency,
                 ]);
             }
 
@@ -76,6 +99,18 @@ class RazorpayController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Verification failed'], 500);
         }
+    }
+
+    // The price MUST come from the server. Read it from the cart or order
+    // record the project already has, never from the request body: the
+    // Razorpay signature covers the order id and the payment id, not the
+    // price. A shopper who chooses the amount can pay 1 paise for any cart
+    // and still receive a valid signature. Example of a real lookup:
+    //     $cart = Cart::where('user_id', $request->user()->id)->firstOrFail();
+    //     return [(int) round($cart->total * 100), 'INR', 'cart_' . $cart->id];
+    private function getOrderAmount(Request $request)
+    {
+        throw new \Exception('getOrderAmount must read the amount from the server-side cart or order record; see the integration instructions');
     }
 }
 `
@@ -115,15 +150,25 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 **STEP 4: SET UP ENVIRONMENT**
 - Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env file
 
+**STEP 5: IMPLEMENT getOrderAmount (REQUIRED)**
+- The controller ships getOrderAmount() as a stub that throws an Exception. Fail closed.
+- You MUST replace its body with a lookup against the project's real cart or order model.
+- It returns [amount in paise, currency, reference]; the reference is the cart or order record id.
+- NEVER take the amount from the request body: the Razorpay signature covers the order id and the payment id, not the price. The frontend still posts an amount, but createOrder ignores it on purpose.
+- Mark an order paid ONLY when the verify response's reference matches the order being marked AND amount equals that order's own server-side total.
+
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in controllers
 ❌ DO NOT skip payment verification
+❌ DO NOT take the amount from the request body - read it from the server-side cart or order record
 
 FINAL CHECKLIST:
 ✅ Did you run composer require razorpay/razorpay?
 ✅ Did you create RazorpayController.php?
 ✅ Did you add routes to routes/api.php?
 ✅ Did you add keys to .env?
+✅ Did you implement getOrderAmount() against the real cart or order model?
+✅ Do you mark an order paid only when reference matches that order AND amount equals its server-side total?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
@@ -140,7 +185,9 @@ func getRailsIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
 
   def create_order
     begin
-      amount = params[:amount].to_f
+      # The amount, currency and receipt come from the server, never from
+      # the request body. See get_order_amount.
+      amount, currency, reference = get_order_amount
 
       if amount <= 0
         render json: { success: false, error: 'Invalid amount' }, status: :bad_request
@@ -150,10 +197,12 @@ func getRailsIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
       require 'razorpay'
       Razorpay.setup(ENV['RAZORPAY_KEY_ID'], ENV['RAZORPAY_KEY_SECRET'])
 
+      # The receipt binds the Razorpay order to the merchant's own cart or
+      # order record, so the verified payment can be matched to it later.
       order = Razorpay::Order.create(
-        amount: (amount * 100).to_i,
-        currency: params[:currency] || 'INR',
-        receipt: params[:receipt] || "receipt_#{Time.now.to_i}"
+        amount: amount,
+        currency: currency,
+        receipt: reference
       )
 
       render json: {
@@ -183,13 +232,51 @@ func getRailsIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
       expected_signature = OpenSSL::HMAC.hexdigest('sha256', ENV['RAZORPAY_KEY_SECRET'], data)
 
       if Rack::Utils.secure_compare(expected_signature, signature)
-        render json: { success: true, paymentId: payment_id, orderId: order_id }
+        # A valid signature proves which payment belongs to which order. It
+        # does not prove how much was paid, so ask Razorpay what was actually
+        # paid and compare it with the order.
+        require 'razorpay'
+        Razorpay.setup(ENV['RAZORPAY_KEY_ID'], ENV['RAZORPAY_KEY_SECRET'])
+
+        payment = Razorpay::Payment.fetch(payment_id)
+        order = Razorpay::Order.fetch(order_id)
+
+        if payment.order_id != order_id ||
+           !%w[authorized captured].include?(payment.status) ||
+           payment.amount.to_i != order.amount.to_i ||
+           payment.currency != order.currency
+          render json: { success: false, error: 'Payment does not match the order' }, status: :bad_request
+        else
+          # The receipt is the reference to the merchant's own cart or order
+          # record. The caller binds the payment to that record.
+          render json: {
+            success: true,
+            paymentId: payment_id,
+            orderId: order_id,
+            reference: order.receipt,
+            amount: order.amount.to_i,
+            currency: order.currency
+          }
+        end
       else
         render json: { success: false, error: 'Invalid signature' }, status: :bad_request
       end
     rescue => e
       render json: { success: false, error: 'Verification failed' }, status: :internal_server_error
     end
+  end
+
+  private
+
+  # The price MUST come from the server. Read it from the cart or order
+  # record the project already has, never from the request body: the
+  # Razorpay signature covers the order id and the payment id, not the
+  # price. A shopper who chooses the amount can pay 1 paise for any cart
+  # and still receive a valid signature. Example of a real lookup:
+  #   cart = Cart.find_by!(user: current_user)
+  #   [(cart.total * 100).to_i, 'INR', "cart_#{cart.id}"]
+  def get_order_amount
+    raise 'get_order_amount must read the amount from the server-side cart or order record; see the integration instructions'
   end
 end
 `
@@ -230,15 +317,25 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables
 - Use dotenv-rails or credentials.yml for local development
 
+**STEP 5: IMPLEMENT get_order_amount (REQUIRED)**
+- The controller ships get_order_amount as a stub that raises an error. Fail closed.
+- You MUST replace its body with a lookup against the project's real cart or order model.
+- It returns [amount in paise, currency, reference]; the reference is the cart or order record id.
+- NEVER take the amount from the request body: the Razorpay signature covers the order id and the payment id, not the price. The frontend still posts an amount, but create_order ignores it on purpose.
+- Mark an order paid ONLY when the verify response's reference matches the order being marked AND amount equals that order's own server-side total.
+
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in controllers
 ❌ DO NOT skip payment verification
+❌ DO NOT take the amount from the request body - read it from the server-side cart or order record
 
 FINAL CHECKLIST:
 ✅ Did you run bundle add razorpay?
 ✅ Did you create razorpay_controller.rb?
 ✅ Did you add routes to config/routes.rb?
 ✅ Did you set up environment variables?
+✅ Did you implement get_order_amount against the real cart or order model?
+✅ Do you mark an order paid only when reference matches that order AND amount equals its server-side total?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
@@ -260,13 +357,6 @@ use std::env;
 type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Deserialize)]
-pub struct OrderRequest {
-    amount: f64,
-    currency: Option<String>,
-    receipt: Option<String>,
-}
-
-#[derive(Deserialize)]
 pub struct VerifyRequest {
     razorpay_order_id: String,
     razorpay_payment_id: String,
@@ -285,8 +375,48 @@ pub struct OrderResponse {
     error: Option<String>,
 }
 
-pub async fn create_order(req: web::Json<OrderRequest>) -> Result<HttpResponse> {
-    if req.amount <= 0.0 {
+// The price MUST come from the server. Read it from the cart or order record
+// the project already has, never from the request body: the Razorpay
+// signature covers the order id and the payment id, not the price. A shopper
+// who chooses the amount can pay 1 paise for any cart and still receive a
+// valid signature. Example of a real lookup:
+//     let cart = fetch_cart_from_db(user_id).await?;
+//     Ok((cart.total_paise, String::from("INR"), format!("cart_{}", cart.id)))
+fn get_order_amount() -> Result<(i64, String, String), String> {
+    Err(String::from(
+        "getOrderAmount must read the amount from the server-side cart or order record; see the integration instructions",
+    ))
+}
+
+async fn fetch_razorpay_json(
+    client: &Client,
+    url: &str,
+    key_id: &str,
+    key_secret: &str,
+) -> Option<serde_json::Value> {
+    let response = client
+        .get(url)
+        .basic_auth(key_id, Some(key_secret))
+        .send()
+        .await
+        .ok()?;
+    response.json::<serde_json::Value>().await.ok()
+}
+
+pub async fn create_order() -> Result<HttpResponse> {
+    // The amount, currency and receipt come from the server, never from the
+    // request body. See get_order_amount.
+    let (amount, currency, reference) = match get_order_amount() {
+        Ok(v) => v,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(OrderResponse {
+                success: false, order_id: None, amount: None, currency: None, key_id: None,
+                error: Some(e),
+            }))
+        }
+    };
+
+    if amount <= 0 {
         return Ok(HttpResponse::BadRequest().json(OrderResponse {
             success: false, order_id: None, amount: None, currency: None, key_id: None,
             error: Some("Invalid amount".to_string()),
@@ -297,16 +427,16 @@ pub async fn create_order(req: web::Json<OrderRequest>) -> Result<HttpResponse> 
     let key_secret = env::var("RAZORPAY_KEY_SECRET").expect("RAZORPAY_KEY_SECRET must be set");
 
     let client = Client::new();
-    let amount = (req.amount * 100.0) as i64;
-    let currency = req.currency.clone().unwrap_or_else(|| "INR".to_string());
 
+    // The receipt binds the Razorpay order to the merchant's own cart or
+    // order record, so the verified payment can be matched to it later.
     let response = client
         .post("https://api.razorpay.com/v1/orders")
         .basic_auth(&key_id, Some(&key_secret))
         .json(&serde_json::json!({
             "amount": amount,
             "currency": currency,
-            "receipt": req.receipt.clone().unwrap_or_else(|| format!("receipt_{}", chrono::Utc::now().timestamp()))
+            "receipt": reference
         }))
         .send()
         .await;
@@ -347,18 +477,70 @@ pub async fn verify_payment(req: web::Json<VerifyRequest>) -> Result<HttpRespons
             .fold(0u8, |acc, (a, b)| acc | (a ^ b))
             == 0;
 
-    if signature_valid {
-        Ok(HttpResponse::Ok().json(serde_json::json!({
-            "success": true,
-            "paymentId": req.razorpay_payment_id,
-            "orderId": req.razorpay_order_id
-        })))
-    } else {
-        Ok(HttpResponse::BadRequest().json(serde_json::json!({
+    if !signature_valid {
+        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
             "success": false,
             "error": "Invalid signature"
-        })))
+        })));
     }
+
+    // A valid signature proves which payment belongs to which order. It does
+    // not prove how much was paid, so ask Razorpay what was actually paid
+    // and compare it with the order.
+    let key_id = env::var("RAZORPAY_KEY_ID").expect("RAZORPAY_KEY_ID must be set");
+    let client = Client::new();
+
+    let payment_url = format!("https://api.razorpay.com/v1/payments/{}", req.razorpay_payment_id);
+    let order_url = format!("https://api.razorpay.com/v1/orders/{}", req.razorpay_order_id);
+
+    let payment = match fetch_razorpay_json(&client, &payment_url, &key_id, &key_secret).await {
+        Some(v) => v,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Failed to fetch payment"
+            })))
+        }
+    };
+    let order = match fetch_razorpay_json(&client, &order_url, &key_id, &key_secret).await {
+        Some(v) => v,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Failed to fetch order"
+            })))
+        }
+    };
+
+    let payment_order_id = payment["order_id"].as_str().unwrap_or("");
+    let payment_status = payment["status"].as_str().unwrap_or("");
+    let payment_amount = payment["amount"].as_i64().unwrap_or(-1);
+    let payment_currency = payment["currency"].as_str().unwrap_or("");
+    let order_amount = order["amount"].as_i64().unwrap_or(-2);
+    let order_currency = order["currency"].as_str().unwrap_or("");
+
+    let matches = payment_order_id == req.razorpay_order_id
+        && (payment_status == "authorized" || payment_status == "captured")
+        && payment_amount == order_amount
+        && payment_currency == order_currency;
+
+    if !matches {
+        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+            "success": false,
+            "error": "Payment does not match the order"
+        })));
+    }
+
+    // The receipt is the reference to the merchant's own cart or order
+    // record. The caller binds the payment to that record.
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "paymentId": req.razorpay_payment_id,
+        "orderId": req.razorpay_order_id,
+        "reference": order["receipt"],
+        "amount": order_amount,
+        "currency": order_currency
+    })))
 }
 
 // In main.rs, add routes:
@@ -372,7 +554,7 @@ pub async fn verify_payment(req: web::Json<VerifyRequest>) -> Result<HttpRespons
 			{Action: "create", Path: "src/handlers/razorpay.rs", Code: handlerCode, Description: "Actix handlers for Razorpay"},
 			{Action: "create", Path: frontend.FileName, Code: frontend.Code, Description: frontend.Description},
 			{Action: "manual_edit", Path: "Cargo.toml", Description: "Add dependencies", Edits: []EditItem{
-				{Line: "In dependencies", Add: "reqwest = { version = \"0.11\", features = [\"json\"] }\nhmac = \"0.12\"\nsha2 = \"0.10\"\nhex = \"0.4\"\nchrono = \"0.4\"", Why: "Required crates"},
+				{Line: "In dependencies", Add: "reqwest = { version = \"0.11\", features = [\"json\"] }\nhmac = \"0.12\"\nsha2 = \"0.10\"\nhex = \"0.4\"", Why: "Required crates"},
 			}},
 			getWirePaymentAction(),
 		},
@@ -384,7 +566,7 @@ pub async fn verify_payment(req: web::Json<VerifyRequest>) -> Result<HttpRespons
 CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 
 **STEP 1: ADD DEPENDENCIES**
-- Add reqwest, hmac, sha2, hex, and chrono to Cargo.toml
+- Add reqwest, hmac, sha2, and hex to Cargo.toml
 
 **STEP 2: CREATE HANDLERS**
 - Create src/handlers/razorpay.rs with the provided code
@@ -399,15 +581,25 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables
 - The app will panic with a clear message if these are not set
 
+**STEP 5: IMPLEMENT get_order_amount (REQUIRED)**
+- The handlers file ships get_order_amount as a stub that returns an error. Fail closed.
+- You MUST replace its body with a lookup against the project's real cart or order model.
+- It returns (amount in paise, currency, reference); the reference is the cart or order record id.
+- NEVER take the amount from the request body: the Razorpay signature covers the order id and the payment id, not the price. The frontend still posts an amount, but create_order ignores it on purpose.
+- Mark an order paid ONLY when the verify response's reference matches the order being marked AND amount equals that order's own server-side total.
+
 ⛔ FORBIDDEN:
 ❌ DO NOT hardcode API keys in source code
 ❌ DO NOT skip payment verification
+❌ DO NOT take the amount from the request body - read it from the server-side cart or order record
 
 FINAL CHECKLIST:
 ✅ Did you add dependencies to Cargo.toml?
 ✅ Did you create src/handlers/razorpay.rs?
 ✅ Did you register routes in main.rs?
 ✅ Did you set up environment variables?
+✅ Did you implement get_order_amount against the real cart or order model?
+✅ Do you mark an order paid only when reference matches that order AND amount equals its server-side total?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
@@ -440,9 +632,13 @@ public class RazorpayController : ControllerBase
     }
 
     [HttpPost("order")]
-    public async Task<IActionResult> CreateOrder([FromBody] OrderRequest request)
+    public async Task<IActionResult> CreateOrder()
     {
-        if (request.Amount <= 0)
+        // The amount, currency and receipt come from the server, never from
+        // the request body. See GetOrderAmount.
+        var (amount, currency, reference) = GetOrderAmount();
+
+        if (amount <= 0)
             return BadRequest(new { success = false, error = "Invalid amount" });
 
         var keyId = _config["Razorpay:KeyId"];
@@ -451,11 +647,13 @@ public class RazorpayController : ControllerBase
         var authValue = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{keyId}:{keySecret}"));
         _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authValue);
 
+        // The receipt binds the Razorpay order to the merchant's own cart or
+        // order record, so the verified payment can be matched to it later.
         var orderData = new
         {
-            amount = (int)(request.Amount * 100),
-            currency = request.Currency ?? "INR",
-            receipt = request.Receipt ?? $"receipt_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"
+            amount = amount,
+            currency = currency,
+            receipt = reference
         };
 
         var response = await _httpClient.PostAsJsonAsync("https://api.razorpay.com/v1/orders", orderData);
@@ -472,7 +670,7 @@ public class RazorpayController : ControllerBase
     }
 
     [HttpPost("verify")]
-    public IActionResult VerifyPayment([FromBody] VerifyRequest request)
+    public async Task<IActionResult> VerifyPayment([FromBody] VerifyRequest request)
     {
         if (string.IsNullOrEmpty(request.RazorpayOrderId) || string.IsNullOrEmpty(request.RazorpayPaymentId) || string.IsNullOrEmpty(request.RazorpaySignature))
             return BadRequest(new { success = false, error = "Missing payment details" });
@@ -489,13 +687,60 @@ public class RazorpayController : ControllerBase
 
         if (expectedBytes.Length == receivedBytes.Length &&
             CryptographicOperations.FixedTimeEquals(expectedBytes, receivedBytes))
-            return Ok(new { success = true, paymentId = request.RazorpayPaymentId, orderId = request.RazorpayOrderId });
+        {
+            // A valid signature proves which payment belongs to which order.
+            // It does not prove how much was paid, so ask Razorpay what was
+            // actually paid and compare it with the order.
+            var keyId = _config["Razorpay:KeyId"];
+            var authValue = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{keyId}:{keySecret}"));
+            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authValue);
+
+            var payment = await _httpClient.GetFromJsonAsync<JsonElement>($"https://api.razorpay.com/v1/payments/{request.RazorpayPaymentId}");
+            var order = await _httpClient.GetFromJsonAsync<JsonElement>($"https://api.razorpay.com/v1/orders/{request.RazorpayOrderId}");
+
+            var paymentOrderId = payment.GetProperty("order_id").GetString();
+            var paymentStatus = payment.GetProperty("status").GetString();
+            var paymentAmount = payment.GetProperty("amount").GetInt64();
+            var paymentCurrency = payment.GetProperty("currency").GetString();
+            var orderAmount = order.GetProperty("amount").GetInt64();
+            var orderCurrency = order.GetProperty("currency").GetString();
+
+            if (paymentOrderId != request.RazorpayOrderId
+                || (paymentStatus != "authorized" && paymentStatus != "captured")
+                || paymentAmount != orderAmount
+                || paymentCurrency != orderCurrency)
+                return BadRequest(new { success = false, error = "Payment does not match the order" });
+
+            // The receipt is the reference to the merchant's own cart or
+            // order record. The caller binds the payment to that record.
+            return Ok(new
+            {
+                success = true,
+                paymentId = request.RazorpayPaymentId,
+                orderId = request.RazorpayOrderId,
+                reference = order.GetProperty("receipt").GetString(),
+                amount = orderAmount,
+                currency = orderCurrency
+            });
+        }
 
         return BadRequest(new { success = false, error = "Invalid signature" });
     }
+
+    // The price MUST come from the server. Read it from the cart or order
+    // record the project already has, never from the request body: the
+    // Razorpay signature covers the order id and the payment id, not the
+    // price. A shopper who chooses the amount can pay 1 paise for any cart
+    // and still receive a valid signature. Example of a real lookup:
+    //     var cart = _dbContext.Carts.First(c => c.Id == cartId);
+    //     return ((long)Math.Round(cart.Total * 100), "INR", "cart_" + cart.Id);
+    private (long Amount, string Currency, string Reference) GetOrderAmount()
+    {
+        throw new InvalidOperationException(
+            "GetOrderAmount must read the amount from the server-side cart or order record; see the integration instructions");
+    }
 }
 
-public record OrderRequest(double Amount, string? Currency, string? Receipt);
 public record VerifyRequest(string RazorpayOrderId, string RazorpayPaymentId, string RazorpaySignature);
 `
 
@@ -536,14 +781,24 @@ CRITICAL INSTRUCTIONS - FOLLOW THESE EXACT STEPS:
 - Create the frontend payment helper file
 - Add the script tag to the checkout page
 
+**STEP 5: IMPLEMENT GetOrderAmount (REQUIRED)**
+- The controller ships GetOrderAmount() as a stub that throws an InvalidOperationException. Fail closed.
+- You MUST replace its body with a lookup against the project's real cart or order model.
+- It returns (amount in paise, currency, reference); the reference is the cart or order record id.
+- NEVER take the amount from the request body: the Razorpay signature covers the order id and the payment id, not the price. The frontend still posts an amount, but CreateOrder ignores it on purpose.
+- Mark an order paid ONLY when the verify response's reference matches the order being marked AND amount equals that order's own server-side total.
+
 ⛔ FORBIDDEN:
 ❌ DO NOT mix up config naming - use "Razorpay:KeyId" in appsettings.json and Razorpay__KeyId for env vars
 ❌ DO NOT hardcode credentials in the controller
+❌ DO NOT take the amount from the request body - read it from the server-side cart or order record
 
 FINAL CHECKLIST:
 ✅ Did you create RazorpayController.cs?
 ✅ Did you add HttpClient to Program.cs?
 ✅ Did you add Razorpay config to appsettings.json?
+✅ Did you implement GetOrderAmount() against the real cart or order model?
+✅ Do you mark an order paid only when reference matches that order AND amount equals its server-side total?
 ✅ Did you wire up the frontend payment flow?` + getFrontendWiringInstructions(frontend),
 	}
 }
