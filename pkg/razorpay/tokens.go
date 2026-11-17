@@ -16,7 +16,7 @@ import (
 // must be a single path segment.
 const (
 	customerIDPattern = "^cust_[A-Za-z0-9]+$"
-	tokenIDPattern    = "^token_[A-Za-z0-9]+$"
+	tokenIDPattern    = "^token_[A-Za-z0-9]+$" //nolint:gosec // id format
 )
 
 // FetchSavedPaymentMethods returns a tool that fetches saved cards

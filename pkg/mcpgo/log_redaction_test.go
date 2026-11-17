@@ -27,19 +27,23 @@ func (l *recordingLogger) record(msg string, args ...interface{}) {
 	l.lines = append(l.lines, fmt.Sprintf("%s %+v", msg, args))
 }
 
-func (l *recordingLogger) Infof(_ context.Context, m string, a ...interface{}) {
+func (l *recordingLogger) Infof(
+	_ context.Context, m string, a ...interface{}) {
 	l.record(m, a...)
 }
 
-func (l *recordingLogger) Errorf(_ context.Context, m string, a ...interface{}) {
+func (l *recordingLogger) Errorf(
+	_ context.Context, m string, a ...interface{}) {
 	l.record(m, a...)
 }
 
-func (l *recordingLogger) Fatalf(_ context.Context, m string, a ...interface{}) {
+func (l *recordingLogger) Fatalf(
+	_ context.Context, m string, a ...interface{}) {
 	l.record(m, a...)
 }
 
-func (l *recordingLogger) Debugf(_ context.Context, m string, a ...interface{}) {
+func (l *recordingLogger) Debugf(
+	_ context.Context, m string, a ...interface{}) {
 	l.record(m, a...)
 }
 
