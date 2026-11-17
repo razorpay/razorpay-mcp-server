@@ -1,6 +1,30 @@
 //nolint:lll // File contains embedded code templates requiring longer lines
 package integrations
 
+// mobileVerificationInstructions is appended to every mobile AIInstructions
+// block. The app only forwards the SDK response; the backend decides whether
+// the order is paid.
+const mobileVerificationInstructions = `
+
+═══════════════════════════════════════════════════════════════════════════════
+MANDATORY: SERVER-SIDE PAYMENT VERIFICATION
+═══════════════════════════════════════════════════════════════════════════════
+1) The app MUST send razorpay_payment_id, razorpay_order_id and the
+   razorpay_signature returned by the SDK success callback to
+   /api/razorpay/verify. Never send an empty or made-up razorpay_signature.
+   If the SDK returns no signature, treat the payment as unverified.
+2) The backend /api/razorpay/verify MUST verify the signature:
+   HMAC-SHA256(key_secret, razorpay_order_id + "|" + razorpay_payment_id)
+   compared in constant time, and reject a missing or mismatched signature.
+3) After the signature check, the backend MUST fetch the payment from Razorpay
+   and confirm its order_id, status and amount match the order it created
+   before marking anything paid.
+4) The backend /api/razorpay/order endpoint MUST derive the amount from a
+   server-side record (cart, product price), never from the amount the app
+   sends.
+5) Never mark an order paid in the app or on the strength of the app's
+   success callback alone.`
+
 // =============================================================================
 // MOBILE INTEGRATIONS (React Native, Flutter)
 // =============================================================================
@@ -115,7 +139,8 @@ FINAL REMINDER:
 ✅ Did you CREATE the payment service file?
 ✅ Did you IMPORT it in the checkout screen?
 ✅ Did you WIRE UP the payment button to call initiatePayment()?
-❌ DO NOT give "Next Steps" - YOU must complete everything`,
+❌ DO NOT give "Next Steps" - YOU must complete everything` +
+			mobileVerificationInstructions,
 	}
 }
 
@@ -282,7 +307,8 @@ FINAL REMINDER:
 ✅ Did you CREATE lib/services/razorpay_service.dart?
 ✅ Did you IMPORT it in the checkout screen?
 ✅ Did you WIRE UP the payment button?
-❌ DO NOT give "Next Steps" - YOU must complete everything`,
+❌ DO NOT give "Next Steps" - YOU must complete everything` +
+			mobileVerificationInstructions,
 	}
 }
 
@@ -301,14 +327,17 @@ func getAndroidIntegration() IntegrateCheckoutOutput {
 
 import android.app.Activity
 import com.razorpay.Checkout
-import com.razorpay.PaymentResultListener
+import com.razorpay.PaymentData
+import com.razorpay.PaymentResultWithDataListener
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-class RazorpayService(private val activity: Activity) : PaymentResultListener {
+class RazorpayService(private val activity: Activity) : PaymentResultWithDataListener {
 
     companion object {
         private const val BACKEND_URL = "YOUR_BACKEND_URL" // Replace with your backend
@@ -373,28 +402,34 @@ class RazorpayService(private val activity: Activity) : PaymentResultListener {
         checkout.open(activity, options)
     }
 
-    override fun onPaymentSuccess(razorpayPaymentID: String?) {
-        razorpayPaymentID?.let { paymentId ->
-            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val verifyResult = verifyPayment(paymentId)
-                    withContext(Dispatchers.Main) {
-                        if (verifyResult.optBoolean("success")) {
-                            onPaymentSuccess?.invoke(paymentId, verifyResult.optString("orderId", ""))
-                        } else {
-                            onPaymentError?.invoke(verifyResult.optString("error", "Verification failed"))
-                        }
+    // PaymentResultWithDataListener hands back PaymentData, which carries the
+    // razorpay_signature that the backend verify endpoint requires.
+    override fun onPaymentSuccess(razorpayPaymentID: String?, paymentData: PaymentData?) {
+        val paymentId = razorpayPaymentID ?: paymentData?.paymentId
+        val signature = paymentData?.signature
+        if (paymentId.isNullOrEmpty() || signature.isNullOrEmpty()) {
+            onPaymentError?.invoke("Payment signature missing; cannot verify payment")
+            return
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val verifyResult = verifyPayment(paymentId, signature)
+                withContext(Dispatchers.Main) {
+                    if (verifyResult.optBoolean("success")) {
+                        onPaymentSuccess?.invoke(paymentId, verifyResult.optString("orderId", ""))
+                    } else {
+                        onPaymentError?.invoke(verifyResult.optString("error", "Verification failed"))
                     }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        onPaymentError?.invoke("Verification failed: ${e.message}")
-                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onPaymentError?.invoke("Verification failed: ${e.message}")
                 }
             }
         }
     }
 
-    private suspend fun verifyPayment(paymentId: String): JSONObject = withContext(Dispatchers.IO) {
+    private suspend fun verifyPayment(paymentId: String, signature: String): JSONObject = withContext(Dispatchers.IO) {
         val url = URL("$BACKEND_URL/api/razorpay/verify")
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "POST"
@@ -404,7 +439,7 @@ class RazorpayService(private val activity: Activity) : PaymentResultListener {
         val body = JSONObject().apply {
             put("razorpay_payment_id", paymentId)
             put("razorpay_order_id", lastOrderId)
-            put("razorpay_signature", "")
+            put("razorpay_signature", signature)
         }
         connection.outputStream.write(body.toString().toByteArray())
 
@@ -412,7 +447,7 @@ class RazorpayService(private val activity: Activity) : PaymentResultListener {
         JSONObject(response)
     }
 
-    override fun onPaymentError(code: Int, response: String?) {
+    override fun onPaymentError(code: Int, response: String?, paymentData: PaymentData?) {
         onPaymentError?.invoke(response ?: "Payment failed with code: $code")
     }
 }
@@ -420,7 +455,7 @@ class RazorpayService(private val activity: Activity) : PaymentResultListener {
 
 	activityCode := `// Add to your Activity that handles payment:
 
-class CheckoutActivity : AppCompatActivity(), PaymentResultListener {
+class CheckoutActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
     private lateinit var razorpayService: RazorpayService
 
@@ -446,13 +481,14 @@ class CheckoutActivity : AppCompatActivity(), PaymentResultListener {
         }
     }
 
-    // Required: Implement PaymentResultListener
-    override fun onPaymentSuccess(razorpayPaymentID: String?) {
-        razorpayService.onPaymentSuccess(razorpayPaymentID)
+    // Required: Implement PaymentResultWithDataListener so the payment
+    // signature reaches RazorpayService and the backend verify call.
+    override fun onPaymentSuccess(razorpayPaymentID: String?, paymentData: PaymentData?) {
+        razorpayService.onPaymentSuccess(razorpayPaymentID, paymentData)
     }
 
-    override fun onPaymentError(code: Int, response: String?) {
-        razorpayService.onPaymentError(code, response)
+    override fun onPaymentError(code: Int, response: String?, paymentData: PaymentData?) {
+        razorpayService.onPaymentError(code, response, paymentData)
     }
 }
 `
@@ -479,7 +515,7 @@ ANDROID SETUP:
 1) Add Razorpay dependency to app/build.gradle
 2) Sync Gradle
 3) Create RazorpayService.kt in your payment package
-4) Your Activity must implement PaymentResultListener
+4) Your Activity must implement PaymentResultWithDataListener (not PaymentResultListener, which gives no signature)
 5) Replace YOUR_BACKEND_URL with your actual backend
 6) IMPORTANT: Never expose RAZORPAY_KEY_SECRET in Android app - only use on backend
 7) Add internet permission in AndroidManifest.xml: <uses-permission android:name="android.permission.INTERNET"/>
@@ -490,9 +526,10 @@ FINAL REMINDER:
 ═══════════════════════════════════════════════════════════════════════════════
 ✅ Did you ADD the dependency to build.gradle?
 ✅ Did you CREATE RazorpayService.kt?
-✅ Did you IMPLEMENT PaymentResultListener in the Activity?
+✅ Did you IMPLEMENT PaymentResultWithDataListener in the Activity?
 ✅ Did you WIRE UP the payment button to call initiatePayment()?
-❌ DO NOT give "Next Steps" - YOU must complete everything`,
+❌ DO NOT give "Next Steps" - YOU must complete everything` +
+			mobileVerificationInstructions,
 	}
 }
 
@@ -576,7 +613,7 @@ class RazorpayService: NSObject {
             return
         }
 
-        razorpay = RazorpayCheckout.initWithKey(keyId, andDelegate: self)
+        razorpay = RazorpayCheckout.initWithKey(keyId, andDelegateWithData: self)
 
         let options: [String: Any] = [
             "name": "Your App Name",
@@ -591,9 +628,18 @@ class RazorpayService: NSObject {
     }
 }
 
-extension RazorpayService: RazorpayPaymentCompletionProtocol {
-    func onPaymentSuccess(_ payment_id: String) {
-        verifyPayment(paymentId: payment_id) { [weak self] success, orderId, error in
+// RazorpayPaymentCompletionProtocolWithData hands back the response
+// dictionary, which carries the razorpay_signature that the backend verify
+// endpoint requires.
+extension RazorpayService: RazorpayPaymentCompletionProtocolWithData {
+    func onPaymentSuccess(_ payment_id: String, andData response: [AnyHashable: Any]?) {
+        guard let signature = response?["razorpay_signature"] as? String, !signature.isEmpty else {
+            DispatchQueue.main.async {
+                self.onError?("Payment signature missing; cannot verify payment")
+            }
+            return
+        }
+        verifyPayment(paymentId: payment_id, signature: signature) { [weak self] success, orderId, error in
             DispatchQueue.main.async {
                 if success {
                     self?.onSuccess?(payment_id, orderId)
@@ -604,11 +650,11 @@ extension RazorpayService: RazorpayPaymentCompletionProtocol {
         }
     }
 
-    func onPaymentError(_ code: Int32, description str: String) {
+    func onPaymentError(_ code: Int32, description str: String, andData response: [AnyHashable: Any]?) {
         onError?(str)
     }
 
-    private func verifyPayment(paymentId: String, completion: @escaping (Bool, String, String?) -> Void) {
+    private func verifyPayment(paymentId: String, signature: String, completion: @escaping (Bool, String, String?) -> Void) {
         guard let url = URL(string: "\(backendURL)/api/razorpay/verify") else {
             completion(false, "", "Invalid URL")
             return
@@ -620,7 +666,7 @@ extension RazorpayService: RazorpayPaymentCompletionProtocol {
         request.httpBody = try? JSONSerialization.data(withJSONObject: [
             "razorpay_payment_id": paymentId,
             "razorpay_order_id": lastOrderId,
-            "razorpay_signature": ""
+            "razorpay_signature": signature
         ])
 
         URLSession.shared.dataTask(with: request) { data, _, error in
@@ -709,7 +755,8 @@ FINAL REMINDER:
 ✅ Did you ADD razorpay-pod to Podfile?
 ✅ Did you CREATE RazorpayService.swift?
 ✅ Did you WIRE UP the payment button in the checkout screen?
-❌ DO NOT give "Next Steps" - YOU must complete everything`,
+❌ DO NOT give "Next Steps" - YOU must complete everything` +
+			mobileVerificationInstructions,
 	}
 }
 
@@ -780,15 +827,22 @@ var RazorpayService = {
                 theme: { color: '#528FF0' }
             };
 
-            var successCallback = function(payment_id) {
+            // The plugin passes the full success response, including the
+            // razorpay_signature that the backend verify endpoint requires.
+            var successCallback = function(response) {
+                if (!response || !response.razorpay_payment_id || !response.razorpay_signature) {
+                    reject(new Error('Payment signature missing; cannot verify payment'));
+                    return;
+                }
                 resolve({
-                    razorpay_payment_id: payment_id,
-                    razorpay_order_id: orderData.orderId
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: orderData.orderId,
+                    razorpay_signature: response.razorpay_signature
                 });
             };
 
-            var errorCallback = function(code, description) {
-                reject(new Error(description || 'Payment failed'));
+            var errorCallback = function(error) {
+                reject(new Error((error && error.description) || 'Payment failed'));
             };
 
             RazorpayCheckout.open(options, successCallback, errorCallback);
@@ -861,7 +915,8 @@ FINAL REMINDER:
 ✅ Did you CREATE razorpay-service.js?
 ✅ Did you ADD the script tag to index.html?
 ✅ Did you WIRE UP the payment button to call initiatePayment()?
-❌ DO NOT give "Next Steps" - YOU must complete everything`,
+❌ DO NOT give "Next Steps" - YOU must complete everything` +
+			mobileVerificationInstructions,
 	}
 }
 
@@ -931,16 +986,22 @@ export class RazorpayService {
         theme: { color: '#528FF0' }
       };
 
-      const successCallback = (data: any) => {
+      // The plugin passes the full success response, including the
+      // razorpay_signature that the backend verify endpoint requires.
+      const successCallback = (response: any) => {
+        if (!response || !response.razorpay_payment_id || !response.razorpay_signature) {
+          reject(new Error('Payment signature missing; cannot verify payment'));
+          return;
+        }
         resolve({
-          razorpay_payment_id: data.razorpay_payment_id || data,
-          razorpay_order_id: data.razorpay_order_id || orderData.orderId,
-          razorpay_signature: data.razorpay_signature || ''
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: orderData.orderId,
+          razorpay_signature: response.razorpay_signature
         });
       };
 
-      const errorCallback = (code: number, description: string) => {
-        reject(new Error(description || 'Payment failed'));
+      const errorCallback = (error: any) => {
+        reject(new Error((error && error.description) || 'Payment failed'));
       };
 
       RazorpayCheckout.open(options, successCallback, errorCallback);
@@ -1038,7 +1099,8 @@ FINAL REMINDER:
 ✅ Did you CREATE razorpay.service.ts?
 ✅ Did you IMPORT HttpClientModule?
 ✅ Did you INJECT and USE the service in the checkout component?
-❌ DO NOT give "Next Steps" - YOU must complete everything`,
+❌ DO NOT give "Next Steps" - YOU must complete everything` +
+			mobileVerificationInstructions,
 	}
 }
 
@@ -1110,19 +1172,30 @@ export class RazorpayService {
 
     RazorpayCheckout.open(
       options,
-      async (payment_id: string) => {
-        const verifyData = await this.verifyPayment({
-          razorpay_payment_id: payment_id,
-          razorpay_order_id: orderData.orderId
-        });
-        if (verifyData.success) {
-          onSuccess(verifyData);
-        } else {
-          onError(new Error(verifyData.error || 'Verification failed'));
+      // The plugin passes the full success response, including the
+      // razorpay_signature that the backend verify endpoint requires.
+      async (response: any) => {
+        if (!response || !response.razorpay_payment_id || !response.razorpay_signature) {
+          onError(new Error('Payment signature missing; cannot verify payment'));
+          return;
+        }
+        try {
+          const verifyData: any = await this.verifyPayment({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: orderData.orderId,
+            razorpay_signature: response.razorpay_signature
+          });
+          if (verifyData.success) {
+            onSuccess(verifyData);
+          } else {
+            onError(new Error(verifyData.error || 'Verification failed'));
+          }
+        } catch (error: any) {
+          onError(error);
         }
       },
-      (code: number, description: string) => {
-        onError(new Error(description || 'Payment failed'));
+      (error: any) => {
+        onError(new Error((error && error.description) || 'Payment failed'));
       }
     );
   }
@@ -1244,6 +1317,7 @@ FINAL REMINDER:
 ✅ Did you CREATE razorpay.service.ts?
 ✅ Did you IMPORT HttpClientModule?
 ✅ Did you INJECT and USE the service in the checkout component?
-❌ DO NOT give "Next Steps" - YOU must complete everything`,
+❌ DO NOT give "Next Steps" - YOU must complete everything` +
+			mobileVerificationInstructions,
 	}
 }
