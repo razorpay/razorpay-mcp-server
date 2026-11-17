@@ -135,15 +135,16 @@ func getDefaultLogPath() string {
 // NewSloggerWithFile returns a new slog.Logger.
 // If path to log file is not provided then
 // logger uses a default path next to the executable
-// If the log file cannot be opened, falls back to stderr
-//
-// TODO: add redaction of sensitive data
+// If the log file cannot be opened, falls back to stderr.
+// A new log file is readable and writable by its owner only. Sensitive
+// values in MCP traffic are redacted before they reach the logger
+// (see mcpgo.SetupHooks).
 func NewSloggerWithFile(path string) (*slogLogger, error) {
 	if path == "" {
 		path = getDefaultLogPath()
 	}
 
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		// Fall back to stderr if we can't open the log file
 		fmt.Fprintf(

@@ -269,3 +269,15 @@ func TestNewSloggerWithFile_ErrorCase(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestNewSloggerWithFile_OwnerOnlyPermissions(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "server.log")
+
+	logger, err := NewSloggerWithFile(path)
+	require.NoError(t, err)
+	defer func() { _ = logger.Close() }()
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+}
