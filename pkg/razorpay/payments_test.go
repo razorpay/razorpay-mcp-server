@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/razorpay/razorpay-go/constants"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/razorpay/mock"
@@ -2415,10 +2417,10 @@ func Test_sendOtp_additionalCases(t *testing.T) {
 			expectedErr: "OTP generation failed",
 		},
 		{
-			name: "URL with special characters in domain",
+			name: "razorpay.com host outside the API allowlist",
 			otpURL: "https://api-test.razorpay.com/v1/payments/" +
 				"pay_123/otp_generate",
-			expectedErr: "OTP generation failed",
+			expectedErr: "OTP URL must be from Razorpay domain",
 		},
 	}
 
@@ -4329,4 +4331,108 @@ func TestPayments100PercentCoverage_ContextErrors4(t *testing.T) {
 		}
 		runToolTest(t, testCase, FetchAllPayments, "Collection")
 	})
+}
+
+func Test_validateOtpURL_hostAllowlist(t *testing.T) {
+	tests := []struct {
+		name        string
+		otpURL      string
+		apiBaseURL  string
+		expectedErr string
+	}{
+		{
+			name:   "default API host",
+			otpURL: "https://api.razorpay.com/v1/payments/pay_1/otp_generate",
+		},
+		{
+			name:   "regional API host",
+			otpURL: "https://api-sg.razorpay.com/v1/payments/pay_1/otp_generate",
+		},
+		{
+			name:   "host is matched case-insensitively",
+			otpURL: "https://API.RAZORPAY.COM/v1/payments/pay_1/otp_generate",
+		},
+		{
+			name:   "explicit default port",
+			otpURL: "https://api.razorpay.com:443/v1/payments/pay_1/otp_generate",
+		},
+		{
+			name:       "configured API base host",
+			otpURL:     "https://api-us.curlec.com/v1/payments/pay_1/otp_generate",
+			apiBaseURL: "https://api-us.curlec.com",
+		},
+		{
+			name:        "host with razorpay.com as a prefix",
+			otpURL:      "https://razorpay.com.example.net/otp_generate",
+			expectedErr: "OTP URL must be from Razorpay domain",
+		},
+		{
+			name:        "host ending in razorpay.com without a dot boundary",
+			otpURL:      "https://evil-razorpay.com/otp_generate",
+			expectedErr: "OTP URL must be from Razorpay domain",
+		},
+		{
+			name:        "unlisted razorpay.com subdomain",
+			otpURL:      "https://uploads.razorpay.com/otp_generate",
+			expectedErr: "OTP URL must be from Razorpay domain",
+		},
+		{
+			name:        "userinfo in URL",
+			otpURL:      "https://api.razorpay.com@example.net/otp_generate",
+			expectedErr: "OTP URL must be from Razorpay domain",
+		},
+		{
+			name:        "non-default port",
+			otpURL:      "https://api.razorpay.com:8443/otp_generate",
+			expectedErr: "OTP URL must be from Razorpay domain",
+		},
+		{
+			name:        "trailing dot host",
+			otpURL:      "https://api.razorpay.com./otp_generate",
+			expectedErr: "OTP URL must be from Razorpay domain",
+		},
+		{
+			name:        "non-https API base is not trusted",
+			otpURL:      "https://127.0.0.1/otp_generate",
+			apiBaseURL:  "http://127.0.0.1",
+			expectedErr: "OTP URL must be from Razorpay domain",
+		},
+		{
+			name:        "non-https OTP URL",
+			otpURL:      "http://api.razorpay.com/otp_generate",
+			expectedErr: "OTP URL must use HTTPS",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateOtpURL(tt.otpURL, tt.apiBaseURL)
+			if tt.expectedErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			if assert.Error(t, err) {
+				assert.Contains(t, err.Error(), tt.expectedErr)
+			}
+		})
+	}
+}
+
+func Test_sendOtp_doesNotFollowRedirectsOffAllowlist(t *testing.T) {
+	err := checkOtpRedirect(
+		&http.Request{URL: mustParseURL(t, "https://example.net/x")}, nil)
+	assert.Error(t, err)
+
+	err = checkOtpRedirect(
+		&http.Request{URL: mustParseURL(t, "https://api.razorpay.com/x")}, nil)
+	assert.NoError(t, err)
+}
+
+func mustParseURL(t *testing.T, raw string) *url.URL {
+	t.Helper()
+	u, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse %q: %v", raw, err)
+	}
+	return u
 }

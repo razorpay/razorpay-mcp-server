@@ -2,6 +2,7 @@ package razorpay
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -362,28 +363,83 @@ func extractNextActions(
 
 // OTPResponse represents the response from OTP generation API
 
-// sendOtp sends an OTP to the customer and returns the response
-func sendOtp(otpUrl string) error {
-	if otpUrl == "" {
+// otpAPIHosts are the Razorpay API hosts an otp_generate URL may point at.
+// The host of the client's configured API base URL is also accepted.
+var otpAPIHosts = []string{
+	"api.razorpay.com",
+	"api-sg.razorpay.com",
+	"api-us.razorpay.com",
+}
+
+// errOtpHostNotAllowed is returned for an OTP URL outside the allowlist.
+var errOtpHostNotAllowed = errors.New("OTP URL must be from Razorpay domain")
+
+// isAllowedOtpHost reports whether u points at an allowed API host. The
+// hostname must match exactly; userinfo and non-default ports are refused.
+func isAllowedOtpHost(u *url.URL, apiBaseURL string) bool {
+	if u.User != nil || (u.Port() != "" && u.Port() != "443") {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	for _, allowed := range otpAPIHosts {
+		if host == allowed {
+			return true
+		}
+	}
+	return host != "" && host == trustedBaseHost(apiBaseURL)
+}
+
+// trustedBaseHost returns the host of an https API base URL, or "".
+func trustedBaseHost(apiBaseURL string) string {
+	base, err := url.Parse(apiBaseURL)
+	if err != nil || base.Scheme != "https" || base.User != nil {
+		return ""
+	}
+	return strings.ToLower(base.Hostname())
+}
+
+// validateOtpURL checks that otpURL is an https URL on an allowed API host.
+func validateOtpURL(otpURL, apiBaseURL string) error {
+	if otpURL == "" {
 		return fmt.Errorf("OTP URL is empty")
 	}
-	// Validate URL is safe and from Razorpay domain for security
-	parsedURL, err := url.Parse(otpUrl)
+	parsedURL, err := url.Parse(otpURL)
 	if err != nil {
 		return fmt.Errorf("invalid OTP URL: %s", err.Error())
 	}
-
 	if parsedURL.Scheme != "https" {
 		return fmt.Errorf("OTP URL must use HTTPS")
 	}
+	if !isAllowedOtpHost(parsedURL, apiBaseURL) {
+		return errOtpHostNotAllowed
+	}
+	return nil
+}
 
-	if !strings.Contains(parsedURL.Host, "razorpay.com") {
-		return fmt.Errorf("OTP URL must be from Razorpay domain")
+// checkOtpRedirect refuses a redirect that leaves the default API hosts.
+func checkOtpRedirect(req *http.Request, _ []*http.Request) error {
+	if req.URL.Scheme != "https" || !isAllowedOtpHost(req.URL, "") {
+		return errOtpHostNotAllowed
+	}
+	return nil
+}
+
+// sendOtp asks Razorpay to send an OTP to the customer. apiBaseURL is the
+// client's configured API base URL; its host is accepted alongside
+// otpAPIHosts.
+func sendOtp(otpUrl string, apiBaseURL ...string) error {
+	base := ""
+	if len(apiBaseURL) > 0 {
+		base = apiBaseURL[0]
+	}
+	if err := validateOtpURL(otpUrl, base); err != nil {
+		return err
 	}
 
 	// Create a secure HTTP client with timeout
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:       10 * time.Second,
+		CheckRedirect: checkOtpRedirect,
 	}
 
 	req, err := http.NewRequest("POST", otpUrl, nil)
@@ -656,6 +712,7 @@ func buildPaymentData(
 // processPaymentResult processes the payment creation result
 func processPaymentResult(
 	payment map[string]interface{},
+	apiBaseURL ...string,
 ) (map[string]interface{}, error) {
 	// Extract payment ID and next actions from the response
 	paymentID := extractPaymentID(payment)
@@ -666,7 +723,7 @@ func processPaymentResult(
 
 	// Only send OTP if there's an OTP URL
 	if otpUrl != "" {
-		err := sendOtp(otpUrl)
+		err := sendOtp(otpUrl, apiBaseURL...)
 		if err != nil {
 			return nil, fmt.Errorf("OTP generation failed: %s", err.Error())
 		}
@@ -844,7 +901,8 @@ func InitiatePayment(
 		}
 
 		// Process payment result
-		response, err := processPaymentResult(payment)
+		response, err := processPaymentResult(
+			payment, client.Request.BaseURL)
 		if err != nil {
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
