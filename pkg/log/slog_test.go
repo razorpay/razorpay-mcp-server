@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -268,4 +269,38 @@ func TestNewSloggerWithFile_ErrorCase(t *testing.T) {
 		err = logger.Close()
 		assert.NoError(t, err)
 	})
+}
+
+func TestNewSloggerWithFile_OwnerOnlyPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not apply Unix permission bits")
+	}
+
+	path := filepath.Join(t.TempDir(), "server.log")
+
+	logger, err := NewSloggerWithFile(path)
+	require.NoError(t, err)
+	defer func() { _ = logger.Close() }()
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+}
+
+func TestNewSloggerWithFile_TightensExistingFileMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not apply Unix permission bits")
+	}
+
+	path := filepath.Join(t.TempDir(), "server.log")
+	require.NoError(t, os.WriteFile(path, []byte("old\n"), 0o600))
+	require.NoError(t, os.Chmod(path, 0o644))
+
+	logger, err := NewSloggerWithFile(path)
+	require.NoError(t, err)
+	defer func() { _ = logger.Close() }()
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
 }

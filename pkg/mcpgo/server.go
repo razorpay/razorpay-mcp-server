@@ -118,7 +118,9 @@ func WithToolCapabilities(enabled bool) ServerOption {
 	}
 }
 
-// SetupHooks creates and configures the server hooks with logging
+// SetupHooks creates and configures the server hooks with logging. Tool
+// arguments and results are logged only in log-safe form: sensitive argument
+// values are redacted and tool result content is never logged.
 func SetupHooks(obs *observability.Observability) *server.Hooks {
 	hooks := &server.Hooks{}
 	hooks.AddBeforeAny(func(ctx context.Context, id any, method mcp.MCPMethod,
@@ -126,29 +128,15 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		obs.Logger.Infof(ctx, "MCP_METHOD_CALLED",
 			"method", method,
 			"id", id,
-			"message", message)
+			"message", MessageForLog(message))
 	})
 
 	hooks.AddOnSuccess(func(ctx context.Context, id any, method mcp.MCPMethod,
 		message any, result any) {
-		logResult := result
-		if method == mcp.MethodToolsList {
-			if r, ok := result.(*mcp.ListToolsResult); ok {
-				simplifiedTools := make([]string, 0, len(r.Tools))
-				for _, tool := range r.Tools {
-					simplifiedTools = append(simplifiedTools, tool.Name)
-				}
-				// Create new map for logging with just the tool names
-				logResult = map[string]interface{}{
-					"tools": simplifiedTools,
-				}
-			}
-		}
-
 		obs.Logger.Infof(ctx, "MCP_METHOD_SUCCEEDED",
 			"method", method,
 			"id", id,
-			"result", logResult)
+			"result", ResultForLog(method, result))
 	})
 
 	hooks.AddOnError(func(ctx context.Context, id any, method mcp.MCPMethod,
@@ -156,7 +144,7 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		obs.Logger.Infof(ctx, "MCP_METHOD_FAILED",
 			"method", method,
 			"id", id,
-			"message", message,
+			"message", MessageForLog(message),
 			"error", err)
 	})
 
@@ -164,15 +152,15 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		message *mcp.CallToolRequest) {
 		obs.Logger.Infof(ctx, "TOOL_CALL_STARTED",
 			"id", id,
-			"request", message)
+			"request", ToolRequestForLog(message))
 	})
 
 	hooks.AddAfterCallTool(func(ctx context.Context, id any,
 		message *mcp.CallToolRequest, result *mcp.CallToolResult) {
 		obs.Logger.Infof(ctx, "TOOL_CALL_COMPLETED",
 			"id", id,
-			"request", message,
-			"result", result)
+			"request", ToolRequestForLog(message),
+			"result", ToolResultForLog(result))
 	})
 
 	return hooks

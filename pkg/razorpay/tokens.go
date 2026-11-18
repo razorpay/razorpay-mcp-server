@@ -3,12 +3,20 @@ package razorpay
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 	"github.com/razorpay/razorpay-go/constants"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
+)
+
+// Identifier formats accepted for ids that are placed in a REST path. Each
+// must be a single path segment.
+const (
+	customerIDPattern = "^cust_[A-Za-z0-9]+$"
+	tokenIDPattern    = "^token_[A-Za-z0-9]+$" //nolint:gosec // id format
 )
 
 // FetchSavedPaymentMethods returns a tool that fetches saved cards
@@ -27,6 +35,7 @@ func FetchSavedPaymentMethods(
 					"Must start with 'cust_' followed by alphanumeric characters. "+
 					"Example: 'cust_xxx'. "+
 					"When provided, this takes priority over the contact parameter."),
+			mcpgo.Pattern(customerIDPattern),
 		),
 		mcpgo.WithString(
 			"contact",
@@ -71,11 +80,11 @@ func FetchSavedPaymentMethods(
 		if hasCustomerID {
 			customerID = *customerIDValue
 
-			url := fmt.Sprintf("/%s%s/%s",
+			customerURL := fmt.Sprintf("/%s%s/%s",
 				constants.VERSION_V1,
 				constants.CUSTOMER_URL,
-				customerID)
-			customer, err = client.Request.Get(url, nil, nil)
+				url.PathEscape(customerID))
+			customer, err = client.Request.Get(customerURL, nil, nil)
 			if err != nil {
 				return mcpgo.NewToolResultError(
 					fmt.Sprintf(
@@ -107,10 +116,12 @@ func FetchSavedPaymentMethods(
 			customerID = id
 		}
 
-		url := fmt.Sprintf("/%s/customers/%s/tokens",
-			constants.VERSION_V1, customerID)
+		// customerID may come from an API response on the contact path, so
+		// it is escaped as a single path segment in every case.
+		tokensURL := fmt.Sprintf("/%s/customers/%s/tokens",
+			constants.VERSION_V1, url.PathEscape(customerID))
 
-		tokensResponse, err := client.Request.Get(url, nil, nil)
+		tokensResponse, err := client.Request.Get(tokensURL, nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf(
@@ -156,7 +167,7 @@ func RevokeToken(
 				"Customer ID for which the token should be revoked. "+
 					"Must start with 'cust_' followed by alphanumeric characters. "+
 					"Example: 'cust_xxx'"),
-			mcpgo.Pattern("^cust_[A-Za-z0-9]+$"),
+			mcpgo.Pattern(customerIDPattern),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
@@ -165,7 +176,7 @@ func RevokeToken(
 				"Token ID of the saved payment method to be revoked. "+
 					"Must start with 'token_' followed by alphanumeric characters. "+
 					"Example: 'token_xxx'"),
-			mcpgo.Pattern("^token_[A-Za-z0-9]+$"),
+			mcpgo.Pattern(tokenIDPattern),
 			mcpgo.Required(),
 		),
 	}
@@ -208,14 +219,14 @@ func RevokeToken(
 		}
 		tokenID := *tokenIDValue
 
-		url := fmt.Sprintf(
+		revokeURL := fmt.Sprintf(
 			"/%s%s/%s/tokens/%s/cancel",
 			constants.VERSION_V1,
 			constants.CUSTOMER_URL,
-			customerID,
-			tokenID,
+			url.PathEscape(customerID),
+			url.PathEscape(tokenID),
 		)
-		response, err := client.Token.Request.Put(url, nil, nil)
+		response, err := client.Token.Request.Put(revokeURL, nil, nil)
 
 		if err != nil {
 			return mcpgo.NewToolResultError(

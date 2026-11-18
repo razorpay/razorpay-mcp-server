@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/razorpay/razorpay-go/constants"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/razorpay/razorpay-mcp-server/pkg/contextkey"
 	"github.com/razorpay/razorpay-mcp-server/pkg/mcpgo"
@@ -440,7 +441,7 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 			},
 			MockHttpClient: nil,
 			ExpectError:    true,
-			ExpectedErrMsg: "either customer_id or contact must be provided",
+			ExpectedErrMsg: "customer_id has an invalid format",
 		},
 		{
 			Name: "null customer_id parameter",
@@ -450,6 +451,24 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 			MockHttpClient: nil,
 			ExpectError:    true,
 			ExpectedErrMsg: "either customer_id or contact must be provided",
+		},
+		{
+			Name: "customer_id with path separators is rejected",
+			Request: map[string]interface{}{
+				"customer_id": "cust_1Aa00000000003/../../payments?count=1",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "customer_id has an invalid format",
+		},
+		{
+			Name: "customer_id without the cust_ prefix is rejected",
+			Request: map[string]interface{}{
+				"customer_id": "1Aa00000000003",
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "customer_id has an invalid format",
 		},
 	}
 
@@ -788,4 +807,33 @@ func Test_RevokeToken_ClientContextScenarios(t *testing.T) {
 			)
 		}
 	})
+}
+
+// Test_FetchSavedPaymentMethods_EscapesCustomerIDInPath checks that a customer
+// id taken from an API response is sent as a single escaped path segment.
+func Test_FetchSavedPaymentMethods_EscapesCustomerIDInPath(t *testing.T) {
+	var tokensPath string
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			if r.Method == http.MethodPost {
+				_, _ = w.Write([]byte(`{"id":"cust_1/../x","entity":"customer"}`))
+				return
+			}
+			tokensPath = r.URL.EscapedPath()
+			_, _ = w.Write([]byte(`{"entity":"collection","count":0}`))
+		}))
+	defer server.Close()
+
+	client, _ := newMockRzpClient(func() (*http.Client, *httptest.Server) {
+		return server.Client(), server
+	})
+	tool := FetchSavedPaymentMethods(CreateTestObservability(), client)
+
+	result, err := tool.GetHandler()(context.Background(),
+		createMCPRequest(map[string]interface{}{"contact": "9876543210"}))
+
+	assert.NoError(t, err)
+	assert.False(t, result.IsError, result.Text)
+	assert.Equal(t, "/v1/customers/cust_1%2F..%2Fx/tokens", tokensPath)
 }

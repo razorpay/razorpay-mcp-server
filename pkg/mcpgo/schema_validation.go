@@ -71,8 +71,10 @@ func compilePattern(pattern string) (*regexp.Regexp, error) {
 // ValidateArguments checks call arguments against the declared parameter
 // schemas and returns one message per violation. The MCP transport does not
 // validate input, so a tool that declares a constraint must enforce it here.
-// An absent optional parameter is not a violation. Messages reuse the wording
-// of the per-tool validator so that a caller sees one consistent format.
+// An absent optional parameter is not a violation. An empty string supplied
+// for a required parameter counts as missing, since an empty path id would
+// address the collection instead of one entity. Messages reuse the wording of
+// the per-tool validator so that a caller sees one consistent format.
 func ValidateArguments(
 	parameters []ToolParameter,
 	arguments interface{},
@@ -85,8 +87,9 @@ func ValidateArguments(
 	var problems []string
 	for _, param := range parameters {
 		value, present := args[param.Name]
-		if !present || value == nil {
-			if required, _ := param.Schema["required"].(bool); required {
+		required, _ := param.Schema["required"].(bool)
+		if !present || value == nil || (required && value == "") {
+			if required {
 				problems = append(
 					problems,
 					"missing required parameter: "+param.Name,
@@ -260,10 +263,10 @@ func checkString(
 			"%s must be at most %d characters", name, maxLength,
 		))
 	}
-	// An empty string means "not supplied". Required and minLength already
-	// cover that case, and they give a clearer message than a regex would.
-	if pattern, ok := schema["pattern"].(string); ok && pattern != "" &&
-		text != "" {
+	// A supplied value must match the pattern even when it is empty: the
+	// schema layer cannot know whether a handler treats "" as absent. An empty
+	// required value never gets here; it is reported as missing instead.
+	if pattern, ok := schema["pattern"].(string); ok && pattern != "" {
 		compiled, err := compilePattern(pattern)
 		if err == nil && !compiled.MatchString(text) {
 			problems = append(problems, fmt.Sprintf(
