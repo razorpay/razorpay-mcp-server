@@ -133,6 +133,9 @@ func TestRedactForLog(t *testing.T) {
 		"key_secret":    "s3",
 		"Authorization": "Bearer abc",
 		"contact":       "+919999999999",
+		"upi_pin":       "1234",
+		"bank_ifsc":     "HDFC0000001",
+		"pincode":       "560001",
 		"nested": []any{
 			map[string]any{"cvv": "999", "amount": 100},
 		},
@@ -144,6 +147,9 @@ func TestRedactForLog(t *testing.T) {
 	assert.Equal(t, redactedValue, out["key_secret"])
 	assert.Equal(t, redactedValue, out["Authorization"])
 	assert.Equal(t, redactedValue, out["contact"])
+	assert.Equal(t, redactedValue, out["upi_pin"])
+	assert.Equal(t, redactedValue, out["bank_ifsc"])
+	assert.Equal(t, "560001", out["pincode"])
 	nested := out["nested"].([]any)[0].(map[string]any)
 	assert.Equal(t, redactedValue, nested["cvv"])
 	assert.EqualValues(t, 100, nested["amount"])
@@ -168,6 +174,11 @@ func TestIsSensitiveLogKey(t *testing.T) {
 		"vpa", "upi", "billing_address", "account_number", "date_of_birth",
 		// id-suffixed contact data
 		"email_id", "emailId", "upi_id", "vpa_id",
+		// bank details and bearer credentials
+		"ifsc", "IFSC", "ifsc_code", "bank_ifsc", "bearer", "Bearer",
+		"bearer_token", "bearerToken",
+		// any name ending in pin
+		"pin", "mpin", "upi_pin", "upiPin", "card_pin", "Card-PIN", "atm_pin",
 	}
 	for _, key := range sensitive {
 		assert.Truef(t, IsSensitiveLogKey(key), "%q should be redacted", key)
@@ -178,6 +189,8 @@ func TestIsSensitiveLogKey(t *testing.T) {
 		"contactID", "payment_link_id", "payout_id", "id", "amount",
 		"currency", "status", "method", "description", "notes", "medium",
 		"group_name", "groupId", "upi_link", "expire_by", "reference_id",
+		// pin is matched as a suffix only
+		"pincode", "pin_code", "shipping", "shipping_fee", "pinned",
 	}
 	for _, key := range safe {
 		assert.Falsef(t, IsSensitiveLogKey(key), "%q should be logged", key)

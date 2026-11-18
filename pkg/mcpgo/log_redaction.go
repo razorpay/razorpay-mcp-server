@@ -22,8 +22,6 @@ const unloggableValue = "[UNLOGGABLE]"
 var sensitiveLogKeys = map[string]bool{
 	"card":   true,
 	"number": true,
-	"pin":    true,
-	"mpin":   true,
 	"pan":    true,
 	"vpa":    true,
 	"upi":    true,
@@ -37,8 +35,12 @@ var sensitiveLogKeys = map[string]bool{
 var secretLogKeyParts = []string{
 	"secret", "password", "passwd", "passcode", "otp", "cvv", "cvc",
 	"token", "authorization", "signature", "apikey", "credential",
-	"privatekey", "session", "cookie", "cardnumber", "expiry",
+	"privatekey", "session", "cookie", "cardnumber", "expiry", "bearer",
 }
+
+// secretLogKeySuffix marks a PIN (upi_pin, card_pin, mpin). It is matched
+// as a suffix, not a substring, so "pincode" and "shipping" are logged.
+const secretLogKeySuffix = "pin"
 
 // piiLogKeyParts mark a field as personal data. A field whose name ends in
 // an id suffix (customer_id, contactId) is an identifier, not the data
@@ -49,7 +51,7 @@ var piiLogKeyParts = []string{
 	"contact", "email", "phone", "mobile", "vpa", "address",
 	"customername", "fullname", "firstname", "lastname", "holdername",
 	"billingname", "beneficiaryname", "accountnumber", "aadhaar",
-	"birth",
+	"birth", "ifsc",
 }
 
 // contactIDStems are id-suffixed stems that hold contact data, not a
@@ -107,7 +109,8 @@ func containsAny(s string, parts []string) bool {
 // be redacted before it is logged.
 func IsSensitiveLogKey(key string) bool {
 	k := normaliseLogKey(key)
-	if sensitiveLogKeys[k] || containsAny(k, secretLogKeyParts) {
+	if sensitiveLogKeys[k] || containsAny(k, secretLogKeyParts) ||
+		strings.HasSuffix(k, secretLogKeySuffix) {
 		return true
 	}
 	if stem, isID := idStem(key); isID {
