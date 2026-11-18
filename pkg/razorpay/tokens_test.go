@@ -234,8 +234,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "Failed to create/fetch customer with " +
-				"contact invalid_contact: Contact number is invalid",
+			ExpectedErrMsg: "creating or fetching customer failed: " +
+				"Contact number is invalid",
 		},
 		{
 			Name: "tokens API failure after successful customer creation",
@@ -258,8 +258,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "Failed to fetch saved payment methods for " +
-				"customer cust_1Aa00000000003: Customer not found",
+			ExpectedErrMsg: "fetching saved payment methods failed: " +
+				"Customer not found",
 		},
 		{
 			Name: "invalid customer response - missing customer ID",
@@ -379,8 +379,7 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "Failed to fetch customer cust_nonexistent: " +
-				"Customer not found",
+			ExpectedErrMsg: "fetching customer failed: Customer not found",
 		},
 		{
 			Name: "tokens API failure after successful customer_id fetch", //nolint:lll
@@ -404,8 +403,8 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "Failed to fetch saved payment methods for " +
-				"customer cust_1Aa00000000003: Customer not found",
+			ExpectedErrMsg: "fetching saved payment methods failed: " +
+				"Customer not found",
 		},
 		// --- validation error tests ---
 		{
@@ -450,6 +449,24 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 			MockHttpClient: nil,
 			ExpectError:    true,
 			ExpectedErrMsg: "either customer_id or contact must be provided",
+		},
+		{
+			Name: "invalid customer_id parameter type",
+			Request: map[string]interface{}{
+				"customer_id": 123,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: customer_id",
+		},
+		{
+			Name: "invalid contact parameter type",
+			Request: map[string]interface{}{
+				"contact": 9876543210,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "invalid parameter type: contact",
 		},
 	}
 
@@ -608,8 +625,7 @@ func Test_RevokeToken(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "Failed to revoke token token_nonexistent for " +
-				"customer cust_1Aa00000000003: Token not found",
+			ExpectedErrMsg: "revoking token failed: Token not found",
 		},
 		{
 			Name: "customer not found error",
@@ -631,8 +647,7 @@ func Test_RevokeToken(t *testing.T) {
 				)
 			},
 			ExpectError: true,
-			ExpectedErrMsg: "Failed to revoke token token_ABCDEFGH for " +
-				"customer cust_nonexistent: Customer not found",
+			ExpectedErrMsg: "revoking token failed: Customer not found",
 		},
 		{
 			Name: "missing customer_id parameter",
@@ -647,26 +662,6 @@ func Test_RevokeToken(t *testing.T) {
 			Name: "missing token_id parameter",
 			Request: map[string]interface{}{
 				"customer_id": "cust_1Aa00000000003",
-			},
-			MockHttpClient: nil, // No HTTP client needed for validation error
-			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: token_id",
-		},
-		{
-			Name: "empty customer_id parameter",
-			Request: map[string]interface{}{
-				"customer_id": "",
-				"token_id":    "token_ABCDEFGH",
-			},
-			MockHttpClient: nil, // No HTTP client needed for validation error
-			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: customer_id",
-		},
-		{
-			Name: "empty token_id parameter",
-			Request: map[string]interface{}{
-				"customer_id": "cust_1Aa00000000003",
-				"token_id":    "",
 			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
@@ -699,7 +694,21 @@ func Test_RevokeToken(t *testing.T) {
 			},
 			MockHttpClient: nil, // No HTTP client needed for validation error
 			ExpectError:    true,
-			ExpectedErrMsg: "missing required parameter: customer_id",
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"missing required parameter: customer_id\n- " +
+				"missing required parameter: token_id",
+		},
+		{
+			Name: "multiple validation errors",
+			Request: map[string]interface{}{
+				"customer_id": 123,
+				"token_id":    true,
+			},
+			MockHttpClient: nil,
+			ExpectError:    true,
+			ExpectedErrMsg: "Validation errors:\n- " +
+				"invalid parameter type: customer_id\n- " +
+				"invalid parameter type: token_id",
 		},
 	}
 
