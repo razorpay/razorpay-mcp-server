@@ -2,6 +2,7 @@ package mcpgo
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -60,12 +61,19 @@ func (l *recordingLogger) all() string {
 	return strings.Join(l.lines, "\n")
 }
 
+// testAuthHeaderValue is a fake Basic credential built at runtime, so no
+// encoded credential literal sits in the source.
+var testAuthHeaderValue = base64.StdEncoding.EncodeToString(
+	[]byte("redaction-test:not-a-real-secret"))
+
 // sensitiveToolCall returns a tools/call request and result whose sensitive
 // values must never reach the log.
 func sensitiveToolCall() (*mcp.CallToolRequest, *mcp.CallToolResult) {
 	req := &mcp.CallToolRequest{}
 	req.Method = string(mcp.MethodToolsCall)
-	req.Header = http.Header{"Authorization": []string{"Basic c2VjcmV0LWhkcg=="}}
+	req.Header = http.Header{
+		"Authorization": []string{"Basic " + testAuthHeaderValue},
+	}
 	req.Params.Name = "submit_otp"
 	req.Params.Arguments = map[string]any{
 		"payment_id": "pay_LOGSAFE000001",
@@ -82,7 +90,7 @@ func sensitiveToolCall() (*mcp.CallToolRequest, *mcp.CallToolResult) {
 
 var sensitiveValues = []string{
 	"482913", "4111111111111111", "5555555555554444", "tok-res-secret",
-	"c2VjcmV0LWhkcg==", `cvv:123`,
+	testAuthHeaderValue, `cvv:123`,
 }
 
 func TestSetupHooks_DoNotLogSensitiveValues(t *testing.T) {
