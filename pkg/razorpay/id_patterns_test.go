@@ -15,7 +15,8 @@ import (
 )
 
 // Test_PathIDsRejectTraversal checks that an id which would change the REST
-// path built by the SDK is rejected before any upstream request is sent.
+// path built by the SDK, or an empty id that would leave the path ending at
+// the collection, is rejected before any upstream request is sent.
 func Test_PathIDsRejectTraversal(t *testing.T) {
 	notes := map[string]interface{}{"k": "v"}
 
@@ -36,22 +37,38 @@ func Test_PathIDsRejectTraversal(t *testing.T) {
 		{"update_payment_link", UpdatePaymentLink, "payment_link_id", "plink_",
 			map[string]interface{}{"notes": notes}},
 		{"fetch_payout", FetchPayout, "payout_id", "pout_", nil},
+		{"revoke_token", RevokeToken, "customer_id", "cust_",
+			map[string]interface{}{"token_id": "token_abc"}},
+		{"revoke_token", RevokeToken, "token_id", "token_",
+			map[string]interface{}{"customer_id": "cust_abc"}},
 	}
 
-	payloads := []string{
-		"X/cancel#",
-		"X/cancel",
-		"X?expand[]=payments",
-		"X/../../payouts",
-		"X%2Fcancel",
-		"X\n",
-		"X ",
+	type payload struct {
+		id       string
+		expected string
 	}
 
 	for _, tool := range tools {
-		for _, suffix := range payloads {
-			id := tool.prefix + suffix
-			t.Run(tool.name+"/"+id, func(t *testing.T) {
+		invalidFormat := tool.idParam + " has an invalid format"
+		payloads := []payload{
+			{"", "missing required parameter: " + tool.idParam},
+		}
+		for _, suffix := range []string{
+			"X/cancel#",
+			"X/cancel",
+			"X?expand[]=payments",
+			"X/../../payouts",
+			"X%2Fcancel",
+			"X\n",
+			"X ",
+		} {
+			payloads = append(payloads,
+				payload{tool.prefix + suffix, invalidFormat})
+		}
+
+		for _, p := range payloads {
+			id, expected := p.id, p.expected
+			t.Run(tool.name+"/"+tool.idParam+"/"+id, func(t *testing.T) {
 				var hits int32
 				server := httptest.NewServer(http.HandlerFunc(
 					func(w http.ResponseWriter, _ *http.Request) {
@@ -78,8 +95,7 @@ func Test_PathIDsRejectTraversal(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotNil(t, result)
 				assert.True(t, result.IsError)
-				assert.Contains(t, result.Text,
-					tool.idParam+" has an invalid format")
+				assert.Contains(t, result.Text, expected)
 				assert.Zero(t, atomic.LoadInt32(&hits),
 					"no request may reach the API")
 			})

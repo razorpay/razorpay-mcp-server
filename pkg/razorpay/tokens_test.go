@@ -441,7 +441,7 @@ func Test_FetchSavedPaymentMethods(t *testing.T) {
 			},
 			MockHttpClient: nil,
 			ExpectError:    true,
-			ExpectedErrMsg: "either customer_id or contact must be provided",
+			ExpectedErrMsg: "customer_id has an invalid format",
 		},
 		{
 			Name: "null customer_id parameter",

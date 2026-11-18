@@ -74,9 +74,13 @@ func TestValidateArguments(t *testing.T) {
 			},
 		},
 		{
-			name: "an empty string defers to the required check",
+			name: "an empty optional string must still match its pattern",
 			arguments: map[string]interface{}{
 				"amount": 500, "customer_id": "",
+			},
+			expected: []string{
+				"customer_id has an invalid format, " +
+					"expected ^cust_[A-Za-z0-9]+$",
 			},
 		},
 		{
@@ -166,4 +170,42 @@ func TestValidateArgumentsIgnoresUndeclaredAndAbsent(t *testing.T) {
 	assert.Empty(t, problems)
 
 	assert.Nil(t, ValidateArguments(parameters, "not a map"))
+}
+
+func TestValidateArgumentsRequiredStringRejectsEmpty(t *testing.T) {
+	parameters := []ToolParameter{
+		WithString("order_id", Required(), Pattern("^order_[A-Za-z0-9]+$")),
+		WithString("receipt", Required()),
+		WithString("note"),
+	}
+
+	tests := []struct {
+		name      string
+		arguments map[string]interface{}
+		expected  []string
+	}{
+		{
+			name: "non-empty values are accepted",
+			arguments: map[string]interface{}{
+				"order_id": "order_abc", "receipt": "r1", "note": "",
+			},
+		},
+		{
+			name: "an empty required string is reported as missing",
+			arguments: map[string]interface{}{
+				"order_id": "", "receipt": "",
+			},
+			expected: []string{
+				"missing required parameter: order_id",
+				"missing required parameter: receipt",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected,
+				ValidateArguments(parameters, tc.arguments))
+		})
+	}
 }

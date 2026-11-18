@@ -1434,50 +1434,24 @@ func Test_SubmitOtp(t *testing.T) {
 			ExpectedErrMsg: "missing required parameter: otp_string",
 		},
 		{
-			Name: "empty otp_string",
+			Name: "empty otp_string is reported as missing",
 			Request: map[string]interface{}{
 				"payment_id": "pay_MT48CvBhIC98MQ",
 				"otp_string": "",
 			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:   fmt.Sprintf(submitOtpPathFmt, "pay_MT48CvBhIC98MQ"),
-						Method: "POST",
-						Response: map[string]interface{}{
-							"error": map[string]interface{}{
-								"code":        "BAD_REQUEST_ERROR",
-								"description": "Authentication failed",
-							},
-						},
-					},
-				)
-			},
+			MockHttpClient: nil, // rejected before any request is sent
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP verification failed: Authentication failed",
+			ExpectedErrMsg: "missing required parameter: otp_string",
 		},
 		{
-			Name: "empty payment_id",
+			Name: "empty payment_id is reported as missing",
 			Request: map[string]interface{}{
 				"payment_id": "",
 				"otp_string": "123456",
 			},
-			MockHttpClient: func() (*http.Client, *httptest.Server) {
-				return mock.NewHTTPClient(
-					mock.Endpoint{
-						Path:   fmt.Sprintf(submitOtpPathFmt, ""),
-						Method: "POST",
-						Response: map[string]interface{}{
-							"error": map[string]interface{}{
-								"code":        "BAD_REQUEST_ERROR",
-								"description": "",
-							},
-						},
-					},
-				)
-			},
+			MockHttpClient: nil, // rejected before any request is sent
 			ExpectError:    true,
-			ExpectedErrMsg: "OTP verification failed:",
+			ExpectedErrMsg: "missing required parameter: payment_id",
 		},
 	}
 
