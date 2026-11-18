@@ -952,7 +952,7 @@ func Test_UpdateOrder(t *testing.T) {
 		{
 			Name: "order not found",
 			Request: map[string]interface{}{
-				"order_id": "order_invalid_id",
+				"order_id": "order_DoesNotExist01",
 				"notes": map[string]interface{}{
 					"customer_name": "updated-customer",
 					"product_name":  "updated-product",
@@ -961,7 +961,7 @@ func Test_UpdateOrder(t *testing.T) {
 			MockHttpClient: func() (*http.Client, *httptest.Server) {
 				return mock.NewHTTPClient(
 					mock.Endpoint{
-						Path:     fmt.Sprintf(updateOrderPathFmt, "order_invalid_id"),
+						Path:     fmt.Sprintf(updateOrderPathFmt, "order_DoesNotExist01"),
 						Method:   "PATCH",
 						Response: orderNotFoundResp,
 					},

@@ -3,6 +3,7 @@ package razorpay
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -313,6 +314,7 @@ func FetchPaymentLink(
 			"payment_link_id",
 			mcpgo.Description("ID of the payment link to be fetched"+
 				"(ID should have a plink_ prefix)."),
+			mcpgo.Pattern(paymentLinkIDPattern),
 			mcpgo.Required(),
 		),
 	}
@@ -338,7 +340,8 @@ func FetchPaymentLink(
 
 		paymentLinkId := fields["payment_link_id"].(string)
 
-		paymentLink, err := client.PaymentLink.Fetch(paymentLinkId, nil, nil)
+		paymentLink, err := client.PaymentLink.Fetch(
+			url.PathEscape(paymentLinkId), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("fetching payment link failed", err)), nil
@@ -368,6 +371,7 @@ func ResendPaymentLinkNotification(
 			"payment_link_id",
 			mcpgo.Description("ID of the payment link for which to send notification "+
 				"(ID should have a plink_ prefix)."), // nolint:lll
+			mcpgo.Pattern(paymentLinkIDPattern),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
@@ -402,7 +406,8 @@ func ResendPaymentLinkNotification(
 		medium := fields["medium"].(string)
 
 		// Call the SDK function
-		response, err := client.PaymentLink.NotifyBy(paymentLinkId, medium, nil, nil)
+		response, err := client.PaymentLink.NotifyBy(
+			url.PathEscape(paymentLinkId), url.PathEscape(medium), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("sending notification failed: %s", err.Error())), nil
@@ -429,6 +434,7 @@ func UpdatePaymentLink(
 			"payment_link_id",
 			mcpgo.Description("ID of the payment link to update "+
 				"(ID should have a plink_ prefix)."),
+			mcpgo.Pattern(paymentLinkIDPattern),
 			mcpgo.Required(),
 		),
 		mcpgo.WithString(
@@ -489,7 +495,8 @@ func UpdatePaymentLink(
 		}
 
 		// Call the SDK function
-		paymentLink, err := client.PaymentLink.Update(paymentLinkId, plUpdateReq, nil)
+		paymentLink, err := client.PaymentLink.Update(
+			url.PathEscape(paymentLinkId), plUpdateReq, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("updating payment link failed: %s", err.Error())), nil
