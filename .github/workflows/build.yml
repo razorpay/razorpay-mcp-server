@@ -22,6 +22,14 @@ jobs:
         with:
           go-version-file: "go.mod"
 
+      - name: Set up Package Manager Guard
+        if: runner.os == 'Linux'
+        uses: safedep/pmg@v1
+        with:
+          server-mode: true
+          api-key: ${{ secrets.SAFEDEP_API_KEY }}
+          tenant-id: ${{ secrets.SAFEDEP_TENANT_ID }}
+
       - name: Download dependencies
         run: go mod download
 
@@ -30,3 +38,7 @@ jobs:
 
       - name: Build
         run: go build -v ./cmd/razorpay-mcp-server
+
+      - name: Enforce PMG policy
+        if: always() && runner.os == 'Linux'
+        run: pmg proxy stop --fail-on-violation
