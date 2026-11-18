@@ -128,7 +128,7 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		obs.Logger.Infof(ctx, "MCP_METHOD_CALLED",
 			"method", method,
 			"id", id,
-			"message", messageForLog(message))
+			"message", MessageForLog(message))
 	})
 
 	hooks.AddOnSuccess(func(ctx context.Context, id any, method mcp.MCPMethod,
@@ -136,7 +136,7 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		obs.Logger.Infof(ctx, "MCP_METHOD_SUCCEEDED",
 			"method", method,
 			"id", id,
-			"result", resultForLog(method, result))
+			"result", ResultForLog(method, result))
 	})
 
 	hooks.AddOnError(func(ctx context.Context, id any, method mcp.MCPMethod,
@@ -144,7 +144,7 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		obs.Logger.Infof(ctx, "MCP_METHOD_FAILED",
 			"method", method,
 			"id", id,
-			"message", messageForLog(message),
+			"message", MessageForLog(message),
 			"error", err)
 	})
 
@@ -152,15 +152,15 @@ func SetupHooks(obs *observability.Observability) *server.Hooks {
 		message *mcp.CallToolRequest) {
 		obs.Logger.Infof(ctx, "TOOL_CALL_STARTED",
 			"id", id,
-			"request", toolRequestForLog(message))
+			"request", ToolRequestForLog(message))
 	})
 
 	hooks.AddAfterCallTool(func(ctx context.Context, id any,
 		message *mcp.CallToolRequest, result *mcp.CallToolResult) {
 		obs.Logger.Infof(ctx, "TOOL_CALL_COMPLETED",
 			"id", id,
-			"request", toolRequestForLog(message),
-			"result", toolResultForLog(result))
+			"request", ToolRequestForLog(message),
+			"result", ToolResultForLog(result))
 	})
 
 	return hooks

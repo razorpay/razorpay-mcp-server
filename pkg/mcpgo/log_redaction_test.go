@@ -1,64 +1,39 @@
 package mcpgo
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
+	"log/slog"
 	"net/http"
-	"strings"
-	"sync"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/razorpay/razorpay-mcp-server/pkg/log"
 	"github.com/razorpay/razorpay-mcp-server/pkg/observability"
 )
 
-// recordingLogger keeps every formatted log line for inspection.
-type recordingLogger struct {
-	mu    sync.Mutex
-	lines []string
-}
-
-func (l *recordingLogger) record(msg string, args ...interface{}) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.lines = append(l.lines, fmt.Sprintf("%s %+v", msg, args))
-}
-
-func (l *recordingLogger) Infof(
-	_ context.Context, m string, a ...interface{}) {
-	l.record(m, a...)
-}
-
-func (l *recordingLogger) Errorf(
-	_ context.Context, m string, a ...interface{}) {
-	l.record(m, a...)
-}
-
-func (l *recordingLogger) Fatalf(
-	_ context.Context, m string, a ...interface{}) {
-	l.record(m, a...)
-}
-
-func (l *recordingLogger) Debugf(
-	_ context.Context, m string, a ...interface{}) {
-	l.record(m, a...)
-}
-
-func (l *recordingLogger) Warningf(
-	_ context.Context, m string, a ...interface{}) {
-	l.record(m, a...)
-}
-
-func (l *recordingLogger) Close() error { return nil }
-
-func (l *recordingLogger) all() string {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return strings.Join(l.lines, "\n")
+// newCapturingLogger returns a production slog logger that writes to buf
+// through the given handler kind, so the test sees exactly the bytes a
+// deployed server would write.
+func newCapturingLogger(kind string, buf *bytes.Buffer) log.Logger {
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+		// Drop the timestamp so digit values cannot match it by chance.
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return a
+		},
+	}
+	if kind == "json" {
+		return log.NewSloggerWithHandler(slog.NewJSONHandler(buf, opts))
+	}
+	return log.NewSloggerWithHandler(slog.NewTextHandler(buf, opts))
 }
 
 // testAuthHeaderValue is a fake Basic credential built at runtime, so no
@@ -76,8 +51,16 @@ func sensitiveToolCall() (*mcp.CallToolRequest, *mcp.CallToolResult) {
 	}
 	req.Params.Name = "submit_otp"
 	req.Params.Arguments = map[string]any{
-		"payment_id": "pay_LOGSAFE000001",
-		"otp_string": "482913",
+		"payment_id":       "pay_LOGSAFE000001",
+		"customer_id":      "cust_LOGSAFE000002",
+		"otp_string":       "482913",
+		"customer_contact": "+919812345670",
+		"customer_email":   "payer.logsafe@example.com",
+		"customer_name":    "Logsafe Payer",
+		"customerEmail":    "camel.logsafe@example.com",
+		"accessToken":      "camel-token-logsafe",
+		"x-api-key":        "dash-key-logsafe",
+		"email_id":         "id.logsafe@example.com",
 		"card": map[string]any{
 			"number": "4111111111111111",
 			"cvv":    "123",
@@ -90,12 +73,15 @@ func sensitiveToolCall() (*mcp.CallToolRequest, *mcp.CallToolResult) {
 
 var sensitiveValues = []string{
 	"482913", "4111111111111111", "5555555555554444", "tok-res-secret",
-	testAuthHeaderValue, `cvv:123`,
+	testAuthHeaderValue, "+919812345670", "payer.logsafe@example.com",
+	"Logsafe Payer", "camel.logsafe@example.com", "camel-token-logsafe",
+	"dash-key-logsafe", "id.logsafe@example.com",
+	// The card object is redacted whole, so its keys never appear either.
+	"cvv", "4111",
 }
 
-func TestSetupHooks_DoNotLogSensitiveValues(t *testing.T) {
-	logger := &recordingLogger{}
-	hooks := SetupHooks(&observability.Observability{Logger: logger})
+func runAllHooks(obs *observability.Observability) {
+	hooks := SetupHooks(obs)
 	ctx := context.Background()
 	req, result := sensitiveToolCall()
 
@@ -114,17 +100,30 @@ func TestSetupHooks_DoNotLogSensitiveValues(t *testing.T) {
 	for _, h := range hooks.OnError {
 		h(ctx, 1, mcp.MethodToolsCall, req, errors.New("boom"))
 	}
+}
 
-	logged := logger.all()
-	assert.NotEmpty(t, logged)
-	for _, secret := range sensitiveValues {
-		assert.NotContains(t, logged, secret)
+func TestSetupHooks_DoNotLogSensitiveValues(t *testing.T) {
+	for _, kind := range []string{"json", "text"} {
+		t.Run(kind, func(t *testing.T) {
+			var buf bytes.Buffer
+			runAllHooks(&observability.Observability{
+				Logger: newCapturingLogger(kind, &buf),
+			})
+
+			logged := buf.String()
+			assert.NotEmpty(t, logged)
+			for _, secret := range sensitiveValues {
+				assert.NotContains(t, logged, secret)
+			}
+			// Logs stay useful: tool name, ids, key names and outcome remain.
+			assert.Contains(t, logged, "submit_otp")
+			assert.Contains(t, logged, "pay_LOGSAFE000001")
+			assert.Contains(t, logged, "cust_LOGSAFE000002")
+			assert.Contains(t, logged, "otp_string")
+			assert.Contains(t, logged, redactedValue)
+			assert.Contains(t, logged, "boom")
+		})
 	}
-	// Logs stay useful: tool name, safe argument values and outcome remain.
-	assert.Contains(t, logged, "submit_otp")
-	assert.Contains(t, logged, "pay_LOGSAFE000001")
-	assert.Contains(t, logged, "otp_string")
-	assert.Contains(t, logged, "boom")
 }
 
 func TestRedactForLog(t *testing.T) {
@@ -150,4 +149,37 @@ func TestRedactForLog(t *testing.T) {
 	assert.EqualValues(t, 100, nested["amount"])
 	// The input is not modified.
 	assert.Equal(t, "111111", in["OTP"])
+}
+
+func TestIsSensitiveLogKey(t *testing.T) {
+	sensitive := []string{
+		// secrets, in any casing or separator style
+		"otp", "otp_string", "OTP", "cvv", "card", "number", "expiry_month",
+		"token", "access_token", "accessToken", "refresh-token", "api_key",
+		"x-api-key", "apiKey", "Authorization", "cookie", "Set-Cookie",
+		"password", "key_secret", "keySecret", "razorpay_signature",
+		"card_number", "cardNumber",
+		// secrets win over an id suffix
+		"session_id", "sessionId", "token_id",
+		// PII
+		"contact", "customer_contact", "customerContact", "email",
+		"customer_email", "customerEmail", "Customer-Email", "phone",
+		"mobile_number", "customer_name", "customerName", "first_name",
+		"vpa", "upi", "billing_address", "account_number", "date_of_birth",
+		// id-suffixed contact data
+		"email_id", "emailId", "upi_id", "vpa_id",
+	}
+	for _, key := range sensitive {
+		assert.Truef(t, IsSensitiveLogKey(key), "%q should be redacted", key)
+	}
+
+	safe := []string{
+		"payment_id", "order_id", "customer_id", "customerId", "contact_id",
+		"contactID", "payment_link_id", "payout_id", "id", "amount",
+		"currency", "status", "method", "description", "notes", "medium",
+		"group_name", "groupId", "upi_link", "expire_by", "reference_id",
+	}
+	for _, key := range safe {
+		assert.Falsef(t, IsSensitiveLogKey(key), "%q should be logged", key)
+	}
 }

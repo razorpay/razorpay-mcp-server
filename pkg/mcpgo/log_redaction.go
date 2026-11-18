@@ -13,50 +13,107 @@ const redactedValue = "[REDACTED]"
 // unloggableValue stands in for a value that cannot be rendered safely.
 const unloggableValue = "[UNLOGGABLE]"
 
-// sensitiveLogKeys are field names whose values are never logged. Keys are
-// compared lower-cased.
+// Field names are compared in normalised form: lower-cased, with '_', '-',
+// '.' and ' ' removed, so "customer_contact", "customerContact" and
+// "Customer-Contact" all compare as "customercontact".
+
+// sensitiveLogKeys are exact normalised field names whose values are never
+// logged. They are too short or too generic to match as substrings.
 var sensitiveLogKeys = map[string]bool{
-	"otp":                true,
-	"otp_string":         true,
-	"card":               true,
-	"card_number":        true,
-	"number":             true,
-	"cvv":                true,
-	"expiry":             true,
-	"expiry_month":       true,
-	"expiry_year":        true,
-	"token":              true,
-	"access_token":       true,
-	"refresh_token":      true,
-	"authorization":      true,
-	"cookie":             true,
-	"password":           true,
-	"secret":             true,
-	"key_secret":         true,
-	"api_key":            true,
-	"signature":          true,
-	"razorpay_signature": true,
-	"contact":            true,
-	"email":              true,
-	"vpa":                true,
+	"card":   true,
+	"number": true,
+	"pin":    true,
+	"mpin":   true,
+	"pan":    true,
+	"vpa":    true,
+	"upi":    true,
+	"dob":    true,
+	"cookie": true,
 }
 
-// sensitiveLogKeyParts are substrings that mark a field name as sensitive.
-var sensitiveLogKeyParts = []string{
-	"secret", "password", "otp", "cvv", "authorization", "signature",
+// secretLogKeyParts mark a field as a credential or card secret. They are
+// redacted wherever they appear in a name, including names ending in an id
+// suffix such as session_id or token_id.
+var secretLogKeyParts = []string{
+	"secret", "password", "passwd", "passcode", "otp", "cvv", "cvc",
+	"token", "authorization", "signature", "apikey", "credential",
+	"privatekey", "session", "cookie", "cardnumber", "expiry",
 }
 
-func isSensitiveLogKey(key string) bool {
-	k := strings.ToLower(key)
-	if sensitiveLogKeys[k] {
-		return true
+// piiLogKeyParts mark a field as personal data. A field whose name ends in
+// an id suffix (customer_id, contactId) is an identifier, not the data
+// itself, and is logged unless its stem is contact data (email_id, upi_id).
+// "upi" is matched exactly (sensitiveLogKeys), not as a part, because it
+// occurs inside "group".
+var piiLogKeyParts = []string{
+	"contact", "email", "phone", "mobile", "vpa", "address",
+	"customername", "fullname", "firstname", "lastname", "holdername",
+	"billingname", "beneficiaryname", "accountnumber", "aadhaar",
+	"birth",
+}
+
+// contactIDStems are id-suffixed stems that hold contact data, not a
+// reference: "email_id" is an email address and "upi_id" is a VPA.
+// "contact_id" is not here: Razorpay uses it for a cont_ reference.
+var contactIDStems = map[string]bool{
+	"email": true, "mail": true, "upi": true, "vpa": true,
+	"phone": true, "mobile": true,
+}
+
+// normaliseLogKey lower-cases a field name and removes separators.
+func normaliseLogKey(key string) string {
+	var b strings.Builder
+	b.Grow(len(key))
+	for _, r := range strings.ToLower(key) {
+		switch r {
+		case '_', '-', '.', ' ':
+			continue
+		}
+		b.WriteRune(r)
 	}
-	for _, part := range sensitiveLogKeyParts {
-		if strings.Contains(k, part) {
+	return b.String()
+}
+
+// idStem returns the normalised name before an id suffix ("customer" for
+// "customer_id", "customerId" or "customer-ID") and whether the name has one.
+func idStem(key string) (string, bool) {
+	lower := strings.ToLower(key)
+	for _, suffix := range []string{"_id", "-id", ".id"} {
+		if strings.HasSuffix(lower, suffix) && len(lower) > len(suffix) {
+			return normaliseLogKey(key[:len(key)-len(suffix)]), true
+		}
+	}
+	// camelCase: "customerId" or "customerID".
+	if len(key) > 2 && (strings.HasSuffix(key, "Id") ||
+		strings.HasSuffix(key, "ID")) {
+		prev := key[len(key)-3]
+		if prev >= 'a' && prev <= 'z' {
+			return normaliseLogKey(key[:len(key)-2]), true
+		}
+	}
+	return "", false
+}
+
+func containsAny(s string, parts []string) bool {
+	for _, part := range parts {
+		if strings.Contains(s, part) {
 			return true
 		}
 	}
 	return false
+}
+
+// IsSensitiveLogKey reports whether the value of a field with this name must
+// be redacted before it is logged.
+func IsSensitiveLogKey(key string) bool {
+	k := normaliseLogKey(key)
+	if sensitiveLogKeys[k] || containsAny(k, secretLogKeyParts) {
+		return true
+	}
+	if stem, isID := idStem(key); isID {
+		return contactIDStems[stem]
+	}
+	return containsAny(k, piiLogKeyParts)
 }
 
 // RedactForLog returns a copy of v that is safe to log: the value is
@@ -83,7 +140,7 @@ func redactDecoded(v any) any {
 	case map[string]any:
 		out := make(map[string]any, len(typed))
 		for key, value := range typed {
-			if isSensitiveLogKey(key) {
+			if IsSensitiveLogKey(key) {
 				out[key] = redactedValue
 				continue
 			}
@@ -101,9 +158,9 @@ func redactDecoded(v any) any {
 	}
 }
 
-// toolRequestForLog summarises a tools/call request: the tool name and its
+// ToolRequestForLog summarises a tools/call request: the tool name and its
 // arguments with sensitive values redacted.
-func toolRequestForLog(req *mcp.CallToolRequest) map[string]any {
+func ToolRequestForLog(req *mcp.CallToolRequest) map[string]any {
 	if req == nil {
 		return nil
 	}
@@ -113,9 +170,9 @@ func toolRequestForLog(req *mcp.CallToolRequest) map[string]any {
 	}
 }
 
-// toolResultForLog summarises a tool result without its content, which can
+// ToolResultForLog summarises a tool result without its content, which can
 // hold card details, tokens and full API responses.
-func toolResultForLog(result *mcp.CallToolResult) map[string]any {
+func ToolResultForLog(result *mcp.CallToolResult) map[string]any {
 	if result == nil {
 		return nil
 	}
@@ -125,19 +182,19 @@ func toolResultForLog(result *mcp.CallToolResult) map[string]any {
 	}
 }
 
-// messageForLog returns a log-safe form of an MCP request message.
-func messageForLog(message any) any {
+// MessageForLog returns a log-safe form of an MCP request message.
+func MessageForLog(message any) any {
 	if req, ok := message.(*mcp.CallToolRequest); ok {
-		return toolRequestForLog(req)
+		return ToolRequestForLog(req)
 	}
 	return RedactForLog(message)
 }
 
-// resultForLog returns a log-safe form of an MCP method result.
-func resultForLog(method mcp.MCPMethod, result any) any {
+// ResultForLog returns a log-safe form of an MCP method result.
+func ResultForLog(method mcp.MCPMethod, result any) any {
 	switch typed := result.(type) {
 	case *mcp.CallToolResult:
-		return toolResultForLog(typed)
+		return ToolResultForLog(typed)
 	case *mcp.ListToolsResult:
 		if method == mcp.MethodToolsList {
 			names := make([]string, 0, len(typed.Tools))

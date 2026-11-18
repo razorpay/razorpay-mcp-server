@@ -96,6 +96,13 @@ func (s *slogLogger) Close() error {
 	return nil
 }
 
+// NewSloggerWithHandler returns a Logger that writes through the given slog
+// handler. Tests use it to check exactly what a production handler would
+// write; callers can also use it to route logs to their own sink.
+func NewSloggerWithHandler(handler slog.Handler) *slogLogger {
+	return &slogLogger{logger: slog.New(handler)}
+}
+
 // NewSlogger returns a new slog.Logger implementation of Logger interface.
 // If path to log file is not provided then logger uses stderr for stdio mode
 // If the log file cannot be opened, falls back to stderr
@@ -158,6 +165,13 @@ func NewSloggerWithFile(path string) (*slogLogger, error) {
 			logger: logger,
 			closer: noop,
 		}, nil
+	}
+
+	// OpenFile applies 0600 only when it creates the file. Tighten a file
+	// that already existed with a wider mode. Failure is not fatal: some
+	// platforms and filesystems do not support Unix modes.
+	if err := file.Chmod(0o600); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not restrict log file mode: %v\n", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "logs are stored in: %v\n", path)

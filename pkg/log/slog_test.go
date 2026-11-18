@@ -286,3 +286,21 @@ func TestNewSloggerWithFile_OwnerOnlyPermissions(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
 }
+
+func TestNewSloggerWithFile_TightensExistingFileMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not apply Unix permission bits")
+	}
+
+	path := filepath.Join(t.TempDir(), "server.log")
+	require.NoError(t, os.WriteFile(path, []byte("old\n"), 0o600))
+	require.NoError(t, os.Chmod(path, 0o644))
+
+	logger, err := NewSloggerWithFile(path)
+	require.NoError(t, err)
+	defer func() { _ = logger.Close() }()
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+}
