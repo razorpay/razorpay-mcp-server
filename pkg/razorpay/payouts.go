@@ -2,6 +2,7 @@ package razorpay
 
 import (
 	"context"
+	"net/url"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -20,6 +21,7 @@ func FetchPayout(
 			mcpgo.Description(
 				"The unique identifier of the payout. For example, 'pout_00000000000001'",
 			),
+			mcpgo.Pattern(payoutIDPattern),
 			mcpgo.Required(),
 		),
 	}
@@ -43,7 +45,7 @@ func FetchPayout(
 		}
 
 		payout, err := client.Payout.Fetch(
-			FetchPayoutOptions["payout_id"].(string),
+			url.PathEscape(FetchPayoutOptions["payout_id"].(string)),
 			nil,
 			nil,
 		)
