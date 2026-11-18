@@ -3,6 +3,7 @@ package razorpay
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	rzpsdk "github.com/razorpay/razorpay-go"
 
@@ -189,6 +190,7 @@ func FetchOrder(
 		mcpgo.WithString(
 			"order_id",
 			mcpgo.Description("Unique identifier of the order to be retrieved"),
+			mcpgo.Pattern(orderIDPattern),
 			mcpgo.Required(),
 		),
 	}
@@ -212,7 +214,8 @@ func FetchOrder(
 			return result, err
 		}
 
-		order, err := client.Order.Fetch(payload["order_id"].(string), nil, nil)
+		order, err := client.Order.Fetch(
+			url.PathEscape(payload["order_id"].(string)), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("fetching order failed", err),
@@ -342,6 +345,7 @@ func FetchOrderPayments(
 			mcpgo.Description(
 				"Unique identifier of the order for which payments should"+
 					" be retrieved. Order id should start with `order_`"),
+			mcpgo.Pattern(orderIDPattern),
 			mcpgo.Required(),
 		),
 	}
@@ -368,7 +372,7 @@ func FetchOrderPayments(
 		// Fetch payments for the order using Razorpay SDK
 		// Note: Using the Order.Payments method from SDK
 		orderID := orderPaymentsReq["order_id"].(string)
-		payments, err := client.Order.Payments(orderID, nil, nil)
+		payments, err := client.Order.Payments(url.PathEscape(orderID), nil, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				formatErrorMessage("fetching payments for order failed", err),
@@ -398,6 +402,7 @@ func UpdateOrder(
 			"order_id",
 			mcpgo.Description("Unique identifier of the order which "+
 				"needs to be updated. ID should have an order_ prefix."),
+			mcpgo.Pattern(orderIDPattern),
 			mcpgo.Required(),
 		),
 		mcpgo.WithObject(
@@ -432,7 +437,7 @@ func UpdateOrder(
 		data["notes"] = orderUpdateReq["notes"]
 		orderID := orderUpdateReq["order_id"].(string)
 
-		order, err := client.Order.Update(orderID, data, nil)
+		order, err := client.Order.Update(url.PathEscape(orderID), data, nil)
 		if err != nil {
 			return mcpgo.NewToolResultError(
 				fmt.Sprintf("updating order failed: %s", err.Error())), nil
