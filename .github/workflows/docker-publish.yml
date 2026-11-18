@@ -30,7 +30,7 @@ jobs:
         run: |
           TRIGGER_SHA=${{ github.event.pull_request.head.sha || github.sha }}
           echo "trigger_sha=${TRIGGER_SHA}" >> $GITHUB_OUTPUT
-          
+
           # Generate build timestamp in UTC
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           echo "build_date=${BUILD_DATE}" >> $GITHUB_OUTPUT
@@ -46,7 +46,7 @@ jobs:
             IMAGE_TAG="${{ steps.build_info.outputs.trigger_sha }}"
             echo "tags=razorpay/mcp:${IMAGE_TAG}" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Build & Push
         uses: docker/build-push-action@v6
         with:
