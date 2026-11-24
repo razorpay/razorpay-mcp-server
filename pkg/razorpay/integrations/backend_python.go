@@ -1,14 +1,17 @@
 //nolint:lll // File contains embedded code templates requiring longer lines
 package integrations
 
+import "strings"
+
 func getDjangoIntegration(frontend FrontendIntegration) IntegrateCheckoutOutput {
+	frontend.Code = djangoCSRFHeaders(frontend.Code)
 	keyID, keySecret := placeholderKeyID, placeholderKeySecret
 
 	viewsCode := `import json
 import time
 import razorpay
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 from django.conf import settings
 
@@ -36,12 +39,21 @@ def get_order_amount_paise(request):
     )
 
 
-@csrf_exempt
+def get_order_snapshot(request):
+    """Return a stable, JSON-serializable snapshot of the server-side cart/order."""
+    raise NotImplementedError(
+        'get_order_snapshot must identify the exact server-side cart or order. '
+        'See STEP 6.'
+    )
+
+
+@csrf_protect
 @require_POST
 def create_order(request):
     try:
         # The request body is not trusted for the price. See the docstring.
         amount_paise, currency = get_order_amount_paise(request)
+        checkout_snapshot = get_order_snapshot(request)
 
         if amount_paise <= 0:
             return JsonResponse({'success': False, 'error': 'Invalid amount'}, status=400)
@@ -52,12 +64,17 @@ def create_order(request):
             'receipt': f'receipt_{int(time.time())}',
         })
 
-        # Remember what the server asked for, so that verify_payment can check
-        # what was actually paid against it.
+        # Do not trust a provider response that differs from the server quote.
+        if (int(order['amount']) != int(amount_paise)
+                or order['currency'] != currency):
+            return JsonResponse({'success': False, 'error': 'Provider order mismatch'}, status=502)
+
+        # Bind this one-use checkout to both the server quote and its exact cart/order.
         request.session['razorpay_pending'] = {
             'order_id': order['id'],
-            'amount': order['amount'],
-            'currency': order['currency'],
+            'amount': int(amount_paise),
+            'currency': currency,
+            'checkout_snapshot': checkout_snapshot,
         }
 
         return JsonResponse({
@@ -67,10 +84,12 @@ def create_order(request):
             'currency': order['currency'],
             'keyId': settings.RAZORPAY_KEY_ID,
         })
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    except NotImplementedError:
+        return JsonResponse({'success': False, 'error': 'Checkout integration is not configured'}, status=503)
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Unable to create Razorpay order'}, status=502)
 
-@csrf_exempt
+@csrf_protect
 @require_POST
 def verify_payment(request):
     try:
@@ -87,6 +106,9 @@ def verify_payment(request):
         pending = request.session.get('razorpay_pending')
         if not pending or pending['order_id'] != razorpay_order_id:
             return JsonResponse({'success': False, 'error': 'Unknown order'}, status=400)
+        checkout_snapshot = get_order_snapshot(request)
+        if checkout_snapshot != pending['checkout_snapshot']:
+            return JsonResponse({'success': False, 'error': 'Checkout changed'}, status=400)
 
         # Use Razorpay SDK to verify signature
         client.utility.verify_payment_signature({
@@ -103,7 +125,8 @@ def verify_payment(request):
         if (payment['order_id'] != razorpay_order_id
                 or int(payment['amount']) != int(pending['amount'])
                 or payment['currency'] != pending['currency']
-                or payment['status'] not in ('authorized', 'captured')):
+                or payment['status'] != 'captured'
+                or payment.get('captured') is not True):
             return JsonResponse({'success': False, 'error': 'Payment does not match the order'}, status=400)
 
         # Single use: the pending record cannot be replayed against a second
@@ -118,6 +141,7 @@ def verify_payment(request):
             'payment_id': razorpay_payment_id,
             'amount': int(payment['amount']),
             'currency': payment['currency'],
+            'checkout_snapshot': checkout_snapshot,
         }
 
         return JsonResponse({
@@ -128,8 +152,10 @@ def verify_payment(request):
         })
     except razorpay.errors.SignatureVerificationError:
         return JsonResponse({'success': False, 'error': 'Invalid signature'}, status=400)
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    except NotImplementedError:
+        return JsonResponse({'success': False, 'error': 'Checkout integration is not configured'}, status=503)
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Unable to verify Razorpay payment'}, status=502)
 `
 
 	urlsCode := `from django.urls import path
@@ -164,6 +190,7 @@ urlpatterns = [
 				Path:        "settings.py",
 				Description: "Add to settings.py",
 				Edits: []EditItem{
+					{Line: "At top of file", Add: "import os", Why: "Read the Razorpay keys from environment variables"},
 					{Line: "In INSTALLED_APPS list", Add: "'razorpay_payments',", Why: "Register the Razorpay app"},
 					{Line: "After other settings", Add: "RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')", Why: "Razorpay key ID"},
 					{Line: "After RAZORPAY_KEY_ID", Add: "RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')", Why: "Razorpay key secret"},
@@ -281,23 +308,33 @@ NEVER mark an order paid based on client-controlled input such as payment_method
 verify_payment (already provided) checks the signature, then asks Razorpay what was
 actually paid and compares it with what the server asked for. It stores the result in
 request.session['razorpay_verified'], including the amount.
-Find the checkout view, add before order.save():
+Import transaction from django.db, JsonResponse from django.http, and
+get_order_snapshot from razorpay_payments.views. Wrap the checkout view's database
+write in transaction.atomic(). Add this before order.save():
   order.payment_method = request.POST.get('payment_method', 'cod')
   if order.payment_method == 'razorpay':
-      verified = request.session.pop('razorpay_verified', None)
+      verified = request.session.get('razorpay_verified')
       posted_payment_id = request.POST.get('razorpay_payment_id')
       expected_paise = int(order.total_amount * 100)  # use THIS order's server-side total
-      if (verified
+      checkout_snapshot = get_order_snapshot(request)
+      if not (verified
               and verified['payment_id'] == posted_payment_id
-              and verified['amount'] == expected_paise):
-          order.payment_status = 'paid'
-          # Persist ids (add fields to the Order model if missing) for reconciliation/refunds
-          order.razorpay_order_id = verified['order_id']
-          order.razorpay_payment_id = verified['payment_id']
-      # otherwise leave payment_status as-is (pending); never default to 'paid'
+              and verified['amount'] == expected_paise
+              and verified['checkout_snapshot'] == checkout_snapshot):
+          return JsonResponse({'success': False, 'error': 'Payment does not match this checkout'}, status=409)
+      order.payment_status = 'paid'
+      # Persist ids (add fields to the Order model if missing) for reconciliation/refunds
+      order.razorpay_order_id = verified['order_id']
+      order.razorpay_payment_id = verified['payment_id']
+      transaction.on_commit(lambda: request.session.pop('razorpay_verified', None))
 Replace order.total_amount with whatever field holds this order's total. The amount
-comparison is what stops a payment made for a cheap order being applied to an expensive
-one. Without it, a shopper can pay once for a 1 rupee order and reuse that payment id.
+and snapshot comparisons bind the captured payment to this exact server-side checkout.
+The POST endpoints use explicit csrf_protect decorators. Keep CsrfViewMiddleware
+enabled, or apply ensure_csrf_cookie to the existing checkout-page view when the
+project intentionally omits global middleware. Ensure that page calls get_token(request)
+or renders {% csrf_token %}, so Django issues the csrftoken cookie read by the generated
+requests.
+
 The checkout form MUST include a hidden input named razorpay_payment_id, set from
 the paymentId returned to the onSuccess callback BEFORE the form is submitted.
 
@@ -799,4 +836,10 @@ FINAL CHECKLIST:
 
 If ANY checkbox is NO, GO BACK AND FIX IT NOW.` + getFrontendWiringInstructions(frontend),
 	}
+}
+
+func djangoCSRFHeaders(code string) string {
+	return strings.ReplaceAll(code,
+		"headers: { 'Content-Type': 'application/json' },",
+		"headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.cookie.match(/(?:^|; )csrftoken=([^;]+)/) || [])[1] || '' },")
 }
