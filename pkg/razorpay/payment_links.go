@@ -29,6 +29,7 @@ func CreatePaymentLink(
 			"currency",
 			mcpgo.Description(currencyCodeDesc),
 			mcpgo.Required(),
+			mcpgo.Pattern("^[A-Z]{3}$"),
 		),
 		mcpgo.WithString(
 			"description",
@@ -51,6 +52,7 @@ func CreatePaymentLink(
 		mcpgo.WithString(
 			"reference_id",
 			mcpgo.Description("Reference number tagged to a Payment Link. Must be unique for each Payment Link. Max 40 characters."), // nolint:lll
+			mcpgo.Max(40),
 		),
 		mcpgo.WithString(
 			"customer_name",
@@ -174,6 +176,7 @@ func CreateUpiPaymentLink(
 			"currency",
 			mcpgo.Description("Three-letter ISO code for the currency (e.g., INR). UPI links are only supported in INR"), // nolint:lll
 			mcpgo.Required(),
+			mcpgo.Enum("INR"),
 		),
 		mcpgo.WithString(
 			"description",
@@ -196,6 +199,7 @@ func CreateUpiPaymentLink(
 		mcpgo.WithString(
 			"reference_id",
 			mcpgo.Description("Reference number tagged to a Payment Link. Must be unique for each Payment Link. Max 40 characters."), // nolint:lll
+			mcpgo.Max(40),
 		),
 		mcpgo.WithString(
 			"customer_name",
