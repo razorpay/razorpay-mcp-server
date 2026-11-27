@@ -197,9 +197,11 @@ The Remote MCP Server uses merchant token-based authentication. To generate your
 
 3. Generate your merchant token by running this command in your terminal:
    ```bash
-   echo <RAZORPAY_API_KEY>:<RAZORPAY_API_SECRET> | base64
+   echo -n '<RAZORPAY_API_KEY>:<RAZORPAY_API_SECRET>' | base64
    ```
    Replace `<RAZORPAY_API_KEY>` and `<RAZORPAY_API_SECRET>` with your actual credentials
+
+   > Note: The `-n` flag prevents `echo` from adding a trailing newline, which would otherwise be included in the Base64 output and can cause `Authorization: Basic ...` to fail.
 
 4. Copy the base64-encoded output - this is your merchant token for the Remote MCP Server
 
