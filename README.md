@@ -23,10 +23,10 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `resend_otp`                        | Resend OTP if the previous one was not received or expired | [Payment](https://github.com/razorpay/razorpay-go/blob/master/documents/payment.md#otp-resend) | ✅ |
 | `submit_otp`                        | Verify and submit OTP to complete payment authentication | [Payment](https://github.com/razorpay/razorpay-go/blob/master/documents/payment.md#otp-submit) | ✅ |
 | `create_payment_link`                | Creates a new payment link (standard)                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-standard) | ✅ |
-| `create_payment_link_upi`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi) | ✅ |
+| `payment_link_upi_create`            | Creates a new UPI payment link                         | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/create-upi) | ✅ |
 | `fetch_all_payment_links`            | Fetch all the payment links                            | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-all-standard) | ✅ |
 | `fetch_payment_link`                 | Fetch details of a payment link                        | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/fetch-id-standard/) | ✅ |
-| `send_payment_link`                  | Send a payment link via SMS or email.                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/resend) | ✅ |
+| `payment_link_notify`                | Send a payment link via SMS or email.                  | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/resend) | ✅ |
 | `update_payment_link`                | Updates a new standard payment link                    | [Payment Link](https://razorpay.com/docs/api/payments/payment-links/update-standard) | ✅ |
 | `create_order`                       | Creates an order                                       | [Order](https://razorpay.com/docs/api/orders/create/) | ✅ |
 | `fetch_order`                        | Fetch order with ID                                    | [Order](https://razorpay.com/docs/api/orders/fetch-with-id) | ✅ |
@@ -53,7 +53,7 @@ Currently, the Razorpay MCP Server provides the following tools:
 | `fetch_all_instant_settlements`      | Fetch all instant settlements                          | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-all) | ✅ |
 | `fetch_instant_settlement_with_id`   | Fetch instant settlement with ID                       | [Settlement](https://razorpay.com/docs/api/settlements/instant/fetch-with-id) | ✅ |
 | `fetch_all_payouts`                  | Fetch all payout details with A/c number               | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-all/) | ✅ |
-| `fetch_payout_by_id`                 | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id) | ✅ |
+| `fetch_payout_with_id`               | Fetch the payout details with payout ID                | [Payout](https://razorpay.com/docs/api/x/payouts/fetch-with-id) | ✅ |
 | `fetch_tokens`     | Get all saved payment methods by customer ID or contact number | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/cards/tokens/) | ✅ |
 | `revoke_token`     | Revoke a saved payment method (token) for a customer   | [Token](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-otm/collect/tokens/#24-cancel-token) | ✅ |
 | `create_registration_link`           | Create a registration link (auth link) for subscription registration | [Registration Link](https://razorpay.com/docs/api/payments/recurring-payments/registration-link/) | ❌ |
