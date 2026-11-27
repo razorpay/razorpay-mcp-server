@@ -180,7 +180,7 @@ func FetchQRCode(
 
 	return mcpgo.NewTool(
 		"fetch_qr_code",
-		"Fetch a QR code's details using it's ID",
+		"Fetch a QR code's details using its ID",
 		parameters,
 		handler,
 	)
