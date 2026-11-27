@@ -776,6 +776,48 @@ func TestAddArrayPropertyOptions(t *testing.T) {
 	})
 }
 
+func TestAddTypeSpecificPropertyOptions_appliesEachOptionOnce(t *testing.T) {
+	t.Run("number constraints applied once", func(t *testing.T) {
+		schema := map[string]interface{}{
+			"minimum": 1.0,
+			"maximum": 100.0,
+		}
+		opts := addTypeSpecificPropertyOptions(nil, schema)
+		assert.Len(t, opts, 2)
+	})
+
+	t.Run("string constraints applied once", func(t *testing.T) {
+		schema := map[string]interface{}{
+			"minLength": 3,
+			"maxLength": 10,
+			"pattern":   "^[a-z]+$",
+		}
+		opts := addTypeSpecificPropertyOptions(nil, schema)
+		assert.Len(t, opts, 3)
+	})
+
+	t.Run("object constraints applied once", func(t *testing.T) {
+		schema := map[string]interface{}{
+			"minProperties": 1,
+			"maxProperties": 5,
+		}
+		opts := addTypeSpecificPropertyOptions(nil, schema)
+		assert.Len(t, opts, 2)
+	})
+
+	t.Run("array constraints applied once", func(t *testing.T) {
+		schema := map[string]interface{}{
+			"minItems": 1,
+			"maxItems": 10,
+			"items": map[string]interface{}{
+				"type": "string",
+			},
+		}
+		opts := addTypeSpecificPropertyOptions(nil, schema)
+		assert.Len(t, opts, 3)
+	})
+}
+
 func TestConvertSchemaToPropertyOptions(t *testing.T) {
 	t.Run("converts complete schema", func(t *testing.T) {
 		schema := map[string]interface{}{
@@ -788,10 +830,10 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"default":     "default",
 		}
 		opts := convertSchemaToPropertyOptions(schema)
-		assert.NotNil(t, opts)
+		assert.Len(t, opts, 6)
 	})
 
-	t.Run("converts number schema", func(t *testing.T) {
+	t.Run("converts number schema once per constraint", func(t *testing.T) {
 		schema := map[string]interface{}{
 			"type":    "number",
 			"minimum": 1.0,
@@ -799,7 +841,7 @@ func TestConvertSchemaToPropertyOptions(t *testing.T) {
 			"default": 42.0,
 		}
 		opts := convertSchemaToPropertyOptions(schema)
-		assert.NotNil(t, opts)
+		assert.Len(t, opts, 3)
 	})
 
 	t.Run("converts object schema", func(t *testing.T) {
