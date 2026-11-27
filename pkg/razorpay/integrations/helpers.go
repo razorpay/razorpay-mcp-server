@@ -39,6 +39,39 @@ const (
 	placeholderKeySecret = "YOUR_KEY_SECRET"
 )
 
+// normalizeDetectedFrontend maps detect_stack frontend output to the
+// canonical vocabulary used by integrate_razorpay_checkout:
+// vanilla, react, nextjs, vue, angular, svelte, solid, native.
+func normalizeDetectedFrontend(backendFramework, frontend string) string {
+	if frontend != "" {
+		return frontend
+	}
+
+	switch backendFramework {
+	case "nextjs":
+		return "nextjs"
+	case "nuxt":
+		return "vue"
+	case "react-native", "flutter", "android", "ios",
+		"cordova", "ionic", "capacitor":
+		return "native"
+	default:
+		return "vanilla"
+	}
+}
+
+// withNormalizedFrontend sets Frontend on a DetectStackOutput using the
+// checkout vocabulary. Unknown stacks are left unchanged.
+func withNormalizedFrontend(output DetectStackOutput) DetectStackOutput {
+	if output.Language == "unknown" {
+		return output
+	}
+
+	output.Frontend = normalizeDetectedFrontend(
+		output.Framework, output.Frontend)
+	return output
+}
+
 func getNextStepsFile() FileAction {
 	return FileAction{
 		Action:      "create",
